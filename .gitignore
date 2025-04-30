@@ -1,7 +1,12 @@
 *.tmp
 *.log
+
 node_modules/
 dist/
 .vscode/
 
- 
+ main.js
+package-lock.json
+package.json
+renderer.js
+electron-packager.js
