@@ -3064,4 +3064,5 @@ window.addEventListener('beforeunload', (event) => {
   // Required for the dialog to be shown
   event.preventDefault();
   event.returnValue = '';
+  return '';
 });
