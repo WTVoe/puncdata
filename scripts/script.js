@@ -3059,3 +3059,7 @@ function createDataOptions(selecter, parentDiv){
 }
 
 
+//WARN BEFORE CLOSING !!!REMOVE THIS CODE WHEN MAKING THE DESKTOP VERSION!!!
+window.addEventListener('beforeunload', (event) => {
+  event.returnValue = `Are you sure you want to close?`;
+});
