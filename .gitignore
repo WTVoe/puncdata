@@ -5,7 +5,7 @@ node_modules/
 dist/
 .vscode/
 
- main.js
+main.js
 package-lock.json
 package.json
 renderer.js
