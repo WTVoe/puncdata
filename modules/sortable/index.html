@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="sortable.svg">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="sortable.css">
+    <title>Sortable</title>
+  </head>
+  <body>
+    <header class="bg-dark text-light py-5 mb-5">
+      <div class="container">
+        <h1 class="display-1 mb-4"><i class="bi-arrow-down-up"></i> Sortable</h1>
+        <p class="lead mb-4">Super simple, completely configurable, sortable tables.</p>
+        <a class="btn btn-secondary" href="https://github.com/signified/sortable" target="_blank"><i class="bi-github"></i> View on GitHub</a>
+      </div>
+    </header>
+    <main>
+      <div class="container">
+        <h2 class="display-6">Basic usage</h2>
+        <p>The below example makes the table with the <code>id</code> attribute value of <code>example-1</code> sortable using the default <a href="https://github.com/signified/sortable#options-object--optional" target="_blank"><code>options</code></a> and styling provided by the default stylesheet (<a href="https://github.com/signified/sortable/blob/main/sortable.css" target="_blank">sortable.css</a>).</p>
+        <pre class="mb-5 p-4 bg-light border rounded">sortable(&#39;#example-1&#39;);</pre>
+        <table class="table" id="example-1">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>First Name</th>
+              <th>Surname</th>
+              <th>Date of Birth</th>
+              <th>Email Address</th>
+              <th>Donation</th>
+              <th>IP Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>8074</td>
+              <td>Gay</td>
+              <td>Clark</td>
+              <td>Jul 14, 1991</td>
+              <td>cursus@aol.net</td>
+              <td>20.02</td>
+              <td>95.230.218.101</td>
+            </tr>
+            <tr>
+              <td>8548</td>
+              <td>Candace</td>
+              <td>Cain</td>
+              <td>Apr 17, 1995</td>
+              <td>erat.vivamus.nisi@outlook.edu</td>
+              <td>99.33</td>
+              <td>124.157.239.56</td>
+            </tr>
+            <tr>
+              <td>2878</td>
+              <td>Zeph</td>
+              <td>Acosta</td>
+              <td>Aug 11, 1991</td>
+              <td>penatibus.et@yahoo.org</td>
+              <td>97.88</td>
+              <td>237.147.199.198</td>
+            </tr>
+            <tr>
+              <td>8586</td>
+              <td>Yoshio</td>
+              <td>Hopper</td>
+              <td>Jul 1, 2000</td>
+              <td>aliquet.magna.a@aol.ca</td>
+              <td>78.07</td>
+              <td>214.183.243.28</td>
+            </tr>
+            <tr>
+              <td>7336</td>
+              <td>Ursula</td>
+              <td>Welch</td>
+              <td>Aug 21, 1995</td>
+              <td>odio@yahoo.edu</td>
+              <td>64.97</td>
+              <td>54.113.112.160</td>
+            </tr>
+            <tr>
+              <td>8353</td>
+              <td>Ivor</td>
+              <td>Combs</td>
+              <td>Jun 12, 1999</td>
+              <td>dolor.dolor@google.org</td>
+              <td>53.30</td>
+              <td>177.224.126.72</td>
+            </tr>
+            <tr>
+              <td>5589</td>
+              <td>Simon</td>
+              <td>Haley</td>
+              <td>Jun 8, 1992</td>
+              <td>proin@icloud.com</td>
+              <td>72.56</td>
+              <td>217.236.56.182</td>
+            </tr>
+            <tr>
+              <td>2873</td>
+              <td>Orlando</td>
+              <td>Zamora</td>
+              <td>Jul 31, 1991</td>
+              <td>nec@aol.edu</td>
+              <td>38.83</td>
+              <td>117.200.39.162</td>
+            </tr>
+            <tr>
+              <td>2175</td>
+              <td>Colt</td>
+              <td>Lucas</td>
+              <td>Apr 30, 1995</td>
+              <td>in@aol.com</td>
+              <td>70.90</td>
+              <td>68.114.16.232</td>
+            </tr>
+            <tr>
+              <td>1875</td>
+              <td>Colette</td>
+              <td>Stout</td>
+              <td>May 11, 1995</td>
+              <td>neque.in.ornare@aol.com</td>
+              <td>84.21</td>
+              <td>112.142.211.169</td>
+            </tr>
+          </tbody>
+        </table>
+        <h2 class="display-6">Advanced usage</h2>
+        <p>The below example makes the table with the <code>id</code> attribute value of <code>example-2</code> sortable and makes use of the <a href="https://github.com/signified/sortable#options-object--optional" target="_blank"><code>options</code></a> parameter to add custom CSS classes.</p>
+        <pre class="mb-5 p-4 bg-light border rounded">sortable(&#39;#example-2&#39;, {
+  buttonClasses: [&#39;btn&#39;, &#39;btn-sm&#39;, &#39;btn-outline-dark&#39;, &#39;w-100&#39;],
+  sortClasses: [&#39;bg-light&#39;],
+  sortStringClasses: [&#39;fst-italic&#39;],
+  sortNumberClasses: [&#39;font-monospace&#39;, &#39;text-end&#39;, &#39;small&#39;],
+  sortDateClasses: [&#39;text-uppercase&#39;, &#39;small&#39;],
+  sortDotDecimalClasses: [&#39;font-monospace&#39;, &#39;text-end&#39;, &#39;small&#39;],
+  sortAscendingClasses: [&#39;bg-opacity-100&#39;],
+  sortDescendingClasses: [&#39;bg-opacity-75&#39;]
+});</pre>
+        <table class="table" id="example-2">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>First Name</th>
+              <th>Surname</th>
+              <th>Date of Birth</th>
+              <th>Email Address</th>
+              <th>Donation</th>
+              <th>IP Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2539</td>
+              <td>Naida</td>
+              <td>Day</td>
+              <td>Jul 4, 1987</td>
+              <td>ornare.lectus@yahoo.ca</td>
+              <td>86.13</td>
+              <td>13.212.157.126</td>
+            </tr>
+            <tr>
+              <td>2903</td>
+              <td>Ignatius</td>
+              <td>Yang</td>
+              <td>Dec 8, 1995</td>
+              <td>ornare@icloud.ca</td>
+              <td>91.26</td>
+              <td>85.93.101.112</td>
+            </tr>
+            <tr>
+              <td>2378</td>
+              <td>Vincent</td>
+              <td>Ruiz</td>
+              <td>Feb 15, 1994</td>
+              <td>ac@outlook.edu</td>
+              <td>47.91</td>
+              <td>2.42.135.144</td>
+            </tr>
+            <tr>
+              <td>4752</td>
+              <td>Hilda</td>
+              <td>Larson</td>
+              <td>May 11, 1986</td>
+              <td>taciti.sociosqu@hotmail.com</td>
+              <td>22.29</td>
+              <td>72.134.238.161</td>
+            </tr>
+            <tr>
+              <td>3852</td>
+              <td>Brenden</td>
+              <td>Santiago</td>
+              <td>Aug 22, 1995</td>
+              <td>mattis@protonmail.net</td>
+              <td>22.62</td>
+              <td>24.57.165.54</td>
+            </tr>
+            <tr>
+              <td>5365</td>
+              <td>MacKensie</td>
+              <td>Hess</td>
+              <td>Nov 4, 1994</td>
+              <td>semper@google.net</td>
+              <td>40.67</td>
+              <td>176.53.119.255</td>
+            </tr>
+            <tr>
+              <td>1965</td>
+              <td>Colton</td>
+              <td>Cervantes</td>
+              <td>Jan 17, 1997</td>
+              <td>adipiscing.elit@protonmail.org</td>
+              <td>43.33</td>
+              <td>97.205.145.49</td>
+            </tr>
+            <tr>
+              <td>6526</td>
+              <td>Morgan</td>
+              <td>Monroe</td>
+              <td>Jul 30, 2000</td>
+              <td>id.libero@google.couk</td>
+              <td>29.35</td>
+              <td>60.211.192.84</td>
+            </tr>
+            <tr>
+              <td>4969</td>
+              <td>Gareth</td>
+              <td>Key</td>
+              <td>Nov 24, 1999</td>
+              <td>malesuada.vel.venenatis@hotmail.org</td>
+              <td>62.56</td>
+              <td>206.221.197.88</td>
+            </tr>
+            <tr>
+              <td>6534</td>
+              <td>Nichole</td>
+              <td>Pacheco</td>
+              <td>Nov 19, 1995</td>
+              <td>nec@outlook.ca</td>
+              <td>22.96</td>
+              <td>157.232.111.27</td>
+            </tr>
+            <tr>
+              <td>9985</td>
+              <td>Bevis</td>
+              <td>Pittman</td>
+              <td>Jun 29, 1997</td>
+              <td>mi.duis.risus@aol.ca</td>
+              <td>69.17</td>
+              <td>218.230.218.226</td>
+            </tr>
+            <tr>
+              <td>9998</td>
+              <td>Xavier</td>
+              <td>Mullen</td>
+              <td>Sep 12, 2002</td>
+              <td>eu.euismod.ac@protonmail.ca</td>
+              <td>46.47</td>
+              <td>45.73.4.132</td>
+            </tr>
+            <tr>
+              <td>5065</td>
+              <td>Stewart</td>
+              <td>Wood</td>
+              <td>Mar 7, 1993</td>
+              <td>et@protonmail.org</td>
+              <td>9.47</td>
+              <td>7.99.32.216</td>
+            </tr>
+            <tr>
+              <td>8862</td>
+              <td>Tatiana</td>
+              <td>Gray</td>
+              <td>Jun 26, 1988</td>
+              <td>vivamus.rhoncus@outlook.com</td>
+              <td>53.48</td>
+              <td>190.131.31.230</td>
+            </tr>
+            <tr>
+              <td>5124</td>
+              <td>Haley</td>
+              <td>Reese</td>
+              <td>Sep 15, 1993</td>
+              <td>nec@protonmail.com</td>
+              <td>74.74</td>
+              <td>157.26.203.196</td>
+            </tr>
+            <tr>
+              <td>3686</td>
+              <td>Karina</td>
+              <td>Barrera</td>
+              <td>Mar 21, 1985</td>
+              <td>ligula.aenean.euismod@aol.org</td>
+              <td>97.85</td>
+              <td>192.249.114.156</td>
+            </tr>
+            <tr>
+              <td>8639</td>
+              <td>Katelyn</td>
+              <td>Stephenson</td>
+              <td>Jul 17, 2002</td>
+              <td>neque.venenatis@aol.com</td>
+              <td>91.92</td>
+              <td>237.242.178.0</td>
+            </tr>
+            <tr>
+              <td>3977</td>
+              <td>Cally</td>
+              <td>Mccray</td>
+              <td>Jun 1, 1990</td>
+              <td>blandit.nam@icloud.ca</td>
+              <td>4.09</td>
+              <td>243.146.10.64</td>
+            </tr>
+            <tr>
+              <td>5642</td>
+              <td>Hop</td>
+              <td>Gross</td>
+              <td>Jul 13, 1989</td>
+              <td>cras.vehicula.aliquet@google.org</td>
+              <td>88.55</td>
+              <td>247.85.6.89</td>
+            </tr>
+            <tr>
+              <td>8288</td>
+              <td>Tate</td>
+              <td>Myers</td>
+              <td>Sep 11, 1988</td>
+              <td>et@protonmail.ca</td>
+              <td>39.47</td>
+              <td>6.15.221.239</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sortable.js"></script>
+    <script>
+      sortable('#example-1');
+
+      sortable('#example-2', {
+        buttonClasses: ['btn', 'btn-sm', 'btn-outline-dark', 'w-100'],
+        sortClasses: ['bg-light'],
+        sortStringClasses: ['fst-italic'],
+        sortNumberClasses: ['font-monospace', 'text-end', 'small'],
+        sortDateClasses: ['text-uppercase', 'small'],
+        sortDotDecimalClasses: ['font-monospace', 'small'],
+        sortAscendingClasses: ['bg-opacity-100'],
+        sortDescendingClasses: ['bg-opacity-75']
+      });
+    </script>
+  </body>
+</html>

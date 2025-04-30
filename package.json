@@ -1,0 +1,35 @@
+{
+  "name": "Puncdata",
+  "version": "1.15.6LAB",
+  "description": "A tool to vizualise HRMS data and usual representations",
+  "main": "main.js",
+  "author": "Voellinger Théo",
+  "license": "GNU",
+  "scripts": {
+    "start": "electron .",
+    "build-installer": "electron-builder"
+  },
+  "build": {
+    "appId": "Punc'data",
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "uninstallDisplayName": "Punc'data",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "extraFiles": [
+      "changelog.txt",
+      "readme.txt",
+      "testdata_cellulose.csv"
+    ]
+  },
+  "dependencies": {
+  }
+}

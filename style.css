@@ -1,0 +1,1124 @@
+
+
+body{
+  font-family:Arial, Helvetica, sans-serif;
+  font-size: 14;
+  margin:0
+}
+
+html {
+  background:#fff; /* this is needed to make sure the blending works fine (any color will do the trick) */
+}
+
+  /*Les selections de points sur les graphes*/
+  .selected {
+    opacity: 1 !important;
+    stroke: rgb(0, 0, 0, 1);
+    stroke-width: 1px;
+  }
+  .selected2 {
+    opacity: 1 !important;
+    stroke: rgb(0, 0, 0, 1);
+    stroke-width: 3px !important;
+  }
+  .greyed{
+    fill:rgb(53, 53, 53)!important;
+    opacity: 0.1 !important;
+  }
+
+  .tohide {
+    visibility: collapse !important;
+    pointer-events: none
+  }
+
+  .highlighted {
+    fill: rgb(250, 162, 0) !important;
+  }
+  .tohide2 { /* Il y en a un deuxième pour combiner les effets des deux histogrammes*/
+    visibility: hidden !important;
+  }
+
+  .highlightAnim{
+    animation: highlightAnimFrames 3s ease-out infinite;
+    stroke: #df4f50;
+    stroke-width:3px;
+  }
+  
+
+  @keyframes highlightAnimFrames {
+    0% {
+      stroke-opacity: 0;
+    }
+    50% {
+      stroke-opacity: 1;
+    }
+    97%, 100% {
+      stroke-opacity: 0;
+      stroke: #f38f32;
+    }
+  }
+
+
+  .nonsenseAnim{
+    animation: nonsenseanimFrames 5s ease-out infinite;
+  }
+
+  @keyframes nonsenseanimFrames {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(4);
+    }
+    97%, 100% {
+      transform: scale(6);
+    }
+  }
+
+
+  @keyframes fadeOut {
+    0%{
+      opacity: 1;
+    }
+    100%{
+      opacity: 0;
+    }
+  }
+
+  @keyframes dash {
+    to {
+      stroke-dashoffset: 1000;
+    }
+  }
+
+
+/************************************************/
+/** INTRO DIV**/
+
+.introbckgrnd{
+  position:absolute;
+  background-color: white;
+  height:100%;
+  width:100%;
+  z-index:100;
+  animation: opacityBckgrnd 500ms forwards;
+  animation-delay: 1800ms;
+  overflow:hidden;
+}
+
+@keyframes opacityBckgrnd {
+  100% {opacity: 0}
+}
+
+.introdiv{
+  position:absolute;
+  width: 200px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  overflow:hidden;
+}
+
+
+.introtitle{
+  position:absolute;
+  font-family:'Impact';
+  font-size:50;
+  top: 18%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.introinfo{
+  position:absolute;
+  font-style:italic;
+  font-size:16;
+  top: 23%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.introladybug{
+  position:absolute;
+  z-index:101;
+  width:400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.introladybugfront{
+  position:absolute;
+  z-index:106;
+  width:400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.introwingr{
+  position:absolute;
+  z-index:104;
+  width:400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(0,-45px) translate(-50%,0%) rotate(-60deg) translate(30px,120px);
+  animation: rotatewingr 500ms ease-out forwards;
+  animation-delay:1200ms;
+}
+.introwingl{
+  position:absolute;
+  z-index:104;
+  width:400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(0,-45px) translate(-50%,0%) rotate(60deg) translate(-20px,130px);
+  animation: rotatewingl 500ms ease-out forwards;
+  animation-delay:1200ms;
+}
+
+@keyframes rotatewingr {
+  100% {transform: rotate(0deg) translate(-200px,-42px)}
+}
+
+@keyframes rotatewingl {
+  100% {transform: rotate(0deg) translate(-200px,-42px)}
+}
+
+.introimg2{
+  position:absolute;
+  width:100px;
+  z-index:102;
+  top: 100%;
+  left: 90%;
+  animation: moveimg2 800ms ease-out forwards;
+  animation-delay:-200ms
+}
+
+@keyframes moveimg2 {
+  100% {top:54%;left:50%;}
+}
+
+.introimg3{
+  position:absolute;
+  z-index:102;
+  width:100px;
+  top: 100%;
+  animation: moveimg3 1500ms forwards;
+}
+
+@keyframes moveimg3 {
+  20% {top:100%;left:0%;}
+  100% {top:56%;left:45%;}
+}
+
+.introimg4{
+  position:absolute;
+  z-index:102;
+  width:100px;
+  top: 100%;
+  left:50%;
+  animation: moveimg4 900ms forwards;
+  animation-delay:500ms
+}
+
+@keyframes moveimg4 {
+  100% {top:57%;left:45%}
+}
+
+.introimg5{
+  position:absolute;
+  z-index:102;
+  width:100px;
+  top: 100%;
+  left:25%;
+  animation: moveimg5 1200ms forwards;
+  animation-delay:200ms
+}
+
+@keyframes moveimg5 {
+  100% {top:53%;left:53%}
+}
+
+.introimg6{
+  position:absolute;
+  z-index:102;
+  width:100px;
+  top: 100%;
+  left:75%;
+  animation: moveimg6 900ms forwards;
+  animation-delay:900ms
+}
+
+@keyframes moveimg6 {
+  100% {top:52%;left:43%}
+}
+.introimg7{
+  position:absolute;
+  z-index:102;
+  width:100px;
+  top: 100%;
+  left:20%;
+  animation: moveimg7 900ms forwards;
+  animation-delay:1000ms
+}
+
+@keyframes moveimg7 {
+  100% {top:58%;left:50%}
+}
+
+
+/**********************************************/
+
+
+
+#menu{
+  flex: 1;
+}
+
+
+#menubuttons{
+  width:20%;
+  border-left:2px solid white;
+}
+
+.vennText{
+  color: rgb(2, 2, 2);
+  font-size:14;
+}
+
+/* Tout ce qui concerne les tabs */
+
+.tab {
+  overflow: hidden;
+  background-color: #555555;
+}
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 7px 10px;
+  transition: 0.3s;
+
+}
+
+.tablinks.datalink{
+  color:lightgreen
+}
+.tablinks.treatlink{
+  color:lightpink
+}
+.tablinks.vislink{
+  color:lightblue
+}
+.tablinks.otherlink{
+  color:lightgray
+}
+
+
+
+.tooltip button{
+  display:none
+}
+.tooltip_click button {
+  background-color: grey;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  margin: 0px 7px;
+  padding:0px 7px;
+  color: white;
+}
+
+.tab button:hover {
+  background-color: #658b33;
+}
+.tab button.active {
+  background-color: #ccc;
+  color: #000000;
+}
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+
+input[type=radio]{
+  width:14px;
+}
+
+input[type=checkbox]{
+  width:14px !important;
+}
+
+
+/*tout ce qui concernela mise en forme avant le tableau, pour l'autre menu*/
+.topselecter{
+  background-color: rgb(100, 100, 100);
+  color: white;
+  display: flex;
+  flex-direction: row;
+  height:165px;
+}
+
+.topcollapser{
+  background-color: rgb(80, 80, 80);
+  color: white;
+  display: flex;
+  flex-direction: row;
+  height:20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+input.upload{
+  width: 500px;
+}
+input{
+  width: 50px;
+  border: 0px;
+  background-color: rgba(29, 29, 29, 0.1);
+  color: grey;
+}
+#menu input{
+  color:white
+}
+#tab_parameters input{
+  color:black
+}
+select{
+  color: white;
+}
+select option{
+  background: rgb(120, 120, 120);
+}
+select option:disabled{
+  color: white;
+}
+#tab_parameters select option{
+  background:white;
+}
+
+#tab_upload select {
+  color: black;
+}
+
+.iconbutton{
+  height:80px;
+  width:80px;
+  border:0px;
+  background: rgb(80, 80, 80);
+  color:white;
+  margin-left:1px;
+  margin-right:1px;
+  margin-top:2px;
+}
+
+.bigiconbutton{
+  height:100px;
+  width:100px;
+  border:0px;
+  background: rgb(80, 80, 80);
+  color:white;
+  margin-left:1px;
+  margin-right:1px;
+}
+
+.subtabbuttonmenu{
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 165px;
+  overflow: auto;
+}
+
+.notebookButton{
+  border:0px;
+  background: rgba(80, 80, 80, 0);
+  color:white;
+  padding: 0px;
+  padding-bottom:2px;
+}
+.refreshButton{
+  border:0px;
+  background: rgba(80, 80, 80, 0);
+  color:white;
+  padding: 0px;
+  padding-bottom:2px;
+}
+.refreshButton:hover{
+  transition: linear 2s ;
+  transform: rotate(360deg); /* Équivalent à rotateZ(45deg) */
+  background: rgb(80, 80, 80, 0);
+}
+.refreshButton:active {
+  transition: 0.1s linear;
+  filter: brightness(0.5)sepia(100%)hue-rotate(90deg);
+}
+
+.iconbutton:hover{
+  background-color: #658b33;
+}
+
+.bigiconbutton:hover{
+  background-color: #658b33;
+}
+.helpButton{
+  border:0px;
+  background: rgba(80, 80, 80, 0);
+  color:white;
+  padding: 0px;
+  padding-bottom:2px;
+}
+.helpButton:hover{
+  transition: 0.2s linear;
+  filter: brightness(0.5)sepia(100%)hue-rotate(90deg);
+}
+
+.buttonRadio{
+  margin:0px;
+  margin-top:3px;
+  margin-left:2px;
+  height:18px;
+}
+
+/** everything  with radio buttons**/
+.wideRadio{
+  margin-left:3px;
+  margin-right:3px;
+  width: 95% !important; 
+  height:18px;
+  background: #45485700;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	outline: none;
+	cursor: pointer;
+}
+.topselecter #menu table input[type=radio]{
+  width: 14px;
+  height:14px;
+  appearance: auto;
+}
+
+.wideRadio:before{
+  content: attr(label);
+	display: inline-block;
+	text-align: center;
+  width: 100%;
+}
+
+
+.wideRadio:checked {
+	background-image: linear-gradient(180deg, #95d891, #74bbad);
+	color: #fff;
+	box-shadow: 0 1px 1px #0000002e;
+	text-shadow: 0 1px 0px #79485f7a;
+}
+
+
+/** tout ce qui concerne la page d'upload*/
+
+.filearea{
+  width: 100%;
+  height: 120px;
+  display: flex;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border-radius: 10px;
+  box-shadow: 4px 4px 5px 0px rgb(165, 165, 165);
+}
+
+.filearea button{
+  border: 1px solid #d5d9d9;
+  border-radius: 8px;
+  box-shadow: rgba(213, 217, 217, .5) 0 2px 5px 0;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-block;
+  font-family: "Amazon Ember",sans-serif;
+  font-size: 13px;
+  position: relative;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.filearea_first{
+  padding-right:20px;
+  flex:1;
+  margin-top:5px;
+  margin-bottom:5px;
+}
+.filearea_second{
+  padding-right:20px;
+  padding-left:20px;
+  flex:3;
+  margin-top:5px;
+  margin-bottom:5px;
+}
+.filearea_third{
+  padding-right:20px;
+  padding-left:20px;
+  flex:1;
+  margin-top:5px;
+  margin-bottom:5px;
+}
+
+
+.namefile{
+  width: 250px;
+  height: 50px;
+  font-size: 20;
+  color:black;
+}
+
+.namefileupload{
+  width: 100%;
+  text-align:center;
+  height: 50px;
+  font-size: 25;
+  color:black;
+}
+
+.fileInfo{
+  height: 18px;
+}
+
+.uploadbutton{
+  height:100px;
+  width: 100px;
+  border:0px;
+  background: rgb(80, 80, 80);
+  color:white;
+  overflow: hidden;
+  cursor:pointer;
+  border-radius: 8px;
+  box-shadow: rgba(213, 217, 217, .5) 0 2px 5px 0;
+  box-sizing: border-box;
+  display: inline-block;
+  font-size: 13px;
+  line-height: 29px;
+}
+
+.uploadTextArea{
+  margin-left:1px;
+  height:99px;
+  border: solid 1px #7c7c7c;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: rgba(213, 217, 217, .5) 0 2px 5px 0;
+  box-sizing: border-box;
+  display: inline-block;
+  font-size: 13px;
+  resize:none;
+  flex:1
+}
+
+.uploadbutton:hover{
+  background-color: #658b33;
+}
+.upload{/* le veritable endroit d'upload */
+  height: 80px;
+  cursor:pointer;
+  opacity: 0;
+  position: relative;
+  top: -70px
+}
+
+.uploadbuttonWide{
+  height:100px;
+  flex:1;
+  border:0px;
+  background: rgb(80, 80, 80);
+  color:white;
+  overflow: hidden;
+  cursor:pointer;
+}
+
+.uploadMultiple{
+  cursor:pointer;
+  height: 100px;
+  top: -90px;
+  width:100%;
+  position: relative;
+  opacity: 0;
+}
+
+img.screenshotButton{
+  height:30px;
+  width:30px;
+  filter: invert(1);
+}
+img.parametersButton{
+  height:30px;
+  width:30px;
+  filter: invert(1);
+}
+img.smallButton{
+  height:25px;
+  width:25px;
+  filter: invert(1);
+}
+img.uploadIcon{
+  height:90px;
+  width:90px;
+  margin-top:5px;
+  margin-left:5px;
+  filter: invert(1);
+}
+img.uploadIconMultiple{
+  height:75px;
+  width:75px;
+  margin-left: 50%;
+  filter: invert(1);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/** tout ce qui concerne la page de tableau*/
+
+#tab_table table {
+  border-collapse: collapse;
+  border: 2px solid rgb(0, 0, 0);
+  width:100%;
+  letter-spacing: 1px;
+  font-family: sans-serif;
+  font-size: .8rem;
+} 
+#tab_table tr {
+  border: 1px solid rgb(0, 0, 0);
+} 
+#tab_table thead{
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+#tab_table td {
+  width: 1;
+  height: 25px;
+  border-right: 1px solid rgb(0, 0, 0);
+}
+#tab_table input {
+  background-color: rgba(0, 0, 0, 0);
+  color: black;
+  width: auto;
+}
+
+/** tout ce qui concerne la page de traitement des data*/
+
+#tab_treatment select option{
+  background: rgb(219, 219, 219);
+
+}
+#tab_treatment select:first-child option{
+  background: rgb(90, 90, 90) !important;
+
+}
+#treatment_file_choice option{
+  background: rgb(90, 90, 90) !important;
+}
+
+#data_log{
+  color: red;
+  white-space: nowrap;
+  overflow-y: auto;
+  height: 50%;
+}
+
+.textLog{
+  border: 1px solid black;
+  height:300px;
+  overflow: auto;
+}
+
+
+  /*Tout ce qui concerne les tableaux*/
+  .topselecter table {
+    border-collapse: collapse;
+    width:100%;
+    letter-spacing: 1px;
+    font-family: sans-serif;
+    font-size: .8rem;
+    color: white;
+  } 
+  .topselecter table:first-child{
+    border-bottom: 0px !important;
+  }
+  .topselecter table:last-child{
+    border-top: 0px !important;
+  }
+
+  .topselecter table select{
+    max-width:130px;
+  }
+  .topselecter table button{
+    background-image: linear-gradient(180deg, #e0e0e0, #a8a8a8);
+    box-shadow: 0 1px 1px #0000002e;
+    text-shadow: 0 1px 0px #79485f7a;
+    color: #353535;
+    height:18px;
+    border: 0;
+    border-radius: 4px;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+    
+  }
+  .topselecter table button:hover {
+    background-image: linear-gradient(180deg, #ffffff, #6e6e6e);
+  }
+
+  
+  .topselecter table button:active {
+    background-image: linear-gradient(180deg, #72a374, rgb(80, 185, 31));
+  }
+
+  .topselecter table button:disabled {
+    background-image: linear-gradient(180deg, #cecece, #919191);
+    color: #696969;
+  }
+  
+  /* .topselecter tr {
+  }  */
+
+  .topselecter tr:nth-child(2n){
+    background-color: #ffffff20;
+  }
+  .topselecter tr:nth-child(2n+1){
+    background-color: #ffffff10;
+  }
+  
+  .topselecter tr:first-child{
+    background-color: #00000030;
+    font-weight:bold;
+    text-align:center;
+    height:20px !important;
+  }
+
+  .topselecter td {
+    width: 1;
+    height: 22px;
+  }
+  .topselecter table input{
+    width: 60px;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: white;
+    text-align: center;
+    font-size: 12px;
+    border: 0px;
+  }
+  .topselecter table input.large{
+    width: 80px !important;
+  }
+
+  #configMultiView{
+    display: none;
+  }
+
+  select{
+    border: 0 none;
+    background-color:rgba(0, 0, 0, 0.1);
+  }
+
+
+
+  /*Pour colorer la grille des graphiques*/
+  .grid line {
+    stroke: black;
+    opacity: 0.2;
+    shape-rendering: crispEdges;
+  }
+  .grid path {
+    stroke-width: 0;
+  }
+
+
+  /*sert de popup pour le screenshot*/
+
+.popup{
+  cursor: default;
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px 0;
+}
+
+.popupclose{
+  width:400px;
+  padding: 16px 42px;
+  border: 0px;
+  margin:4px;
+  line-height: 1;
+  background-image: linear-gradient(180deg, #95d891, #74bbad);
+  text-decoration: none;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: black;
+  font-size: 15px;
+  transition: background-color .6s ease;
+  overflow: hidden;
+}
+
+.popupclose:hover {
+  box-shadow: rgba(39, 174, 96, .5) 0 0px 12px;
+}
+
+.popupclose:active {
+  transform: translateY(2px);
+  transition-duration: .35s;
+}
+
+.smallpopupbutton{
+  width:200px;
+  padding: 10px 21px;
+  border: 0px;
+  margin:4px;
+  margin-left:100px;
+  margin-right:100px;
+  background-image: linear-gradient(180deg, #95d891, #74bbad);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.smallerpopupbutton{
+  background-image: linear-gradient(180deg, #992548, #dd2929);
+  
+}
+
+.popuptrueclose{
+  padding: 10px 14px;
+  border-radius:50%;
+  position:relative;
+  left:50%;
+  background: #b3b3b3;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: black;
+  border: black;
+  font-size: 15px;
+  transition: background-color .6s ease;
+}
+.popuptrueclose:hover {
+  box-shadow: rgba(0, 0, 0, 0.5) 0 0px 10px;
+}
+.popuptrueclose:active {
+  transform: translateY(2px);
+  transition-duration: .2s;
+}
+
+.popupinput{
+  font-size: 25px;
+  width: 70%;
+  margin-top: 5%;
+  margin-bottom:25px;
+  background: #eeeeee;
+  color: black;
+}
+
+
+/** tout ce qui concerne la page de tableau*/
+
+.popuptable {
+  border-collapse: collapse;
+  border: 2px solid rgb(0, 0, 0);
+  letter-spacing: 1px;
+  font-family: sans-serif;
+  font-size: .8rem;
+  display: inline-table;
+} 
+.popuptable tr {
+  border: 1px solid rgb(0, 0, 0);
+} 
+
+.popuptable td {
+  width: auto;
+  height: 25px;
+  border-right: 1px solid rgb(0, 0, 0);
+}
+.popuptable input {
+  background-color: rgba(0, 0, 0, 0.15);
+  color: black;
+  max-width:250px;
+}
+/** other */
+
+.warningtext{
+  padding: 16px 42px;
+  border-width: 20px;
+  border: black;
+  background-color: white;
+  font-size: 15px;
+  line-height: 1;
+  margin: 20px;
+  color: red;
+  width: 50%;
+}
+.infotext{
+  padding: 16px 42px;
+  border-width: 20px;
+  border: black;
+  background-color: white;
+  font-size: 15px;
+  line-height: 1;
+  margin: 20px;
+  color: black;
+  width: 50%;
+  -webkit-user-select: text;
+}
+
+.infotext table{
+  border: 2px solid;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  border-collapse: collapse;
+}
+.infotext td {
+  border: 1px solid;
+}
+
+.popupcontextwide{
+  padding: 16px 42px;
+  border-width: 20px;
+  border: black;
+  background-color: white;
+  font-size: 15px;
+  line-height: 1;
+  margin: 20px;
+  color: black;
+}
+
+.popupwidediv{
+  text-align: left;
+}
+.popupwidediv select{
+  color: black;
+}
+
+.popup input[type="checkbox"]{
+  height:25px;
+  width:25px !important
+}
+
+.popupselecter{
+ font-size: 20;
+ color: black;
+ background: #8bbe48;
+ margin-bottom: 15px;
+}
+
+#canvas rect.selection {
+  fill-opacity: 0.1;
+  stroke: rgb(0, 0, 0);
+}
+
+#canvas2 rect.selection {
+  stroke: rgba(0, 0, 0, 0.5);
+  fill: rgba(230, 230, 150, 0.5);
+}
+/** pop'up temporary**/
+.fade_popup {
+  opacity: 0;
+  color: white;
+  background-color: rgb(60, 60, 60);
+  padding: 5px;
+  position: absolute;
+  transition: opacity 4s linear, top 10s linear;
+}
+
+.fade_popup_visible {
+  opacity: 1;
+  color: white;
+  background-color: rgb(60, 60, 60);
+  padding: 5px;
+  position: absolute;
+
+}
+
+
+.italicGolden{
+  color: rgb(250, 162, 0);
+  font-style: italic;
+}
+
+/***********DATA TABLE************/
+.textinfos{
+  width: 250px;
+
+}
+
+.textinfos2{
+  color: rgb(250, 162, 0);
+  width: 250px;
+
+}
+
+.textinfosStat{
+  width: 500px;
+
+}
+/******COLLAPSE HEADER AND COLLAPSABLE*******/
+.collapseHeader{
+  font-size: 16px;
+  background-color: lightgray;
+}
+.collapseHeader:hover{
+  background-color: rgb(130, 130, 130);
+  transition: 0.2s;
+}
+.collapsable.shown{
+  background-color: rgb(240,240,240);
+  max-height: 2000px;
+  transform-origin: top;
+  transition: max-height 1s;
+
+}
+.collapsable.collapsed{
+  transform: scaleY(0);
+  max-height: 0px;
+  transition: max-height 1s;
+
+}
+
+
+
+/***********FLEX COL************/
+.flexrowContainer{
+  display: flex;
+  flex-direction: row;
+}
+.flexrowHalf{
+  flex:50%
+}
+
+/**for animations**/
+@keyframes dash {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/********************************************************************/
+/******************NEW CSS*******************************************/
+
+table.tableCustom tr:nth-child(2n){
+  background-color: hsla(0, 0%, 0%, 0.125);
+}
+table.tableCustom tr:nth-child(2n+1){
+  background-color: #00000010;
+}
+

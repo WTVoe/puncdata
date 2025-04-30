@@ -1,0 +1,917 @@
+<title id="windowName">Punc'data V 1.15.6</title>
+<link rel="icon" href="icon.ico">
+<link href="style.css" rel="stylesheet">
+<script src="config.js"></script> <!-- default parameters-->
+<!--second module of puncdata:computation-->
+<script src="scripts_compute/script_molecule.js" defer>  </script> <!-- Attribution algorithm -->
+<script src="scripts_compute/script_network.js" defer></script> <!-- network tabs js-->
+<script src="scripts_compute/script_attrib.js" defer>  </script> <!-- Attribution algorithm -->
+<!--module of puncdata: visualisation and graphs, uses open source modules-->
+<script src="scripts/script.js" defer></script> <!-- main js-->
+<script src="scripts/script_plotfunctions.js" defer></script> <!--function library for plots-->
+<script src="scripts/script_htmlhelper.js" defer></script> <!-- helpers to create html bits-->
+<script src="scripts/script_matrix.js" defer></script> <!-- density tab js -->
+<script src="scripts/script_treatment.js" defer></script> <!-- teatment tab js-->
+<script src="scripts/script_attribInterface.js" defer>  </script> <!-- Handles the attribution interface -->
+<script src="scripts/script_calib.js" defer >  </script> <!-- Calibration algorithm -->
+<script src="scripts/script_canvas.js" defer></script> <!-- canvas tabs js-->
+<script src="scripts/script_stats.js" defer></script> <!-- stats tab js -->
+<script src="scripts/script_pca.js" defer></script> <!-- PCA script -->
+<script src="scripts/script_networkvisu.js" defer></script> <!-- network tabs js-->
+<script src="scripts/script_table.js" defer></script> <!-- table tab js-->
+<script src="scripts/script_venn.js" defer></script> <!-- venn tab js-->
+<!--libraries used for the first module-->
+<script src="modules/D3/d3.js" >  </script> <!-- D3.js module-->
+<script src="modules/html2canvas/html2canvas.js" defer>  </script> <!-- html2canvas screenshot module -->
+<script src="modules/sortable/sortable.js" >  </script> <!-- sortable module -->
+<link href="modules/sortable/sortable.css" rel="stylesheet"> <!-- sortable css -->
+<script src="modules/coloris/coloris.js" >  </script> <!-- coloris module -->
+<script src="modules/pca/pca.js" >  </script> <!-- PCA module -->
+<script src="modules/d33d/D33D.js" >  </script> <!-- D3 3D module -->
+<script src="modules/regression/regression.js" >  </script> <!-- Regression module for attribution/calibration -->
+<link href="modules/coloris/coloris.css" rel="stylesheet"> <!-- coloris css -->
+
+<body >
+<div id="introAnim" class="introbckgrnd">
+     <img class="introimg2" src="icons/anim/scatter.png">
+     <img class="introimg3" src="icons/anim/histo.png">
+     <img class="introimg4" src="icons/anim/venn.png">
+     <img class="introimg5" src="icons/anim/contour.png">
+     <img class="introimg6" src="icons/anim/histoerror.png">
+     <img class="introimg7" src="icons/anim/network.png">
+     <div class="introtitle">Punc'data V 1.15.6</div>
+     <div id="introinfo" class="introinfo"></div>
+     <img class="introladybug" src="icons/anim/ladybugback.png">
+     <img class="introwingr" src="icons/anim/wing_r.png">
+     <img class="introwingl" src="icons/anim/wing_l.png">
+     <img class="introladybugfront" src="icons/anim/ladybugfront.png">
+</div>
+<div class="tab">
+  <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_upload')">Data Manager</button>
+  <button class="tablinks datalink"  onclick="openTab('tab_calib')">Calibration</button>
+  <button class="tablinks datalink"  onclick="openTab('tab_attrib')">Attribution</button>
+  <button class="tablinks datalink"  onclick="openTab('tab_treatment')">Tools</button>
+  <button class="tablinks treatlink" id="tab_button_matrix" onclick="openTab('tab_matrix')">Matrix</button>
+  <button class="tablinks treatlink"  onclick="openTab('tab_venn')">Venn</button>
+  <button class="tablinks treatlink"  onclick="openTab('tab_pca')">PCA</button>
+  <!-- <button class="tablinks treatlink"  onclick="openTab('tab_classes')">Classes</button> -->
+  <button class="tablinks vislink" id="tab_button_table" onclick="openTab('tab_table')">Table</button>
+  <button class="tablinks vislink" onclick="openTab('tab_canvasS')">Stats</button>
+  <button class="tablinks vislink" onclick="openTab('tab_canvasA')">Canvas A</button>
+  <button class="tablinks vislink" onclick="openTab('tab_canvasB')">Canvas B</button>
+  <button class="tablinks vislink" onclick="openTab('tab_network')">Network</button>
+  <button class="tablinks otherlink" onclick="openTab('tab_parameters')">Parameters</button>
+  <button class="tablinks otherlink" onclick="openTab('tab_help')">Help</button>
+</div>
+<!-- <div style="position:absolute;top:2;left:92%"><button id="helpButton" class="helpButton"><img class="smallButton" src="icons/help.png"/></button></div> -->
+<div style="position:absolute;top:2;left:95%"><button id="refreshButton" class="refreshButton"><img class="smallButton" src="icons/refresh.png"/></button></div>
+<div style="position:absolute;top:2;left:92.5%"><button id="notebookButton" class="notebookButton"><img class="smallButton" src="icons/notes_icon.png"/></button></div>
+<div style="position:absolute;top:2;left:90%"><button id="saveSessionButton" class="notebookButton" onclick="exportJSON()"><img class="smallButton" src="icons/download_icon.png"/></button></div>
+
+<!-- TAB Upload-->
+<div id="tab_upload" class="tabcontent">
+     <div class="parentFileArea">
+          <div name="wideButtons" style="display:flex">
+               <div class="uploadbuttonWide">
+                    <div style="text-align:center" >Deposit (multiple) data file</div>
+                    <img class="uploadIconMultiple" src="icons/upload_icon.png"/>
+                    <input type="file" class="uploadMultiple" onChange="readMultipleData(this)" multiple/>
+               </div>
+               <div class="uploadbuttonWide" style="margin-left:4px;margin-right:4px">
+                    <div style="text-align:center" >Load a Punc'data session</div>
+                    <img class="uploadIconMultiple" src="icons/upload_icon.png"/>
+                    <input type="file" accept=".pdata" class="uploadMultiple" onChange="importPuncdataFile(this)" />
+               </div>
+               <div class="uploadbuttonWide" style="margin-left:4px;margin-right:4px" onclick="exportJSON()">
+                    <div style="text-align:center" >Save this session</div>
+                    <img class="uploadIconMultiple" src="icons/download_icon.png"/>
+               </div>
+               <div class="uploadbuttonWide" style="flex: 0.3" onclick="openUploadParameters()">
+                    <div style="text-align:center" >Upload parameters</div>
+                    <img class="uploadIconMultiple" src="icons/gear.png"/>
+               </div>
+          </div>
+          <div class="filearea" id="file1">
+               <div class="filearea_first" >
+                    <div style="display:flex">
+                         <div class="uploadbutton">
+                              <img class="uploadIcon" src="icons/upload_icon.png"/>
+                              <input type="file" class="upload" onChange="readData(this, 1)" />
+                         </div>
+                         <textarea id="textareafile1"  class="uploadTextArea" oninput="readDataTextArea(this, 1)" placeholder="Upload or paste data here "></textarea>
+                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
+                    </div>
+               </div>
+               <div class =filearea_second>
+                    <input type="text" class="namefileupload" placeholder="Name of the first file" id="namefile1"/>
+                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
+                    <div class="fileInfo" name="colNum">Number of columns: </div>
+                    <div class="fileInfo" name="fileType" style="display:flex;">
+                         File type: 
+                         <select name="fileTypeSelect">
+                              <option value="sample">Sample</option>
+                              <option value="matrix">Matrix</option>
+                         </select>
+                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
+                    </div>
+               </div>
+               <div class="filearea_third" >
+                    <div style="display:flex;">
+                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
+                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
+                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
+                    </div>
+              </div>
+          </div>
+          <div class="filearea" id="file2">
+               <div class="filearea_first" >
+                    <div style="display:flex">
+                         <div class="uploadbutton">
+                              <img class="uploadIcon" src="icons/upload_icon.png"/>
+                              <input type="file" class="upload" onChange="readData(this, 2)" />
+                         </div>
+                         <textarea id="textareafile2"  class="uploadTextArea" oninput="readDataTextArea(this, 2)" placeholder="Upload or paste data here "></textarea>
+                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
+                    </div>
+               </div>
+               <div class =filearea_second>
+                    <input type="text" class="namefileupload" placeholder="Name of file n°2" id="namefile2"/>
+                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
+                    <div class="fileInfo" name="colNum">Number of columns: </div>
+                    <div class="fileInfo" name="fileType" style="display:flex;">
+                         File type: 
+                         <select name="fileTypeSelect">
+                              <option value="sample">Sample</option>
+                              <option value="matrix">Matrix</option>
+                         </select>
+                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
+                    </div>
+               </div>
+               <div class="filearea_third" >
+                    <div style="display:flex;">
+                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
+                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
+                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
+                    </div>
+              </div>
+          </div>
+          <div class="filearea" id="file3">
+               <div class="filearea_first" >
+                    <div style="display:flex">
+                         <div class="uploadbutton">
+                              <img class="uploadIcon" src="icons/upload_icon.png"/>
+                              <input type="file" class="upload" onChange="readData(this, 3)" />
+                         </div>
+                         <textarea id="textareafile3"  class="uploadTextArea" oninput="readDataTextArea(this, 3)" placeholder="Upload or paste data here "></textarea>
+                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
+                    </div>
+               </div>
+               <div class =filearea_second>
+                    <input type="text" class="namefileupload" placeholder="Name of file n°3" id="namefile3"/>
+                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
+                    <div class="fileInfo" name="colNum">Number of columns: </div>
+                    <div class="fileInfo" name="fileType" style="display:flex;">
+                         File type: 
+                         <select name="fileTypeSelect">
+                              <option value="sample">Sample</option>
+                              <option value="matrix">Matrix</option>
+                         </select>
+                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
+                    </div>
+               </div>
+               <div class="filearea_third" >
+                    <div style="display:flex;">
+                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
+                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
+                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
+                    </div>
+              </div>
+          </div>
+          <div class="filearea" id="file4">
+               <div class="filearea_first" >
+                    <div style="display:flex">
+                         <div class="uploadbutton">
+                              <img class="uploadIcon" src="icons/upload_icon.png"/>
+                              <input type="file" class="upload" onChange="readData(this, 4)" />
+                         </div>
+                         <textarea id="textareafile4"  class="uploadTextArea" oninput="readDataTextArea(this, 4)" placeholder="Upload or paste data here "></textarea>
+                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
+                    </div>
+               </div>
+               <div class =filearea_second>
+                    <input type="text" class="namefileupload" placeholder="Name of file n°4" id="namefile4"/>
+                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
+                    <div class="fileInfo" name="colNum">Number of columns: </div>
+                    <div class="fileInfo" name="fileType" style="display:flex;">
+                         File type: 
+                         <select name="fileTypeSelect">
+                              <option value="sample">Sample</option>
+                              <option value="matrix">Matrix</option>
+                         </select>
+                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
+                    </div>
+               </div>
+               <div class="filearea_third" >
+                    <div style="display:flex;">
+                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
+                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
+                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
+                    </div>
+              </div>
+          </div>
+
+     </div>
+          <button id="addFileChoice" style="width:100%;height:50px;">Add a new file</button>
+          <div class="fade_popup" id="popup_file_pasted">Data Pasted</div>
+          <div class="fade_popup" id="popup_filedata_copy">Data copied</div>
+</div>
+<!-- TAB Calibration-->
+<div id="tab_calib" class="tabcontent">
+     <div class="topselecter">
+          <div id="menu">
+               <table name="mainTableCalib">
+                    <tr><td>File to calibrate: <select name="fileSelection" style="color:white"></select> </td></tr>
+                    <tr><td>Calibration method: 
+                         <select name="calibAlgo">
+                              <option value="linear">Linear</option>
+                              <option value="quad">Quadratic</option>
+                         </select>
+                    </td></tr>
+                    <tr><td><select name="calibListChoice"></select><button name="newCalibList">ADD</button> <button name="removeCalibList">REMOVE</button></td></tr>
+                    <tr><td><button name="buttonEditCalib">Edit Calibration list</button> <button name="buttonCopyCalib">Copy</button> <button name="buttonPasteCalib">Paste</button></td></tr>
+                    <tr><td>ppm tolerance: <input type="number" name="ppmTolCalib" value="1"></td></tr>
+                    <tr><td></tr>
+               </table>
+          </div>
+          <div id="menu" style="flex:0.25">
+          </div>
+          <div id="menu">
+               <table name="secondTableCalib">
+                    <tr><td></td></tr>
+                    <tr><td><input type="checkbox" name="calibSearchIsotope">Search <sup>13</sup>C peaks from calibrants</td></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+               </table>
+          </div>
+          <div id="menu" style="flex:0.25">
+          </div>
+          <div id="menu">
+          </div>
+          <div id="menubuttons" >
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button id="calculate_calib" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
+                    <button id="save_calib" class="iconbutton">Save Calibrated data<br><img class="parametersButton" src="icons/save_icon.png"/></button><br>
+                    <button  class="iconbutton"><center>Import <br> config</center><input  onChange="importPopup(this)" style="opacity:0;height:70px;width:70px;z-index:2;margin-top:-32px;margin-left:-10px" id="uploadParameters" type="file"><img style="margin-top:-35px" class="parametersButton" src="icons/upload_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div class="textLog" name="calibLog">Hello</div>
+     <div id="calibCanvas"></div>
+</div>
+<!-- TAB Attribution-->
+<div id="tab_attrib" class="tabcontent">
+     <div class="topselecter">
+          <div id="menu" name="mainMenuAttrib">
+               <table>
+                    <tr><td>File to attribute :  <select name="fileSelection" style="color:white"></select><br></td></tr>
+                    <tr><td>
+                         Preset: <select name="attribAlgorithm">
+                              <option value="deNovo">Full De Novo</option>
+                              <option value="dNetwork">Supervized Network</option> <!-- Due to late changes, in the code the options are still named directed/undirected-->
+                              <option value="uNetwork">Unsupervized Network</option>
+                              <option value="custom">Custom</option>
+
+                    </select>
+                    </td></tr>
+                    <tr><td><button name="vizmassDelta" onclick="new Popup_vizDelta()">Vizualise mass delta</button>
+                    </td></tr>
+                    <tr><td><button name="advancedAttribOptions">Advanced options</button>
+                    </td></tr>
+               </table>
+          </div>
+          <div id="menu" name="attrib_checkbox_menu" style="flex:0.05">
+               <input type="checkbox" class="buttonRadio "name="menu_attrib_0">
+               <input type="checkbox" class="buttonRadio "name="menu_attrib_1">
+               <input type="checkbox" class="buttonRadio "name="menu_attrib_2">
+               <input type="checkbox" class="buttonRadio "name="menu_attrib_3">
+               <input type="checkbox" class="buttonRadio "name="menu_attrib_4">
+          </div>
+          <div id="menu" style="flex:0.25">
+               <input type="radio" class="wideRadio" name="menu_selection_attrib" value="0" label="Isotopy">
+               <input type="radio" class="wideRadio" name="menu_selection_attrib" value="1" label="Seeds">
+               <input type="radio" class="wideRadio" name="menu_selection_attrib" value="2" label="Network">
+               <input type="radio" class="wideRadio" name="menu_selection_attrib" value="3" label="Passes">
+               <input type="radio" class="wideRadio" name="menu_selection_attrib" value="4" label="Filtering">
+               <input type="radio" class="wideRadio" name="menu_selection_attrib" value="5" label="Posttreatment">
+               <input type="radio" class="wideRadio" name="menu_selection_attrib" value="6" label="Log results">         
+          </div>
+          <div id="menu">
+               <div id="menu_attrib">
+               </div>
+          </div>
+          <div id="menu" style="flex:0.25">
+               <input type="radio" class="wideRadio" name="cell_selection_attrib" value="0" label="Charts"><br>
+               <input type="radio" class="wideRadio" name="cell_selection_attrib" value="-1" label="Pie Chart"><br>
+               <input type="radio" class="wideRadio" name="cell_selection_attrib" value="1" label="Chart 1"><br>
+               <input type="radio" class="wideRadio" name="cell_selection_attrib" value="2" label="Chart 2"><br>
+               <input type="radio" class="wideRadio" name="cell_selection_attrib" value="3" label="Chart 3"><br>
+               <input type="radio" class="wideRadio" name="cell_selection_attrib" value="4" label="Data"><br>
+          </div>
+          <div id="menu">
+               <div id="cell_menu_attrib">
+               </div>
+          </div>
+          <div id="menubuttons" >
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button id="calculate_attrib" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
+                    <button id="save_attrib" class="iconbutton">Save Attributed Data<br><img class="parametersButton" src="icons/save_icon.png"/></button><br>
+                    <button  class="iconbutton"><center>Import <br> config</center><input  onChange="importPopup(this)" style="opacity:0;height:70px;width:70px;z-index:2;margin-top:-32px;margin-left:-10px" id="uploadParameters" type="file"><img style="margin-top:-35px" class="parametersButton" src="icons/upload_icon.png"/></button>
+                    <button name="screenshot" class="iconbutton">Capture<br><img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div name="attribMiddleContainer" style="  display: flex;height:300px;">
+          <div class="textLog" name="attribLog" style="flex:0.7">Hello</div>
+          <div name="attribPieChart" id="attribPieChart" style="flex:0.3"></div>
+     </div>
+     <div id="canvasgroupAttrib" tabindex="-1">
+          <div id="canvasAttrib"></div>
+     </div>
+     <div id="tooltip_canvasAttrib"></div>
+</div>
+<!-- TAB Matrix-->
+<div id="tab_matrix" class="tabcontent">
+     <div class="topselecter">
+          <div style="flex:1">
+               
+               <table>
+                    <tr><td colspan="2"><b><u>Matrix alignement:</u></b><br></td></tr>
+                <tr><td>Which peaks to keep:</td>
+                    <td><select id="matrix_calculus">
+                         <option value="all">Keep all the peaks</option>
+                         <option value="atleast">Keep only those appearing in at least ...</option>
+                         <option value="atmost">Keep only those appearing in at most ...</option>
+                    </select>
+                    <input type="number" id="matrix_calculus_value" style="display:none" value="1"><br>
+                </td></tr>
+                <tr><td>
+                    Missing values:</td>
+                    <td>
+                         <select id="missing_values">
+                              <option value="0">Replace with 0</option>
+                              <option value="">Keep empty</option>
+                              <option value="third">Replace by 1/3 of smallest intensity</option>
+                              <option value="custom">Replace by custom value</option>
+                         </select>
+                         <span id="matrix_custom_missing_value"  style="display:none" ><input type="number" id="matrix_custom_missing_input"value="0"></span>
+                    </td>
+                </tr>
+                <tr><td>Output format:</td>
+                    <td><select id="matrix_format">
+                         <!-- <option value="puncdata">Format de colonnes Punc'data</option> -->
+                         <option value="originalAll">Original format with each intensity at the end</option>
+                         <option value="originalStrict">Strictly the original format</option>
+                    </select><br>
+                </td></tr>
+                <tr><td>    Intensity : </td>
+                    <td><select id="matrix_intensity">
+                         <option value="mean">mean</option>
+                         <option value="median">median</option>
+                    </select></td><br>
+                <tr><td>    Compare the data with: </td>
+                    <td><select id="matrix_comparaison_data">
+                         <option value="formula">The formula</option>
+                         <option value="mass">m/z ratio</option>
+                    </select>   <span id="matrix_ppm_tolerance_div" style="display:none">ppm tolerance: <input type="number" id="matrix_ppm_tolerance" value="0"/></span></td>
+               </table>
+             
+          </div>
+          <div style="flex:1">
+          <table>
+               <tr><td  colspan="2">
+               <input type="checkbox" id="matrix_substraction">
+               <b><u>Substract a blank:</u></b><br>
+               </td></tr>
+               <tr><td>Blank file: </td><td><select class="file_choice" id="matrix_blank_file_choice" style="color:white"></select><br></td>
+               </tr>
+               <tr><td>Delete if:</td>
+               <td><select id="matrix_blank_delete_choice">
+                    <option value="strict">The peak appears in the blank</option>
+                    <option value="half">Peak at least half as intense in the blank</option>
+               </select></td><br>
+               </tr>
+               <tr><td>Compare the data with:</td>
+               <td><select id="matrix_blank_comparaison_data">
+                    <option value="formula">The formula</option>
+                    <option value="mass">m/z ratio</option>
+               </select>  <span id="matrix_blank_ppm_tolerance_div" style="display:none">ppm tolerance: <input type="number" id="matrix_blank_ppm_tolerance" value="0"/></span></td></tr>
+              
+          </table>
+          </div>
+          <div id="menubuttons">
+               Separator: 
+               <select id="matrix_splitter">
+                    <option value="	">TAB</option>
+                    <option value=";" >;</option>
+                    <option value=",">,</option>
+                    <option value=" ">SPACE</option>
+                    <option value="  ">DOUBLE SPACE</option>
+               </select>
+               Format:
+               <select id="matrix_file_format">
+                    <option value="txt">txt</option>
+                    <option value="csv">csv</option>
+                    <option value="ascii">ASCII</option>
+               </select><br><br>
+               <button id="calculate_matrix" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
+               <button id="copy_matrix" class="iconbutton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
+               <button id="download_matrix" class="iconbutton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button><br>
+               <input type="checkbox" id="matrix_detailed_report" checked>Detailed Report<br>
+               <input type="checkbox" id="matrix_alert_deviation" checked>Alert on coefficients of variation >0.5<br>
+          </div>
+     </div>
+     <div id="matrix_body">
+          <div style="display:flex">
+               <div id="matrix_file_selection"style="flex:1">
+                    <b><u>File selection:</u></b> <input id="matrix_check_all" type="checkbox"><br>
+                    <table id="matrix_file_table"></table>
+               </div>
+               <div id="matrix_infos_parent" style="flex:1">
+                    <b><u>Matrix:</u></b><br>
+                    <table id="matrix_infos"></table>
+               </div>
+          </div>
+     </div>
+     <div class="fade_popup" id="popup_matrix_copy">Matrix copied</div>
+</div>
+<!-- TAB Traitement-->
+<div id="tab_treatment" class="tabcontent">
+     <div  class="topselecter">
+          <div id="menu">
+          <div id="fileselection_menu">
+
+          Treatment operation: 
+          <select name="treatment_type" style="color:white">
+               <option value="none" >None</option>
+               <option value="deletePeak" >Delete Peaks on a condition</option>
+               <option value="removeCol" >Remove a column</option>
+               <option value="parseFormula" >Parse the formula into elements or ratios</option>
+               <option value="addKMD" >Compute and add a KMD column</option>
+               <option value="addDBE" >Compute and add a DBE column</option>
+               <option value="polymer" >Search polymer chain length and end groups</option>
+          </select><br>
+          </div>
+               
+          <div id="data_operation_parent" style="height:70px;">
+               <div name="data_operation"></div>
+          </div>
+          </div>
+          <div id="menubuttons">
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button id="calculate_treatment" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div style="display:flex">
+          <div id="treatment_file_selection"style="flex:1">
+               <b><u>File selection:</u></b> <input id="treatment_check_all" type="checkbox"><br>
+               <table id="treatment_file_table"></table>
+          </div>
+          <div id="treatment_infos_parent" style="flex:1">
+               <b><u>Log:</u></b><br>
+               <div id="data_log" style="height:500px"></div>
+          </div>
+     </div>
+     <div style="border-top:ridge">
+          Last deleted peaks:
+     <textarea id="DeletedDataTextArea" class="deletedtextarea" style="height:150px;width:100%;font-size:8px"  placeholder="Here will be displayed the peaks deleted only in the last delete operation"></textarea>
+     </div>
+     
+</div>    
+
+<!-- TAB Venn-->
+<div id="tab_venn" class="tabcontent">
+     <div class="topselecter">
+     <div id="menu" >
+      Please only compare files with the same columns in the same order<br>
+          Visualize a Venn diagram with :
+          <select style="color:rgb(255, 255, 255);width:50px" name="VennNumber" id="VennNumber">
+               <option value=0> 0</option>
+               <option value=2> 2</option>
+               <option value=3> 3</option>
+               <option value=4> 4</option>
+          </select>
+          elements </br>
+          <div id="vennChoices">
+               <div id="Venn_comparaisonData_overdiv">
+                    Compare the data based on:
+                    <select id="Venn_comparaisonData">
+                         <option value="formula">Formula</option>
+                         <option value="mass">m/z ratio</option>
+                    </select>
+               </div>
+               <div id="Venn_ppmTolerance_div" style="display:none">ppm tolerance: <input type="number" id="Venn_ppmTolerance" value="0"/></div>
+               <div id="Venn_intensity_div">Intensity: <select style="color:rgb(255, 255, 255);width:170px" name="Venn_intensity" id="Venn_intensity"></select></div>
+          </div>
+     </div>
+     <div id="menu">
+          <table id="vennGraphicsTable">
+               <tr><td colspan="2">Graphical options</td></tr>
+               <tr><td colspan="2"> <div id="Venn_1" >File 1: <select class="file_choice" style="color:rgb(255, 255, 255)" name="VennFile_1" id="VennFile_1"></select>   <input id="VennColor_1" style="height:18px" type="text" name="VennColor_1" value="#e15759" data-coloris> </div></td></tr>
+              <tr><td colspan="2"><div id="Venn_2" >File 2: <select class="file_choice" style="color:rgb(255, 255, 255)" name="VennFile_2" id="VennFile_2"></select>   <input id="VennColor_2" style="height:18px" type="text" name="VennColor_2" value="#59a14f" data-coloris> </div> </td></tr>
+              <tr><td colspan="2"><div id="Venn_3" >File 3: <select class="file_choice" style="color:rgb(255, 255, 255)" name="VennFile_3" id="VennFile_3"></select>   <input id="VennColor_3" style="height:18px" type="text" name="VennColor_3" value="#4e79a7" data-coloris> </div></td></tr>
+               <tr><td colspan="2"><div id="Venn_4">File 4: <select class="file_choice" style="color:rgb(255, 255, 255)" name="VennFile_4" id="VennFile_4"></select>   <input id="VennColor_4" style="height:18px" type="text" name="VennColor_4" value="#bab0ab" data-coloris></div></td></tr> 
+               <tr>
+                    <td>Opacity : <input id="VennOpacity" type="number" name="VennOpacity" value="100">%</td>
+                    <td> <input id="vennOutline" type="checkbox" name="vennOutline"> Outline of venn circles</td>
+               </tr>
+               <tr><td colspan="2">Blend mix: <select name="VennBlendMix" id="VennBlendMix"></select> (Advanced option)</td></tr>
+          </table>
+     </div>
+     <div id="menubuttons">
+          <div id="buttons" class="subtabbuttonmenu">
+               <button id="screenshotVenn" name="screenshot" class="iconbutton">Capture<img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
+          </div>
+     </div>
+     </div>
+     <div id="toptopVenn"style="display:flex">
+          <div id="topVenn" > 
+               <div id="VennCanvas" style="flex:1"><svg width="800" height="800"></svg>
+               </div>
+          </div>
+          <div id="vennTextZone" style="flex:2">
+               <textarea id="vennTextArea" class="venntextzone" style="height:500px;width:100%;font-size:8px"  placeholder="Here will be displayed the data from the clicked zone"></textarea>
+          </div>
+     </div>
+     <div id="tooltipVenn"></div>
+
+</div>
+<!-- Tab PCA-->
+<div id="tab_pca" class="tabcontent">
+     <div  class="topselecter">
+          <div id="fileselection_menu">
+               <div id="menu">
+               Don't forget to define matrix columns, or use the computed matrix of this Punc'data session. <br>
+               Matrix selection: 
+               <select name="fileSelection"></select><br>
+               <input type="checkbox" name="normalizeData" checked> Normalize data
+               </div>   
+          </div>
+          <div id="menu">
+               <table id='PCA_table'>
+                    <tr>
+                         <td>Variables parameters</td>
+                         <td>Samples parameters</td>
+                         <td>Other parameters</td>
+                    </tr>
+                    <tr>
+                         <td>X:<select id="projection_component_x" ></select><input type="number" name="projection_component_xmin" value="-3"><input type="number" name="projection_component_xmax" value="3"></td>
+                         <td>X:<select id="loadings_component_x" ></select><input type="number" name="loadings_component_xmin" value="-10"><input type="number" name="loadings_component_xmax" value="10"></td>
+                         <td><input type="checkbox" name="histogram_showLine" checked>Show line on histogram</td>
+                    </tr>
+                    <tr>
+                         <td>Y:<select id="projection_component_y" ></select><input type="number" name="projection_component_ymin" value="-3"><input type="number" name="projection_component_ymax" value="3"></td>
+                         <td>Y:<select id="loadings_component_y" ></select><input type="number" name="loadings_component_ymin" value="-10"><input type="number" name="loadings_component_ymax" value="10"></td>
+                         <td><input type="checkbox" name="pca_showPercents" checked>Show % in titles</td>
+                    </tr>
+                    <tr>
+                         <td><input type="checkbox" name="projection_relativeSize">Dots size: <input type="number" name="projection_dotSize" value="4"></td>
+                         <td>Dots size: <input type="number" name="loadings_dotSize" value="4"></td>
+                         <td><button id="copypcavectors">Copy Vectors</button></td>
+                    </tr>
+                    <tr>
+                         <td></td>
+                         <td><input type="checkbox" name="loadings_showLabels" checked>Show Labels</td>
+                         <td></td>
+                    </tr>
+               </table>
+          </div>
+          <div id="menubuttons">
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button id="calculate_pca" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
+                    <button id="autoScalePCA" class="iconbutton">Auto scale <br> <img class="parametersButton" src="icons/resize.png"/></button>
+                    <button id="screenshotPCA" name="screenshot" class="iconbutton">Capture<img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div id="canvasgroupPCA" tabindex="-1">
+          <div id="canvasPCA"></div>
+     </div>
+     <div id="tooltip_canvasPCA"></div>
+     <div style="display:flex">
+     </div>
+     
+</div>    
+<!-- TAB Classes-->
+<!-- <div id="tab_classes" class="tabcontent">
+     <div class="topselecter">
+     <div id="menu" style="height:200px">
+          Please separate all classes by commas,semicolons or dashes.<br>
+          You can add "!" before the name of the class to specify that only the elements present must be in the formula and none other <br>
+          Choice of file: <select name="fileSelection"></select><br>
+          Choice of classes: 
+          <input type="text" name="molClasses" style="width:50%"><br>
+          Y: <select name="ymethod">
+               <option value="attributions">% of attributions</option>
+               <option value="intensity">% of intensity</option>
+               <option value="count">nb of attributions</option>
+          </select>
+          [<input type="number" name="ymin">-<input type="number" name="ymax">]
+     </div>
+
+     </div>
+     <div id="toptopClass"style="display:flex">
+          <div id="topClass" > 
+               <div id="classCanvas" style="flex:1">
+               </div>
+          </div>
+          <div id="vennTextZone" style="flex:1">
+               <textarea id="classTextArea" class="venntextzone" style="height:500px;width:100%;font-size:8px"  placeholder="Here will be displayed the data from the clicked zone"></textarea>
+          </div>
+     </div>
+     <div id="tooltipClass"></div>
+
+</div> -->
+
+<!-- TAB Table-->
+<div id="tab_table" class="tabcontent">
+     <div class="topselecter">
+          <div id="menu">
+               <table id="tableMenuTableView">
+               <tr><td>File displayed :  <select name="fileSelection" style="color:white"></select><br>
+               </td></tr>
+               <tr><td>Lines per page :  <input id="tableLinesMax" name="tableLinesPerPage" style="color:white" type="number" value="100"/><br>
+               </td></tr>
+               <tr><td>Current page :  <input id="tablePageNum" name="tablePageNum" style="color:white" type="number" value="1"/><br>
+               </td></tr>
+               <tr><td>
+                    <input type="checkbox" id="tableEditMode"/> Edit mode
+               </td></tr>
+               <tr><td>
+               </td></tr>
+               <tr><td>
+               </td></tr>
+               </table>
+          </div>
+          <div id="menu"></div>
+          <div id="menu"></div>
+          <div id="menubuttons">
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button id="tablePagePrevious" class="iconbutton">Previous <br> Page</button>
+                    <button id="tablePageNext" class="iconbutton">Next <br> Page</button>
+               </div>
+          </div>
+     </div>
+</div>    
+
+<!-- TAB Parameters-->
+<div id="tab_parameters" class="tabcontent">
+     <div  class="topselecter">
+          <div id="menu">
+               <div  style="display:flex;flex-direction: row;">
+                    <div  class="iconbutton"><input  onChange="importPopup(this)" style="opacity:0;position:absolute;height:70px;width:70px;z-index:2;" id="uploadParameters" type="file"><center>Import <br> config</center><img style="padding-left:25px;padding-top:3px" class="parametersButton" src="icons/upload_icon.png"/></div>
+               </div>
+          </div>
+     </div>
+     <div class="flexrowContainer" id="columnsetupParent">
+          <div class="flexrowHalf" id="columnsetup">
+               <div><b>Column-data correspondance: (first column is #0!)</b></div>
+               <table id="columnSetupTable">
+                    <tr><td><label>column for m/z: </label></td><td><input id="config_mz" type="number"></td><td class="italicGolden"id="config_mz_name"></td></tr>
+                    <tr><td><label>column for intensity: </label></td><td><input id="config_intensity" type="number"><td class="italicGolden"id="config_intensity_name"></td></tr>
+                    <tr><td><label>column for DBE: </label></td><td><input id="config_dbe" type="number"><td class="italicGolden"id="config_dbe_name"></td></tr>
+                    <tr><td><label>column for ppm error: </label></td><td><input id="config_ppmerror" type="number"><td class="italicGolden"id="config_ppmerror_name"></td></tr>
+                    <tr><td><label>column for formula: </label></td><td><input id="config_formulatext" type="number"><td class="italicGolden"id="config_formulatext_name"></td></tr>
+               </table>
+
+               <!-- <label>column for O/C ratio: </label><input id="config_oc" type="number"><br>
+               <label>column for H/C ratio: </label><input id="config_hc" type="number"><br> -->
+               <br>
+               <button id="columnsetup_auto">Automatic search</button>
+               using file: <select name="fileSelection" style="color:black"></select>
+
+          </div>
+          <div class="flexrowHalf" id="columnsetup">
+               <b>Modify the default appearance of charts:</b><br>
+               <div id="config_holder" style="width:500px;"></div>
+               <br>
+               <b>Other options:</b><br>
+               <table>
+                    <tr><td>Customize a new color scale: </td><td><button name="editColorScale">Edit</button>  <button name="editColorScaleAdd">ADD</button>  <button name="editColorScaleDel">DEL</button>  <select style="color:black;" id="selectEditableColorScale"></select></td></tr>
+                    <tr><td>Add data to canvas tooltips: </td><td><button name="editSuppDataTooltip">Edit</button></td></tr>
+                    <tr><td>Tooltip pie charts: </td><td><input type="checkbox" name="allowTooltipPieChart"><button name="editTooltipPieChart">Customize</button></td></tr>
+               </table>     
+          </div>
+     </div>    
+
+</div>    
+<!-- TAB Canvas A & B-->
+<div id="tab_canvasA" class="tabcontent">
+     <div id="topselecter" class="topselecter" >
+          <div id="menubuttons">
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button name="screenshot" class="iconbutton">Capture<img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
+                    <div  class="iconbutton"><input  onChange="importPopup(this)" style="opacity:0;position:absolute;height:70px;width:70px;z-index:2;" id="uploadParameters" type="file"><center>Import <br> config</center><img style="padding-left:25px;padding-top:3px" class="parametersButton" src="icons/upload_icon.png"/></div>
+                    <button name="configuration" class="iconbutton">Premade canvas<br><img class="parametersButton" src="icons/gear.png"/></button>
+                    <button id="autoScale_canvasA" class="iconbutton" name="autoscale">Auto scale <br><img name="AutoScale_CanvasB" class="parametersButton" src="icons/resize.png"/></button>
+                    <button id="searchButton" class="iconbutton" name="searchButton">Search <br><img name="SearchButton_CanvasB" class="parametersButton" src="icons/search_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div id="canvasgroupA" tabindex="-1">
+          <div id="canvasA"></div>
+     </div>
+     <div id="tooltip_canvasA"></div>
+</div>
+
+<div id="tab_canvasB" class="tabcontent">
+     <div id="topselecter" class="topselecter" >
+          <div id="menubuttons">
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button name="screenshot" class="iconbutton">Capture<img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
+                    <div  class="iconbutton"><input  onChange="importPopup(this)" style="opacity:0;position:absolute;height:70px;width:70px;z-index:2;" id="uploadParameters" type="file"><center>Import <br> config</center><img style="padding-left:25px;padding-top:3px" class="parametersButton" src="icons/upload_icon.png"/></div>
+                    <button name="configuration" class="iconbutton">Premade canvas<br><img class="parametersButton" src="icons/gear.png"/></button>
+                    <button id="autoScale_canvasB" class="iconbutton" name="autoscale">Auto scale <br><img name="AutoScale_CanvasB" class="parametersButton" src="icons/resize.png"/></button>
+                    <button id="searchButton" class="iconbutton" name="searchButton">Search <br><img name="SearchButton_CanvasB" class="parametersButton" src="icons/search_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div id="canvasgroupB" tabindex="-1">
+          <div id="canvasB"></div>
+     </div>
+     <div id="tooltip_canvasB"></div>
+</div>
+<!-- TAB Canvas Stat-->
+<div id="tab_canvasS" class="tabcontent">
+     <div id="topselecter" class="topselecter" >
+          <div id="menubuttons">
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button name="screenshot" class="iconbutton">Capture<img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
+                    <div  class="iconbutton"><input  onChange="importPopup(this)" style="opacity:0;position:absolute;height:70px;width:70px;z-index:2;" id="uploadParameters" type="file"><center>Import <br> config</center><img style="padding-left:25px;padding-top:3px" class="parametersButton" src="icons/upload_icon.png"/></div>
+                    <button id="autoScale_canvasS" class="iconbutton" name="autoscale">Auto scale <br><img name="AutoScale_CanvasB" class="parametersButton" src="icons/resize.png"/></button>
+                    <button id="searchButton" class="iconbutton" name="searchButton">Search <br><img name="SearchButton_CanvasB" class="parametersButton" src="icons/search_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div id="canvasgroupS" tabindex="-1">
+          <div id="canvasS"></div>
+     </div>
+     <div id="tooltip_canvasStat"></div>
+</div> 
+
+<!-- TAB Network-->
+<div id="tab_network" class="tabcontent">
+     <div class="topselecter">
+          <div id="menubuttons">
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button name="screenshot" class="iconbutton">Capture<img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
+                    <div  class="iconbutton"><input  onChange="importPopup(this)" style="opacity:0;position:absolute;height:70px;width:70px;z-index:2;" id="uploadParameters" type="file"><center>Import <br> config</center><img style="padding-left:25px;padding-top:3px" class="parametersButton" src="icons/upload_icon.png"/></div>
+                    <button id="searchButton" class="iconbutton" name="searchButton_canvasN">Search <br><img name="SearchButton_CanvasN" class="parametersButton" src="icons/search_icon.png"/></button>
+                    <button id="clusterButton" class="iconbutton" name="clusterize_Button">Clusters <br><img name="clusterizeButton" class="parametersButton" src="icons/cluster_icon.png"/></button>
+                    <button id="linksstatButton" class="iconbutton" name="Linksstat_button">Stats <br><img name="LinksStat" class="parametersButton" src="icons/links_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div id="canvasNetwork">
+          <svg id="spaceNetwork"></svg>
+          <div id="endNetwork"></div>
+     </div>
+     <div id="tooltip_canvasN"></div>
+</div>
+
+
+<!-- TAB Help-->
+<div id="tab_help" class="tabcontent">
+     Punc'data - A tool to display and visualize complex mixtures data by high resolution mass spectrometry <br>
+     Made by Théo Voellinger - Please adress any suggestion or bugs you may find at <a href="mailto:wt.voellinger@hotmail.com">wt.voellinger@hotmail.com</a> <br>
+     Université de Lorraine - LCP-A2MC - MassLor <br>
+     <div class="collapseHeader" collapsid="helpTips">Startup guide: ▼</div>
+     <div class="collapsable collapsed" collapsidtarget="helpTips" >
+          1) Upload your file on tab "upload". Make sure the number of column is correct. If not, the wrong separator might be selected in "upload parameters" (gear icon) <br>
+          2) You may go to tab "table" to check if a file has been imported correctly<br>
+          3) If you are using Punc'data for the first time with this data table, you need to check in the parameters tab if all the columns (intensity, m/z ratio...) are correct <br>
+          4) From there, you can go to any of the other operations presented down below <br>
+          5) If you have already created parameters, you can import them from canvas & parameters tabs. <br><br>
+     </div><br>
+     <div class="collapseHeader" collapsid="help_treat">Treat and compare data: ▼</div>
+     <div class="collapsable collapsed" collapsidtarget="help_treat" >
+          <u>Treat data</u><br>
+          1) If you want to treat data (delete peak, parse formulas, add special columns) go to the treatment tab<br>
+          2) In the treatment tab, the selection menu helps you select an operation, and the bottom part selects which file will the operation be applied on.<br>
+          3) The operation "Parse a formula" will parse the column "formula" from your dataset in separate columns for each elements. It can also compute ratios such as O/C (customizable).<br><br> 
+          <u>Matrix and data comparison</u><br>
+          1)To compare samples, you can either directly go to the venn tab and compare them, or make a Matrix and then compare them by PCA (skip to 5) ). <br>
+          2) On the Venn tab, you can customize appearance and files selected. At most, you can compare 4 samples simultaneously. You can compare them based on their formula or based on their m/z ratio.<br>
+          3) On the Venn tab, hovering over the text inside of the circles will display additional data. By clicking on one you will be abled to export the data to a spreadsheet. <br>
+          4) Each intersection will be available as an independant file on the canvas tabs. <br>
+          4) To make a Matrix, select a list of files (they must have the same column order) and setup every parameter, then press "compute" <br>
+          5) Once a Matrix is computed, it can be exported or is directly available in most other menus for treatment or display under the name "Matrix" <br>
+          6) On the "PCA" tab you can select a matrix and press compute. A matrix is either: a Matrix just computed by Punc'data, or a file defined as a Matrix in "upload" tab <br><br>
+          <b>Warning</b><br>
+          •When comparing files, check that the columns are the same for every sample and that they match with the values in the parameters tab <br>
+          •When comparing files, also check that all files have the same total number of columns, even if they are not used <br>
+          •When comparing multile files at the same time, beware of the current interactive selection: you can select only one dataset at at time, or all simultaneously<br>
+          •When using the matrix/venn tool with a comparaison based on the formula, pay attention when using the formula comparison mode: if you use the molecule formula (and not the ion formula) many ions can have the same formula and be wrongly merged together. The algorithm don't handle the case where multiple lines refer to the same molecular formula<br>
+          </div><br>
+          <div class="collapseHeader" collapsid="help_viz">Visualize and make plots: ▼</div>
+          <div class="collapsable collapsed" collapsidtarget="help_viz" >
+          <u>Canvas, data vizualisation</u><br>
+          1) The canvas tabs will help  produce different interactive representations of data.All parameters can be edited directly from this tab or from the "parameters" tab <br>
+          2) To start easily with the canvas tab, load a Premade canvas (gear button). <br>
+          3) Left menu handles general parameters. Middle menu handles charts parameters. Right menu handles data parameters and color scales <br>
+          4) A canvas is a sum of 6 chart spaces called "cells" which are interactive.<br>
+          5) Many types of charts are available:to make Van krevelen or DBE/#C plots, use the "scatter plot" option<br>
+          6) For kendrick maps, you have the option to choose the repeating unit in a list, or write its formula, or enter its mass. <br>
+          7) When you make a selection on a chart it will highlight the same points on all the other charts from the same page<br>
+          8) Selections on histograms will filter data and only display peaks that are included in the selection <br>
+          9) You can copy selections or delete highlighted points  by pressing either ctrl+c or del.<br>
+          10) When you are satisfied with your charts, you can export a screenshot (png or svg format) <br>
+          11) You may also save your chart parameters or save everything including your data. <br>
+          12) To reopen this data on a future session, use the large button at the top of "upload" tab, "load a punc'data session" <br><br>
+          <b>Types of Cells/Charts</b></br>
+          Scatter plot:  Represent each line of a table as a dot, with possible link between intensity and area of the dot. Useful for Van krevelen diagrams and (#C)/DBE<br>
+          Mass spectra: Represents each line of a table as a thin line with (x;y)→(m/z;intensity) <br>
+          Kendrick maps: appears similar to a scatter plot but with calculation of kendrick mass defects for the y axis (and m/z for the x axis)<br>
+          Kendrick 2D: a Kendrick 2D maps, with two customizable mass defects. Alignements are horizontal and overlay of dots <br>
+          Contour map: Acts similar to a scatter plot but represent density of the points with a contour map. The bandwith controls the smoothing and the thresholds the number of "steps" for the density <br>
+          Table of data: Computes averages for each column of your table <br><br>
+          Histogram : Classifies all lines of a table based on a column criteria. The y axis can be calculated on a % of total lines, a % of total intensity or an absolute number of lines <br>
+          Histogram discrete: Similar to histogram but can be valid for textual variables and sorting the bars in order of occurences <br>
+          Histogram of Classes: Acts similar to the "Classes" Tab. Represents an histogram of the different classes present in the sample based on the classes you've defined <br>
+          Density maps: Acts as a 2D histogram. The height of each bar is represented by a color. It gives similar representations to the contour map <br>
+          PCA variables : Shows data for a treated PCA matrix with column names containing "component". Similar to scatter plots in its behaviour<br>
+          <u>Networks</u><br>
+          1) Networks function with a physics simulation based on d3.js library. It is recommended to try at most data files with at most 4000 peaks to avoid long computations <br>
+          2) Main parameters are displayed on the left menu. On the right menu you can modify nodes or edges rules. <br><br>
+          </div><br>
+     <div class="collapseHeader" collapsid="tips_tricks">Tips and tricks: ▼</div>
+     <div class="collapsable collapsed" collapsidtarget="tips_tricks" >
+          <b>Shortcuts</b><br>
+          •Clicking on a chart will highlight points (increase their intensity and add an outline) on all the charts simultaneously. If you make a selection on an histogram it will hide all points outside of this selection.<br>
+          •Shift+click zooms on the chart. A double click will reset the zoom.<br>
+          •After making a selection, pressing on DEL will, on the user's choice, delete the selection or crop the chart.<br>
+          •ctrl+click when hovering data will pinpoint the tooltip<br>
+          •You can change the data displayed in tooltips in the "parameters" tab, right column<br>
+          •ctrl+c when you made a selection will copy the selected data. A popup will appear to confirm it <br>
+          •By pinpointing a tooltip on an histogram or density map, a button appears to copy the data that makes up this bar <br>
+          <b>Tips:</b><br>
+          •The data are drawn in a reverse order: the first line of your matrix will be drawn on top of the other one (and maybe hide them). On Canvas A,B and Stat you can change this order by ordering data on the dataset menu (middle-right)<br>
+          •Each file is drawn on top of the previous one, so file 2 will be drawn before file 3 on a same chart, thus it will appear 'under'<br>
+          •The treatment tab will display the last deleted points, even if you deleted points from a selection. <br>
+          •If you want to make titles and graduations disappear, go to the parameters tab and put "0" in the font size section. <br>
+          •You can move label titles in the PCA tab by mainting ctrl pressed when hovering over the labels <br>
+          •When you change the vizualised file, you can then scroll quickly between files by using the up and down arrow keys ▲ ▼ <br>
+     </div>
+     <div class="helpimg" style="margin-left:auto;margin-right:auto;width: 100px;">
+          <img src="icon.ico" width="100" height="100"><br>
+     <br>
+     </div>
+     <center>Punc'data V.1.15.6</center>
+     <center>Desktop LAB Version</center>
+</div>
+
+<!-- All popups below -->
+<div id="main_popup">
+
+</div>
+<div class="fade_popup" id="popup_data_copy">Data copied!</div>
+
+<div id="popupmatrixsave" class="popup" display="none">
+     <button class="popupclose" id="popupmatrixclose" value="default">X</button><br>
+     <input class="popupinput" type="text" id="popupmatrixinput" placeholder="Entrez le nom de la matrice"><br>
+     <button class="popupclose" id="popupmatrixvalidate" onclick="saveMatrix()" value="default">VALIDATE</button>
+</div>
+<div id="popupsave" class="popup" display="none">
+     <button class="popupclose" id="popupclose" value="default">X</button><br>
+     <input class="popupinput" type="text" id="popupinput" placeholder="entrez le nom du fichier de paramètres"><br>
+     <button class="popupclose" id="popupvalidate" onclick="validation()" value="default">VALIDATE</button>
+</div>
+<div id="popupdelete" class="popup" display="none">
+     <button class="popupclose" id="popupclose_delete" value="default">UNDO</button><br>
+     <button class="warningtext" id="warningtext_delete"></button><br>
+     <button class="popupclose" id="popupvalidate_delete" value="default" onclick="validation_delete()" style="margin-bottom:20px">DELETE</button><br>
+     <button class="popupclose" id="popupvalidate_delete_xor" value="default" onclick="validation_delete_xor()">DELETE ALL BUT THE SELECTION</button>
+</div>
+<div id="popupsavedata" class="popup" display="none">
+     <button class="popupclose" id="popupclose_savedata" value="default">X</button><br>
+     <button class="warningtext" id="warningtext_savedata">This will save in a new file the computed data</button><br>
+     <input class="popupinput" style="margin-top:50px"type="text" id="popupinput_savedata" placeholder="entrez le nom du nouveau fichier de data"><br>
+     <select class="popupselecter" id="popupselecter_savedata">
+          <option value=";">Separator ";"</option>
+          <option value=",">Separator ","</option>
+          <option value="     ">Separator Tab</option>
+          <option value=" ">Separator space</option>
+     </select><br>
+     <button class="popupclose" id="popupvalidate_savedata" onclick="validation_savedata()" value="default">VALIDER</button>
+</div>
+<div id="popupParseChemicalFormula" class="popup" display="none">
+     <button class="popupclose" id="popupclose_parseChemicalFormula" value="default">X</button><br>
+     <button class="infotext" id="infoText_parseChemicalFormula">When you will press "validate", all the formulas will be parsed and a column which each individual element will be added at the end.</button><br>
+     <input type="checkbox" id="parseChemicalFormula_checkall" class="bigbutton"><button class="infotext">Do the same for all uploaded files </button><br>
+     <input class="popupinput" type="text" style="margin-top:0px" id="parseChemicalFormula_ratios" placeholder="Please write here all ratios you want calculated, such as 'O/C' or 'H/C'. Separate them with semicolons (;)"><br>
+     <button class="popupclose" id="popupvalidate_parseChemicalFormula" onclick="matrixParseChemicalFormula()" value="default">VALIDATE</button>
+</div>
+</body>
+
