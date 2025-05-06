@@ -19,10 +19,11 @@ To vizualise data, you need to upload a file with separation (; , ...) between t
 An example dataset is provided in this source code, called "testdata_cellulose.csv". You may upload it in the file section (Data Manager>Left column), go to any canvas and press "Premade Canvas" (Canvas>Top Menu) for a quick demo of the software possibilites for visualization.
 
 ## Tips
-to pinpoint a tooltip, ctrl+click
-to zoom on a chart, shift+click
-to unzoom and go to the initial state: double click
-to delete points: press delete when making a selection
+- to pinpoint a tooltip, ctrl+click
+- to zoom on a chart, shift+click
+- to unzoom and go to the initial state: double click
+- to delete points: press delete when making a selection
+
 For matrix, you can add pie charts to the tooltip by checking the option in the parameters tab
 
 ## Examples
@@ -37,7 +38,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY o
 See the GNU General Public License for more details.
 
 Made by Voellinger Théo 
-LCP-A2MC - MassLor
+LCP-A2MC - MassLor - Université de Lorraine
 2021-2025
 
 ## Libraries
