@@ -65,6 +65,11 @@ For exporting as a desktop app, Electron.JS was used (MIT License)
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 Punc'data has been developed in a  french public laboratory to only serve research purposes concerning complex samples.
+Punc'data is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as 
+published by the Free Software Foundation, version 3. This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+See the GNU General Public License for more details.
+
 Made by Voellinger Théo 
 LCP-A2MC - MassLor
 2021-2025

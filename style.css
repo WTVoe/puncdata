@@ -120,6 +120,15 @@ html {
   overflow:hidden;
 }
 
+.introlicense {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  padding:15px 0;
+  font-size:20;
+}
 
 .introtitle{
   position:absolute;
@@ -924,6 +933,14 @@ img.uploadIconMultiple{
   margin-bottom:25px;
   background: #eeeeee;
   color: black;
+}
+
+.helpimg{
+  display: flex;
+  justify-content: center; 
+  align-items: center;                   
+  margin: 20px auto;       
+  width: fit-content;      
 }
 
 
