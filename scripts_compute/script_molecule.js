@@ -406,10 +406,11 @@ function segmentPolymer(formula, unitFormula){
 
     //makes a sum of all the units that have to be added
     let polymerChain = new ChemFormula("")
+    polymerChain.formula = []
     for(let i=0; i<unitsNb; i++){
         polymerChain.addFormula(unitFormula)
     }
-
+    console.log(unitFormula, polymerChain)
     //substracts from main formula to find end groups
     let endGroups = new Molecule(formula.name)
     endGroups.removeFormula(polymerChain)
