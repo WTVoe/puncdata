@@ -5665,7 +5665,8 @@ class DataSet {
         bins.forEach((bin, index)=>{
             let totIntensity = 0
             bin.forEach((d)=>{
-                totIntensity +=parseFloat(d[config.intensity])
+                 let intensity = parseFloat(d[config.intensity])
+                if (!isNaN(intensity)){totIntensity  += intensity;}
             })
             bin.intensity = totIntensity
             if(!isNaN(totIntensity)){ totHeight += totIntensity}
