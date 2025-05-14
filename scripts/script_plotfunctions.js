@@ -603,11 +603,12 @@ function autoAxis(axis,dataset,column){
       max = Math.round(max + 0.1*axisWidth)
     }
     else{
-      if(min <-10 || min >10){min = 100*Math.round(0.01*(min - 0.1*axisWidth))}
-      max = 100*Math.round(0.01*(max + 0.1*axisWidth))
+      if(min >10){min = Math.min(min-10,100*Math.round(0.01*(min - 0.1*axisWidth)))}
+      else if(min <-10){min = Math.min(min-10, 100*Math.round(0.01*(min + 0.1*axisWidth))) }
+      max = Math.max(max+10,100*Math.round(0.01*(max + 0.1*axisWidth)))
     }
 
-    if(debug){console.log("autoscale:",min,max)}
+    if(debug){console.log("autoscale:",min,max,"width:"+axisWidth)}
     axis.domain([ min, max ]);
     return [ min, max ];
   }

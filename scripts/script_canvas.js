@@ -673,7 +673,7 @@ class CanvasCell {
         countSimultaneousTitles += 1
         if(dataset.data && dataset.data.length >0){
                 options.color = dataset.cfg.colorSolid
-                this.titles[i] = appendSampleName(this.svgSpace, getFileNameFromString(dataset.dataName), countSimultaneousTitles, options)
+                this.titles[i] = appendSampleName(this.svgSpace, getFileNameFromString(dataset.dataName), countSimultaneousTitles, options, this.cfg.config)
             }
         }
     }
@@ -791,7 +791,7 @@ class CanvasCell_scatterPlot extends CanvasCell{
         .enter()
         .append("circle")
         .attr("cx", (d) => {return this.scales[0](d[this.cfg.xtype]); } ) 
-        .attr("cy",  (d) =>{ return this.scales[1](d[this.cfg.ytype]); } ) 
+        .attr("cy",  (d) =>{return this.scales[1](d[this.cfg.ytype]); } ) 
         .attr("r",  (d) => {
              if(this.cfg.relativeSize){
                 return this.cfg.dotSize*Math.sqrt(d[config.intensity])/config.sizeReductor || 0;
@@ -3317,7 +3317,7 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
             if( item.data.length >0 && this.cfg.activeData[index] == "1"){//only push the datasets containing data
                 data.push(item.data)
             } 
-            let theseBins = item.findBins("cell"+this.index)
+            let theseBins = item.findBinsDiscrete("cell"+this.index)
             if( theseBins.bins && this.cfg.activeData[index] == "1"){//only push the datasets containing data
                 binSets.push(theseBins)
             } 
@@ -3947,7 +3947,7 @@ class CanvasCell_histoclass extends CanvasCell_histo{
             if( item.data.length >0 && this.cfg.activeData[index] == "1"){//only push the datasets containing data
                 data.push(item.data)
             } 
-            let theseBins = item.findBins("cell"+this.index)
+            let theseBins = item.findBinsDiscrete("cell"+this.index)
             if( theseBins.bins && this.cfg.activeData[index] == "1"){//only push the datasets containing data
                 binSets.push(theseBins)
             } 
@@ -4964,10 +4964,12 @@ class CanvasCell_samplesPCA extends CanvasCell{
             if(!data || !data.length){return;}
             colStartIndex = parseInt(fileParameters[fileNum].matrixMin)
             colStartIndexPCA = parseInt(fileParameters[fileNum].matrixMax)+1
+            if(data[0]&& data[0][0] && isNaN(data[0][0])){data.shift()}
         }else{return;}
         this.colStartIndex = colStartIndex
         this.colStartIndexPCA = colStartIndexPCA
         //draws data
+        console.log(dataset, dataset.header, data)
         this.drawnData[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"data"+index)
         .selectAll("circle")
         .data(data)
@@ -4975,7 +4977,10 @@ class CanvasCell_samplesPCA extends CanvasCell{
         .append("circle")
         .attr("cx", (d) => {return this.scales[0](d[parseInt(this.cfg.xtype-colStartIndexPCA)]); } ) 
         .attr("cy",  (d) =>{ return this.scales[1](d[parseInt(this.cfg.ytype-colStartIndexPCA)]); } ) 
-        .attr("r",  (d) => {return this.cfg.dotSize})
+        .attr("r",  (d) => {
+            if(!d[parseInt(this.cfg.xtype-colStartIndexPCA)] || !d[parseInt(this.cfg.ytype-colStartIndexPCA)]){return 0}
+            return this.cfg.dotSize
+        })
         .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
         .style("fill", (d) => {
            return dataset.cfg.colorSolid
@@ -5147,7 +5152,7 @@ class CanvasCell_samplesPCA extends CanvasCell{
         let y= [this.cfg.ymin, this.cfg.ymax]
         let xtype = this.cfg.xtype -  this.colStartIndexPCA
         let ytype = this.cfg.ytype -  this.colStartIndexPCA
-        console.log(xtype, ytype, this.cfg, allSamples)
+        if(debug){console.log(xtype, ytype, this.cfg, allSamples)}
         x = autoAxis(this.scales[0], allSamples, xtype)
         y = autoAxis(this.scales[1], allSamples, ytype)
         this.cfg.xmin = x[0]

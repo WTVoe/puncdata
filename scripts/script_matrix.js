@@ -240,6 +240,10 @@ function calculateMatrix(){
             }
             //now calculates the new intensity
             newIntensity = totalIntensity/numberOfFiles
+            if(isNaN(newIntensity)){
+                console.warn("warning ! a given intensity was not a number for peak: "+matrix[i])
+                continue;
+            }
             matrix[i][config.intensity] = newIntensity
         }
     }else if(intensityMethod == "median"){
@@ -256,6 +260,10 @@ function calculateMatrix(){
              //now calculates the new intensity
              let middleIndex = Math.round(numberOfFiles/2)-1
              let newIntensity = values[middleIndex]
+             if(isNaN(newIntensity)){
+                console.warn("warning ! a given intensity was not a number for peak: "+matrix[i])
+                continue;
+            }
              matrix[i][config.intensity] = newIntensity 
         }
     }

@@ -410,7 +410,6 @@ function segmentPolymer(formula, unitFormula){
     for(let i=0; i<unitsNb; i++){
         polymerChain.addFormula(unitFormula)
     }
-    console.log(unitFormula, polymerChain)
     //substracts from main formula to find end groups
     let endGroups = new Molecule(formula.name)
     endGroups.removeFormula(polymerChain)
