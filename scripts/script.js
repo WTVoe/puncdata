@@ -283,6 +283,12 @@ function parseData(data, splittingCharacter, filenumber){
       updateName(nameslist[filenumber-1],filenumber, false) //update the names tag
       //sends the data to the data treatment who will cut the data if asked and draw the plots using other functions
       datatreatment(csvData, filenumber);
+      //sets up this file as the default in cvs A
+      if(canvasA && canvasA.data && canvasA.data[0]){
+        canvasA.data[0].fillFromName("file_"+(filenumber-1))
+        canvasA.draw()
+        if(canvasA.htmlTopMenu){canvasA.htmlTopMenu.draw()}//refresh
+      }
     }else{
       //the other case is if the file replaces another file already displayed.
       for(let i=0; i<canvasA.data.length; i++){
@@ -1424,6 +1430,32 @@ function exportJSONParamFile(){
     document.body.removeChild(file);
     DialogBox.style.display = "none"
     file.href = URL.revokeObjectURL(Blobfile);
+}
+
+function exportJSONParamAsCookie(){
+   var data = {
+    "version":version.number,
+    "config":config,
+    "splitter":splitter,
+    "splitterTextArea": splitterTextArea,
+    "fileLogs":fileLogs,
+    "_textLog":_textLog,
+    "isFileUploaded":isFileUploaded,
+    "cfgVenn":cfgVenn,
+    "cfgPCA":cfgPCA,
+    "cfgA":canvasA.exportCfg(),
+    "cfgB":canvasB.exportCfg(),
+    "cfgS":canvasS.exportCfg(),
+    "cfgNetwork":canvasNetwork.cfg,
+    //for ATTRIBUTION
+    "cfgAttribDraw":cfgAttribDraw,
+    "attribCfg":attribCfg,
+    "attribPasses":attribPasses,
+    "calibData":calibData
+  }
+  var json = JSON.stringify(data)
+  localStorage.setItem("config",json)
+  return json
 }
 
 function exportJSONPuncdataFile(){
@@ -2696,6 +2728,8 @@ function alertPopup(text){
 
 }
 
+
+
 /**************************************************************** */
 /*** intro animation code */
 
@@ -2763,12 +2797,15 @@ let animDiv = document.getElementById("introAnim")
 
 /** to set back to normal value, put 2500 */
 deleteAnimIntro(2500)
+if(localStorage.getItem("alreadyVisited") == "true"){
+  deleteTooltipIntro(0)}
+else{
+  deleteTooltipIntro(6000)
+  localStorage.setItem("alreadyVisited",true)
+}
+
 function deleteAnimIntro(delay){
   document.body.style.overflow = "hidden";
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
   sleep(delay).then(()=> endAnim())
 
   function endAnim(){
@@ -2776,7 +2813,22 @@ function deleteAnimIntro(delay){
     document.body.style.overflow = "auto";
   }
 }
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
+/******************************************************* */
+/** handles the starting tooltip automatic deletion */
+function deleteTooltipIntro(delay){
+  var introTooltip = document.getElementById("introTooltip")
+    sleep(delay).then(()=>{
+      if(introTooltip){introTooltip.remove()}
+  })
+}
+document.getElementById("introTooltipClose").addEventListener("click",()=>{
+  var introTooltip = document.getElementById("introTooltip")
+  if(introTooltip){introTooltip.remove()}
+})
 
 
 /******************************************************************************************************************************************* */

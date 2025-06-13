@@ -95,6 +95,25 @@ html {
 /************************************************/
 /** INTRO DIV**/
 
+.introtooltip{
+  position: fixed;
+  z-index: 99;
+  width:80%;
+  height:200px;
+  top: 10%;
+  left: 10%;
+  font-size : 18;
+  padding: 10px;
+  background-color: lightyellow;
+  animation: opacityBckgrnd 5000ms forwards;
+  animation-delay: 3500ms;
+}
+
+.introtooltipclose{
+  font-size: 50px;
+  text-align: right
+}
+
 .introbckgrnd{
   position:absolute;
   background-color: white;
@@ -300,7 +319,22 @@ html {
 .tab {
   overflow: hidden;
   background-color: #555555;
+  width:90%
 }
+
+.tabright {
+  background-color: #555555;
+  width: 9%;
+  position:absolute;
+  top:0;
+  left:90%;
+  height:29px;
+  border-left : 2px solid white;
+  display:flex;
+  justify-content: space-between;
+  padding-left: 0 5 0 
+}
+
 .tab button {
   background-color: inherit;
   float: left;

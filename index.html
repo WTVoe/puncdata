@@ -1,4 +1,4 @@
-<title id="windowName">Punc'data V 1.15.6</title>
+<title id="windowName">Punc'data V 1.15.7</title>
 <link rel="icon" href="icon.ico">
 <link href="style.css" rel="stylesheet">
 <script src="config.js"></script> <!-- default parameters-->
@@ -40,12 +40,16 @@
      <img class="introimg5" src="icons/anim/contour.png">
      <img class="introimg6" src="icons/anim/histoerror.png">
      <img class="introimg7" src="icons/anim/network.png">
-     <div class="introtitle">Punc'data V 1.15.6</div>
+     <div class="introtitle">Punc'data V 1.15.7</div>
      <div id="introinfo" class="introinfo"></div>
      <img class="introladybug" src="icons/anim/ladybugback.png">
      <img class="introwingr" src="icons/anim/wing_r.png">
      <img class="introwingl" src="icons/anim/wing_l.png">
      <img class="introladybugfront" src="icons/anim/ladybugfront.png">
+</div>
+<div id="introTooltip" class="introtooltip">
+     <div id="introTooltipClose" class="introtooltipclose">X</div>
+     First time ? Go to the "Help" tab for a tutorial
 </div>
 <div class="tab">
   <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_upload')">Data Manager</button>
@@ -65,10 +69,13 @@
   <button class="tablinks otherlink" onclick="openTab('tab_help')">Help</button>
   <button class="tablinks otherlink" onclick="openTab('tab_about')">About</button>
 </div>
-<!-- <div style="position:absolute;top:2;left:92%"><button id="helpButton" class="helpButton"><img class="smallButton" src="icons/help.png"/></button></div> -->
-<div style="position:absolute;top:2;left:95%"><button id="refreshButton" class="refreshButton"><img class="smallButton" src="icons/refresh.png"/></button></div>
-<div style="position:absolute;top:2;left:92.5%"><button id="notebookButton" class="notebookButton"><img class="smallButton" src="icons/notes_icon.png"/></button></div>
-<div style="position:absolute;top:2;left:90%"><button id="saveSessionButton" class="notebookButton" onclick="exportJSON()"><img class="smallButton" src="icons/download_icon.png"/></button></div>
+<div class="tabright">
+     <!-- <div style="position:absolute;top:2;left:92%"><button id="helpButton" class="helpButton"><img class="smallButton" src="icons/help.png"/></button></div> -->
+<button id="refreshButton" class="refreshButton"><img class="smallButton" src="icons/refresh.png"/></button>
+<button id="notebookButton" class="notebookButton"><img class="smallButton" src="icons/notes_icon.png"/></button>
+<button id="saveSessionButton" class="notebookButton" onclick="exportJSON()"><img class="smallButton" src="icons/download_icon.png"/></button>
+</div>
+
 
 <!-- TAB Upload-->
 <div id="tab_upload" class="tabcontent">
@@ -264,7 +271,7 @@
           <div id="menubuttons" >
                <div id="buttons" class="subtabbuttonmenu">
                     <button id="calculate_calib" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
-                    <button id="save_calib" class="iconbutton">Save Calibrated data<br><img class="parametersButton" src="icons/save_icon.png"/></button><br>
+                    <button id="save_calib" class="iconbutton">Save Calibrated data<br><img class="parametersButton" src="icons/validate.png"/></button><br>
                     <button  class="iconbutton"><center>Import <br> config</center><input  onChange="importPopup(this)" style="opacity:0;height:70px;width:70px;z-index:2;margin-top:-32px;margin-left:-10px" id="uploadParameters" type="file"><img style="margin-top:-35px" class="parametersButton" src="icons/upload_icon.png"/></button>
                </div>
           </div>
@@ -328,7 +335,7 @@
           <div id="menubuttons" >
                <div id="buttons" class="subtabbuttonmenu">
                     <button id="calculate_attrib" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
-                    <button id="save_attrib" class="iconbutton">Save Attributed Data<br><img class="parametersButton" src="icons/save_icon.png"/></button><br>
+                    <button id="save_attrib" class="iconbutton">Validate results<br><img class="parametersButton" src="icons/validate.png"/></button><br>
                     <button  class="iconbutton"><center>Import <br> config</center><input  onChange="importPopup(this)" style="opacity:0;height:70px;width:70px;z-index:2;margin-top:-32px;margin-left:-10px" id="uploadParameters" type="file"><img style="margin-top:-35px" class="parametersButton" src="icons/upload_icon.png"/></button>
                     <button name="screenshot" class="iconbutton">Capture<br><img class="screenshotButton" src="icons/screenshot_icon.png"/></button>
                </div>
@@ -385,7 +392,7 @@
                 <tr><td>    Compare the data with: </td>
                     <td><select id="matrix_comparaison_data">
                          <option value="formula">The formula</option>
-                         <option value="mass">m/z ratio</option>
+                         <option value="mass" selected>m/z ratio</option>
                     </select>   <span id="matrix_ppm_tolerance_div" style="display:none">ppm tolerance: <input type="number" id="matrix_ppm_tolerance" value="0"/></span></td>
                </table>
              
@@ -794,7 +801,70 @@
           2) You may go to tab "table" to check if a file has been imported correctly<br>
           3) If you are using Punc'data for the first time with this data table, you need to check in the parameters tab if all the columns (intensity, m/z ratio...) are correct <br>
           4) From there, you can go to any of the other operations presented down below <br>
-          5) If you have already created parameters, you can import them from canvas & parameters tabs. <br><br>
+          5) For quick charts, go to canvas A, press the right button "Premade Canvas" and press "Validate" <br> 
+          6) If you have already created parameters, you can import them from canvas & parameters tabs. <br><br>
+     </div><br>
+     <div class="collapseHeader" collapsid="help_calib">Calibrate data: ▼</div>
+     <div class="collapsable collapsed" collapsidtarget="help_calib">
+          1) Select the file you want calibrated on the lefthand menu of the "calibration" tab, under "File to calibrate"<br>
+          2) If you already worked with Punc'data, you can import your calibration list and parameters using the right button "import config"<br>
+          3) Edit the calibrants list by pressing the button "Edit Calibration list". Alternatively, you can press "Paste" and paste it from a spreadsheet (list of formulas, masses or both)<br>
+          4) You may also add any calibrant with a repeat unit within a definable mass range under the menu "Edit Calibration list">"Add a polymer/..."<br>
+          5) Once you configured your parameters, press "Compute". The status should appear in the text box below accompanied by charts<br>
+          6) Once you are satisfied with your calibration, press "Save Calibrated data". You will be prompted either to override your previous dataset or to create a new one.<br>
+     </div><br>
+     <div class="collapseHeader" collapsid="help_attrib">Assign data: ▼</div>
+     <div class="collapsable collapsed" collapsidtarget="help_attrib">
+          <b>Main procedure</b><br>
+          1)On tab "Attribution", choose the file you want to assign on the leftmost menu <br>
+          2)On the leftmost menu, choose an attribution preset. Alternatively, you may check/uncheck steps in the procedure on the middle menu <br>
+          3)Configure step by step each sub-menu in the middle by clicking on the titles : "isotopy","seeds"...  <br>
+          4)If you already worked with Punc'data, you can import your previous parameters with the rightmost button "import config" <br>
+          5)Once configured, you can press "Compute". You will be informed step by step of the computation. Once finished, charts will appear to display your results <br>
+          6)If you are satisfied, you can press "Validate results" to either replace your dataset or create a new one <br>
+          <b>Configurations</b><br>
+          <u>Isotopy</u><br>
+          The isotopy parameters will tag isotopic peaks before attribution. Intensity of the isotopic distribution will be remembered by the algorithm and can be saved at the end of the attribution process <br>
+          - To find the right tagging tolerance for your dataset, press "Visualize mass delta" on the leftmost menu, and press "draw" for <sup>13</sup>C<br>
+          - With well-calibrated data, the distribution of mass differences should look like a bell curve. You can modify the half-window tolerance (orange bars) to find the correct width for your data and adapt your tolerance accordingly once you leave this menu <br> 
+          You can add more isotopic distributions that need to be tagged under the menu "Choose elements">"Advanced edition" <br>
+          <u>Seeds</u><br>
+          Seeds are the first formulae searched in your dataset. You can name them (optional) and give their <b>Ionic</b> formula. Don't forget the charge (write + or - at the end) <br>
+          You can also paste your seeds formulae from a spreadsheet (one line for each formula. If there is one column, it will be considered as the formula, if there are two the first one will be the name and the second the formula)<br>
+          <u>Supervized Network</u><br>
+          This method, based on mass differences, is useful for NOM (Natural Organic Matter), DOM (Dissolved Organic Matter),bio-oils, petroleum, polymers...
+          - Customize the mass differences that will be searched under the menu "Customize directed network units". If you are not sure  what to use yet, try first the Unsupervized network (advised only for less than 8000 peaks)<br>
+          - To choose the tagging tolerance that suits your dataset, press "Visualize mass delta" on the leftmost menu, select one of your mass differences and press "draw"<br>
+          - With well-calibrated data, the distribution of mass differences should look like a bell curve. You can modify the half-window tolerance (orange bars) to find the correct width for your data and adapt your tolerance accordingly once you leave this menu <br> 
+          - The network exploration tactic doesn't affect your results if you do not have errors in the network. Change this parameter only if you want to verify that the assignemnt process is path-independent <br>
+          - The "tolerance of attribution" is the final tolerance for your assignments. It is advised to put a value slightly higher than the one used under the "passes" menu <br>
+          <u>Unsupervized Network</u><br>
+          The unsupervized network is a method for automatic lookup of the most abundant mass differences. The default parameters are well-suited for the mass accuracy of (calibrated) data acquired using an FT-ICR MS. <br>
+          - The bounds indicate the mass range within which mass differences are searched<br>
+          - The option "Keep" indicates how many of the most common mass differences should be kept to construct a network<br>
+          - The two button "custom attrib DB" and "custom attrib pass" are used to assign to a neutral chemical formula the mass differences that were kept <br>
+          - "Delta attribution tolerance" is the tolerance for assigning these mass differences <br>
+          - You can check which mass differences were found and assigned after pressing "compute" and looking under the middle menu "Log results">"Log deltas summary" <br>
+          <u>Passes</u><br>
+          Passes are lists of elements and their bounds. They define a list of possible chemical/ionic formulae whose mass are matched against the m/z values in your dataset <br>
+          Start by defining the charge (+1/-1) of expected ions. Punc'data doesn't handle yet multicharged ions <br>
+          "Ion type" refers to radical/non radical ions. Define this parameter accordingly with you ionization source and sample <br>
+          You can then define one or multiple passes. The algorithm will try to assign every peak with your first pass, and then will move on only with the remaining peaks with the second pass <br>
+          You can give a name to every pass and define their max m/z value. If you do not put any max m/z value, it will be automatically defined as the largest m/z value in your dataset <br>
+          Potential metals/halogen adducts (Na<sup>+</sup>, Cl<sup>-</sup>...) should be added as elements in the passes <br>
+          Avoid putting too many elements in a single pass, as this will increase drastically the computation time <br>
+          You can copy/pastes passes from a spreadsheet. One line for each element, one column for element,min and max <br>
+          By pressing "Override default filters" you will be able to change the filters only for the currently edited pass. You need to click the top checkbox on the popup menu to activate it <br>
+          <u>Filtering</u><br>
+          Filters limit the possible assigned formulae. The default values are inspired by the work of Kind and Fiehn (DOI: 10.1186/1471-2105-8-105)<br>
+          "KMD bounds" is an additional parameter to restrict assignements to only a certain range of KMD values. The KMD unit can be defined between the parenthesis.<br>
+          <u>Other considerations</u><br>
+          - Under "Posttreatment" there are options to try and find which element in the ionic formula is the adduct <br>
+          - Under "Posttreatement" You can modify the configuration of the output results table : you can change the column order to best suit your needs <br>
+          - "Log results" can help you monitor how your dataset was segmented and the network results <br>
+          - "Log results" can also show you the output table without validating the assignements (press "log attributions") <br>
+          - The right menu helps you customize the pie chart and the three other charts displayed. Their type can be changed. <br>
+
      </div><br>
      <div class="collapseHeader" collapsid="help_treat">Treat and compare data: ▼</div>
      <div class="collapsable collapsed" collapsidtarget="help_treat" >
@@ -898,7 +968,7 @@
           <img src="icon.ico" width="120" height="120">
           <br>
      </div>  
-     <center>Punc'data V.1.15.6</center>
+     <center>Punc'data V.1.15.7</center>
      <center>Web Version</center>
 </div>
 

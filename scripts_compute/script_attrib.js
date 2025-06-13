@@ -478,6 +478,7 @@ class AttribInstance{
         let data = this.data
         let found = []
         let foundByNetwork = []
+        this.network.currentPassIndex = passIndex //informs the network of the current pass, used when special filter rules are active
         for(let i=0; i<data.length; i++){
             if(data[i].attrib){continue;}
             let result = this.matchPeakToPass(data[i],pass, passIndex)
@@ -1338,6 +1339,7 @@ class NetworkAttrib extends Network{
         this.attributedIndex = 0
         this.visited = new Set()
         this.debugQueue = []
+        this.currentPassIndex = 0 //the current pass active in the attribution process
     }
     
     construct_directed(){
@@ -1589,11 +1591,18 @@ class NetworkAttrib extends Network{
         }else{
             newMol.addFormula(link.name)
         }
+        
         //checks for ppm error
         const ppm = 1e6*(newMol.mass - child[config.mz])/child[config.mz]
         const ppmTol = attrib.returnErrorTolerance("network",child[config.mz]) //TODO: make this NOT dependent on attrib, but on the relative AttribInstance class it originates from
         if(Math.abs(ppm)<ppmTol){
-            const goldenRules = checkGoldenRules(newMol, this.cfg.goldenRules)
+            //seeks the golden rules in place: default one or relative to current pass
+            let specialGoldenRules = attribPasses.specialGoldenRules[this.currentPassIndex]
+            if(!specialGoldenRules || (specialGoldenRules && !specialGoldenRules.override)){
+                specialGoldenRules = this.cfg.goldenRules
+            }
+            //tests golden rules
+            const goldenRules = checkGoldenRules(newMol, specialGoldenRules)
             if(!goldenRules){return {}}
             child.attrib = new Attribution(newMol.name, newMol.formalName, child, ppm)
             child.attrib.ionType = newMol.ionType

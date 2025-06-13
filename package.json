@@ -1,6 +1,6 @@
 {
   "name": "Puncdata",
-  "version": "1.15.6LAB",
+  "version": "1.15.7LAB",
   "description": "A tool to vizualise HRMS data and usual representations",
   "main": "main.js",
   "author": "Voellinger Théo",

@@ -2423,7 +2423,7 @@ class Popup_editSeeds extends Popup {
 
         this.addButton.innerHTML = "Add a new seed"
         this.copyButton.innerHTML = "Copy seeds"
-        this.pasteButton.innerHTML = "Paste seeds"
+        this.pasteButton.innerHTML = "Paste seeds (formula list)"
         this.preText.appendChild(document.createElement("br"))
         this.preText.appendChild(this.addButton)
         this.preText.appendChild(divCopyPaste)
