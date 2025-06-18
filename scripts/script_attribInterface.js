@@ -86,6 +86,18 @@ function attribCheckboxMenuRead(d){
     }else{
         algoSelecter.value = "custom"
     }
+    //special case: for the "remove peaks without network connections button"
+    let specialButtonRemovePeakNetwork = document.getElementsByName("removeIfNoNetwork")
+    if(specialButtonRemovePeakNetwork && specialButtonRemovePeakNetwork[0]){
+        let button = specialButtonRemovePeakNetwork[0]
+        if(attribCfg.checks.network){
+            button.disabled = false
+        }else{
+            button.disabled = true
+            button.checked = false
+            attribCfg.main.removeIfNoNetwork = false
+        }
+    }
 
 }
 
@@ -357,8 +369,10 @@ function createMenuAttrib(){
     }else if(menu_choice == 5){
         lines[0].innerHTML  = "Post-attributions operations"
 
-        menuCreate_checkbox(lines[1],"removeIfNoNetwork",attribCfg.main.removeIfNoNetwork)
+        let noNetworkCheckbox = menuCreate_checkbox(lines[1],"removeIfNoNetwork",attribCfg.main.removeIfNoNetwork)
+        if(!attribCfg.checks.network){noNetworkCheckbox.disabled = true}
         lines[1].innerHTML += "Remove peaks without network connections"
+
 
         menuCreate_checkbox(lines[2], "searchAdducts", attribCfg.adducts.search)
         lines[2].innerHTML += "Try to find adduct formula : "
