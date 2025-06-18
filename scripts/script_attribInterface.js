@@ -3231,7 +3231,7 @@ async function pressAttribButton(){
     let results = await attrib.attribute()
     attribData = results
 
-    logText("attribLog",'<b>Press "Save Data" if you want to keep results<b>')
+    logText("attribLog",'<b>Press "Validate Results" if you want to keep results<b>')
     startCanvasAttrib()
 }
 
