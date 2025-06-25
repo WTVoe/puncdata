@@ -797,7 +797,7 @@ class Popup {
     buildContent(){
         let  main_popup = document.getElementById("main_popup")
         this.popup = document.createElement("div")
-        this.popup_box = document.createElement("button")
+        this.popup_box = document.createElement("div")
         this.popup_close = document.createElement("button")
         this.popup_box.setAttribute("class", "infotext")
         this.popup_close.setAttribute("class","popuptrueclose")

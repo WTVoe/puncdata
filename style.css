@@ -1022,7 +1022,7 @@ img.uploadIconMultiple{
   background-color: white;
   font-size: 15px;
   line-height: 1;
-  margin: 20px;
+  margin: 20px auto;
   color: black;
   width: 50%;
   -webkit-user-select: text;
