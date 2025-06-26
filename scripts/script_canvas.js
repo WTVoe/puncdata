@@ -5138,6 +5138,7 @@ class CanvasCell_samplesPCA extends CanvasCell{
         let allSamples = []
         let datasets = this.canvas.data
         datasets.forEach((item,index) => {
+            if(!this.cfg.activeData[index]){return;}
             let data = []
             if(item.dataName == "matrix"){
                 data = cvsPCA.loadings
