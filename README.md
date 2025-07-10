@@ -7,9 +7,10 @@ Punc'data is an interactive attribution and vizualization tool made for high res
 
 # Get started
 
-To start the web version, please open the file called "index.html" with any web browser. By default, the program opens on the data manager tab, whereyou can upload an already saved Punc'data session (top middle button), or data files (top left button, or all left buttons for each individual file).
+To start the web version, you may use  the Github pages [link](https://wtvoe.github.io/puncdata/)  . 
 
-Alternatively, you may use  the Github pages [link](https://wtvoe.github.io/puncdata/)  . 
+Alternatively, you can  download the code and open the file called "index.html" with any web browser. By default, the program opens on the data manager tab, whereyou can upload an already saved Punc'data session (top middle button), or data files (top left button, or all left buttons for each individual file).
+
 
 To vizualise data, you need to upload a file with separation (; , ...) between the columns. You can change the separator with the gear icon (top right).The first line of any uploaded file has to be the title of each column. Each line must represent an attribution or m/z values. Column represent data : m/z value, intensity, formula... Punc'data recognizes which column corresponds to which information based on keywords. They can also be edited manually on tab "parameters".
 - "Tools" Tab allows automatized edition tools of your inputs. 
