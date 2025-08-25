@@ -42,6 +42,11 @@ Made by Voellinger Théo
 LCP-A2MC - MassLor - Université de Lorraine
 2021-2025
 
+## Citation
+
+If you use Punc'data, please cite : https://doi.org/10.1021/jasms.5c00151
+Théo Voellinger, Sébastien Schramm, Pierre Pacholski, Nathan Traullé, Frédéric Aubriet Punc'data: A Versatile Tool for Molecular Formula Assignment, Interactive Visualization, and Comparison of Data from High-Resolution Mass Spectrometry of Complex Mixtures J. Am. Soc. Mass Spectrom. 2025
+
 ## Libraries
 Punc'data is coded in Javascript, and uses HTML/CSS for its vizualisation.
 List of Library used:
