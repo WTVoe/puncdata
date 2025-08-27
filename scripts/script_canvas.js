@@ -4437,7 +4437,8 @@ class CanvasCell_scatterPCA extends CanvasCell{
                 this.axesLabels[1].text(dataset.header[this.cfg.ytype])
             }
         }
-
+        //if the option is toggled, draw axes inside the chart to better understand the PCA
+        if(this.cfg.showAxes){this.drawInsideAxes()}
         //find data 
         let data = dataset.data
         if(dataset.dataFiltered && dataset.dataFiltered.length){data = dataset.dataFiltered}
@@ -4471,6 +4472,35 @@ class CanvasCell_scatterPCA extends CanvasCell{
             this.drawnData[index].style("stroke-width", this.cfg.config.blackCircleWidth || 1)
          }
     }
+    
+    drawInsideAxes(){
+      let color = this.cfg.axesColor
+      let xAxis = [[this.cfg.xmin, 0],[this.cfg.xmax, 0]]
+      let yAxis = [[0, this.cfg.ymin],[0, this.cfg.ymax]]
+      if(!this.axesInside){this.axesInside =[]}
+      d3.selectAll("#canvas"+this.canvas.letter+" #cell"+this.index+"_axis").remove()
+      this.axesInside[0] = this.svgSpace.append("path").attr("id","cell"+this.index+"_axis")
+      .datum(xAxis)
+      .attr('stroke',color)
+      .attr('stroke-width',1)
+      .attr("fill","none")
+      .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+      .attr("d", d3.line()
+          .x((d)=>{ return this.scales[0](d[0]); })
+          .y((d)=>{ return this.scales[1](d[1]); })
+      )
+      this.axesInside[1] = this.svgSpace.append("path").attr("id","cell"+this.index+"_axis")
+      .datum(yAxis)
+      .attr('stroke',color)
+      .attr('stroke-width',1)
+      .attr("fill","none")
+      .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+      .attr("d", d3.line()
+          .x((d)=>{ return this.scales[0](d[0]); })
+          .y((d)=>{ return this.scales[1](d[1]); })
+      )
+    }
+
     checkIfAllEmpty(){
         if(!this.cfg.axisDefined){
             let margin = this.cfg.config.margin
@@ -4523,6 +4553,7 @@ class CanvasCell_scatterPCA extends CanvasCell{
         if(content.includes("opacity_")|| content.includes("all")){
             thisData.style("opacity", this.canvas.cfg.opacity)
         }
+        if(this.cfg.showAxes){this.drawInsideAxes()}
     }
     prepareCfg(){
         let properties = [
@@ -4530,7 +4561,9 @@ class CanvasCell_scatterPCA extends CanvasCell{
             {key:"ytype",type:"number",default:0},
             {key:"dotSize",type:"number",default:1},
             {key:"relativeSize",type:"checkbox",default:false},
-            {key:"selectedCols",type:"text",default:"Component,PCA,Variable"}
+            {key:"selectedCols",type:"text",default:"Component,PCA,Variable"},
+            {key:"showAxes",type:"checkbox",default:false},
+            {key:"axesColor",type:"color",default:"#000000"}
         ]
         return properties
     }
@@ -4556,6 +4589,12 @@ class CanvasCell_scatterPCA extends CanvasCell{
             "inputs":[
                 {key:"relativeSize",type:"checkbox",value:this.cfg.relativeSize,title: "Check this to have points area related to their intensity",update:(d)=>{this.cfg.update(d)}},
                 {key:"dotSize",type:"number",value:this.cfg.dotSize,title: "Size of dots",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"Show axes",
+            "inputs":[
+                {key:"showAxes",type:"checkbox",value:this.cfg.showAxes,title: "Check this to display x and y axis on the chart",update:(d)=>{this.cfg.update(d)}},
+                {key:"axesColor",type:"color",value:this.cfg.axesColor,title: "Color of axes",update:(d)=>{this.cfg.update(d)}},
             ]
         })
         return varsArray
@@ -4968,6 +5007,7 @@ class CanvasCell_samplesPCA extends CanvasCell{
         }else{return;}
         this.colStartIndex = colStartIndex
         this.colStartIndexPCA = colStartIndexPCA
+        if(this.cfg.showAxes){this.drawInsideAxes()}
         //draws data
         console.log(dataset, dataset.header, data)
         this.drawnData[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"data"+index)
@@ -5006,6 +5046,33 @@ class CanvasCell_samplesPCA extends CanvasCell{
             this.drawnData[index].style("stroke", this.cfg.config.blackCircleColor || "#000000")
             this.drawnData[index].style("stroke-width", this.cfg.config.blackCircleWidth || 1)
          }
+    }
+    drawInsideAxes(){
+      let color = this.cfg.axesColor
+      let xAxis = [[this.cfg.xmin, 0],[this.cfg.xmax, 0]]
+      let yAxis = [[0, this.cfg.ymin],[0, this.cfg.ymax]]
+      if(!this.axesInside){this.axesInside =[]}
+      d3.selectAll("#canvas"+this.canvas.letter+" #cell"+this.index+"_axis").remove()
+      this.axesInside[0] = this.svgSpace.append("path").attr("id","cell"+this.index+"_axis")
+      .datum(xAxis)
+      .attr('stroke',color)
+      .attr('stroke-width',1)
+      .attr("fill","none")
+      .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+      .attr("d", d3.line()
+          .x((d)=>{ return this.scales[0](d[0]); })
+          .y((d)=>{ return this.scales[1](d[1]); })
+      )
+      this.axesInside[1] = this.svgSpace.append("path").attr("id","cell"+this.index+"_axis")
+      .datum(yAxis)
+      .attr('stroke',color)
+      .attr('stroke-width',1)
+      .attr("fill","none")
+      .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+      .attr("d", d3.line()
+          .x((d)=>{ return this.scales[0](d[0]); })
+          .y((d)=>{ return this.scales[1](d[1]); })
+      )
     }
     checkIfAllEmpty(){
         if(!this.cfg.axisDefined){
@@ -5052,6 +5119,7 @@ class CanvasCell_samplesPCA extends CanvasCell{
         if(content.includes("opacity_")|| content.includes("all")){
             thisData.style("opacity", this.canvas.cfg.opacity)
         }
+        if(this.cfg.showAxes){this.drawInsideAxes()}
     }
     prepareCfg(){
         let properties = [
@@ -5059,6 +5127,8 @@ class CanvasCell_samplesPCA extends CanvasCell{
             {key:"ytype",type:"number",default:0},
             {key:"dotSize",type:"number",default:5},
             {key:"threshold",type:"number",default:0},
+            {key:"showAxes",type:"checkbox",default:false},
+            {key:"axesColor",type:"color",default:"#000000"},
             {key:"selectedCols",type:"text",default:"Component,PCA,Variable"}
         ]
         return properties
@@ -5086,11 +5156,18 @@ class CanvasCell_samplesPCA extends CanvasCell{
                 {key:"dotSize",type:"number",value:this.cfg.dotSize,title: "Size of dots",update:(d)=>{this.cfg.update(d)}},
             ]
         })
+        varsArray.push({"name":"Show axes",
+            "inputs":[
+                {key:"showAxes",type:"checkbox",value:this.cfg.showAxes,title: "Check this to display x and y axis on the chart",update:(d)=>{this.cfg.update(d)}},
+                {key:"axesColor",type:"color",value:this.cfg.axesColor,title: "Color of axes",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
         varsArray.push({"name":"I Threshold",
             "inputs":[
                 {key:"threshold",type:"number",value:this.cfg.threshold,title: "The intensity threshold under which peaks are considered absent from the file selected by interactivity ",update:(d)=>{this.cfg.update(d)}},
             ]
         })
+        
         return varsArray
     }
 
@@ -5147,6 +5224,7 @@ class CanvasCell_samplesPCA extends CanvasCell{
                 if(!fileParameters[fileNum] || !fileParameters[fileNum]){return;}
                 data = fileParameters[fileNum].variablesPca
             }else{return;}
+            data.unshift(["header"])
             allSamples.push(data)
         })
         let x= [this.cfg.xmin, this.cfg.xmax]
@@ -6793,6 +6871,7 @@ class TopMenuCanvas{
     constructor(canvas, cvsHTML){
         this.canvas = canvas
         this.cvsHTML = cvsHTML
+        this.inputs = {}
         this.draw()
     }
 
@@ -6828,6 +6907,7 @@ class TopMenuCanvas{
         let name = document.createElement("div")
         name.innerHTML = "<br> Data opacity:"
         genMenu.appendChild(name)
+        genMenu.style.flex = "0.8"
             
 
         let opacityRange = document.createElement("input")
@@ -6851,12 +6931,12 @@ class TopMenuCanvas{
         cellMenu.setAttribute("name","cellMenu")
         cellMenu.style.marginRight = "20"
         cellMenu.style.overflowY = "auto"
-        cellMenu.style.flex = "2"
+        cellMenu.style.flex = "1.7"
         let cellMenuTable = createTable(cellNb+1,4)
         cellMenu.appendChild(cellMenuTable)
         cellMenuTable.rows[0].cells[1].textContent = "Data shown"
         cellMenuTable.rows[0].cells[2].textContent = "Chart type"
-        cellMenuTable.rows[0].cells[3].textContent = "Advanced"
+        cellMenuTable.rows[0].cells[3].textContent = "Edit"
         for(let i=0; i<cellNb; i++){
             cellMenuTable.rows[i+1].cells[0].textContent = "Cell "+(i+1)
     
@@ -6889,11 +6969,13 @@ class TopMenuCanvas{
         dataMenu.id = "menu"
         dataMenu.setAttribute("name","dataMenu")
         dataMenu.style.overflowY = "auto"
-        dataMenu.style.flex = "1.5"
-        let dataMenuTable = createTable(dataNb+1,3)
+        dataMenu.style.flex = "2"
+        let dataMenuTable = createTable(dataNb+1,4)
         dataMenu.appendChild(dataMenuTable)
         dataMenuTable.rows[0].cells[1].textContent = "Source"
-        dataMenuTable.rows[0].cells[2].textContent = "Advanced"
+        dataMenuTable.rows[0].cells[2].textContent = "Color"
+        dataMenuTable.rows[0].cells[3].textContent = "Edit"
+        this.inputs.colors = {squares:[],inputs:[],inputsGradients:[],gradients:[]}
         for(let i=0; i<dataNb; i++){
             if(!cvs.data || !cvs.data[i]){continue;}
             dataMenuTable.rows[i+1].cells[0].textContent = "Data "+(i+1)
@@ -6905,13 +6987,65 @@ class TopMenuCanvas{
             dataMenuTable.rows[i+1].cells[1].style.textAlign = "center"
             dataMenuTable.rows[i+1].cells[1].style.maxWidth = "100px"
     
+
+            dataMenuTable.rows[i+1].cells[2].style.textAlign = "center"
+            dataMenuTable.rows[i+1].cells[2].style.maxWidth = "100px"
+            let wrapper = document.createElement("div")
+            wrapper.style.display = "flex"
+            wrapper.style.justifyContent = "center"
+            let centerDiv = document.createElement("div")
+            centerDiv.setAttribute("name","colorMenu_"+i)
+            centerDiv.style.display = "grid"
+            centerDiv.style.marginRight = "2px"
+            dataMenuTable.rows[i+1].cells[2].appendChild(wrapper)
+            wrapper.appendChild(centerDiv)
+
+            let colorInput = menuCreateInput("color","topMenuColor_"+i,cvs.data[i].cfg.colorSolid)
+            colorInput.setAttribute("title","select the solid color of this file")
+            colorInput.style.gridArea = "1 / 1"
+            colorInput.style.width = "30px"
+            let colorSquare = document.createElement("div")
+            colorSquare.style.backgroundColor = cvs.data[i].cfg.colorSolid;
+            colorSquare.style.zIndex = "0";
+            colorSquare.style.gridArea = "1 / 1"
+            colorSquare.style.width = "31px"
+            colorSquare.style.height = "20px"
+            colorSquare.style.pointerEvents = "none";
+            centerDiv.appendChild(colorInput)
+            centerDiv.appendChild(colorSquare)
+            
+            this.inputs.colors.inputs[i] = colorInput
+            colorInput.addEventListener("change",()=>{this.changeDatasetColor(i)})
+            this.inputs.colors.squares[i] = colorSquare
+
+            let centerDiv2 = document.createElement("div")
+            centerDiv2.setAttribute("name","colorMenuGrad_"+i)
+            centerDiv2.style.display = "grid"
+            wrapper.appendChild(centerDiv2)
+            var select_scaleColor = document.createElement("select");
+            select_scaleColor.setAttribute("name","color_type")
+            select_scaleColor.setAttribute("title",'select the gradient that could be used or select "solid color"')
+            select_scaleColor.style.color = "black";
+            select_scaleColor.style.margin = "1px"
+            select_scaleColor.style.maxWidth = "68px"
+            select_scaleColor.style.gridArea = "1 / 1"
+            createColorOptions2(select_scaleColor)
+            select_scaleColor.value = cvs.data[i].cfg.colorGradient
+            centerDiv2.appendChild(select_scaleColor)
+            let gradientSquare = this.buildGradientOverlay(i)
+            centerDiv2.appendChild(gradientSquare)
+
+            this.inputs.colors.inputsGradients[i] = select_scaleColor
+            select_scaleColor.addEventListener("change",()=>{this.changeDatasetGradientColor(i)})
+            this.inputs.colors.gradients[i] = gradientSquare
+
             let button = document.createElement("button")
             button.innerHTML  = "Edit"
             button.addEventListener("click",(d)=>{
                 new MovableWindowDataConfig(cvs.data[i],{"top":100,"left":200})
             })
-            dataMenuTable.rows[i+1].cells[2].appendChild(button)
-            dataMenuTable.rows[i+1].cells[2].style.textAlign = "center"
+            dataMenuTable.rows[i+1].cells[3].appendChild(button)
+            dataMenuTable.rows[i+1].cells[3].style.textAlign = "center"
         }
     
         top.insertBefore(genMenu, menuButtons)
@@ -6940,6 +7074,122 @@ class TopMenuCanvas{
     listActive = listActive.slice(0,-1)
     if(areAllActive){return "all"}
     else{return listActive}
+    }
+    //build the gradient overlay
+    buildGradientOverlay(index){
+        //read
+        let gradientName = this.canvas.data[index].cfg.colorGradient
+        //build the gradient
+        let container = document.createElement("div")
+        container.style.gridArea = "1 / 1"
+        container.style.pointerEvents = "none"
+        container.style.display="flex"
+        container.style.maxHeight = "20px"
+        container.style.maxWidth = "70px"
+        container.setAttribute("name","topGradient_"+index)
+        //default case: 2 rectangles
+        let sevenPoints = ["Turbo","Rainbow","Sinebow","Spectral","CubehelixDefault"]
+        let interpolateName = "interpolate"+gradientName
+        //test if it is one of the special cases:
+        let isManyPoints = false
+        for(let i=0; i<sevenPoints.length; i++){
+            if(interpolateName.includes(sevenPoints[i])){isManyPoints = true; break;}
+        }
+        if(gradientName == "custom_pride"){
+            for(let i=0; i<5; i++){
+                let colorSquare = document.createElement("div")
+                colorSquare.style.background = "linear-gradient(0.25turn,"+customColorPride.colors[i]+","+customColorPride.colors[i+1]+")"
+                colorSquare.style.width = "14px"
+                colorSquare.style.height = "20px"
+                colorSquare.style.pointerEvents = "none";
+                container.appendChild(colorSquare)
+            }
+        }else if(d3[interpolateName] && !isManyPoints){
+            let colors = []
+            for(let i=0; i<3; i++){colors[i] = d3[interpolateName](i/2)}
+            for(let i=0; i<2; i++){
+                let colorSquare = document.createElement("div")
+                colorSquare.style.background = "linear-gradient(0.25turn,"+colors[i]+","+colors[i+1]+")"
+                colorSquare.style.width = "35px"
+                colorSquare.style.height = "20px"
+                colorSquare.style.pointerEvents = "none";
+                container.appendChild(colorSquare)
+            }
+        }else if(d3[interpolateName]){
+            let colors = []
+            for(let i=0; i<8; i++){colors[i] = d3[interpolateName](i/7)}
+            for(let i=0; i<7; i++){
+                let colorSquare = document.createElement("div")
+                colorSquare.style.background = "linear-gradient(0.25turn,"+colors[i]+","+colors[i+1]+")"
+                colorSquare.style.width = "10px"
+                colorSquare.style.height = "20px"
+                colorSquare.style.pointerEvents = "none";
+                container.appendChild(colorSquare)
+            }
+        }else{
+            let div= document.createElement("div")
+            div.style.width = "70px"
+            div.style.height = "20px"
+            div.style.pointerEvents = "none";
+            div.style.color ="white"
+            div.style.backgroundColor = "#505050"
+            div.style.border = "solid 1px #202020"
+            div.innerHTML = "custom"
+            container.appendChild(div)
+        }
+
+        return container
+    }
+
+    //called by dataset i to update its color based on the top menu input
+    changeDatasetColor(index){
+        //read
+        let color = this.inputs.colors.inputs[index].value
+        let dataset = this.canvas.data[index]
+        //write
+        dataset.cfg.colorSolid = color
+        //update
+        this.updateColors()
+        dataset.prepareColorScale()
+        this.canvas.resetFilters()
+        this.canvas.drawDataset(index)
+        this.canvas.redrawAllColourLegends()
+    }
+
+    //same as changeDatasetColor but called by the gradient selecter
+    changeDatasetGradientColor(index){
+        //read
+        let color = this.inputs.colors.inputsGradients[index].value
+        let dataset = this.canvas.data[index]
+        //write
+        dataset.cfg.colorGradient = color
+        //update
+        this.updateColors()
+        dataset.prepareColorScale()
+        this.canvas.resetFilters()
+        this.canvas.drawDataset(index)
+        this.canvas.redrawAllColourLegends()
+    }
+
+
+    //updates the colored squares and gradients on the main menu
+    updateColors(){
+        let squares = this.inputs.colors.squares
+        let gradients = this.inputs.colors.gradients
+        let datasets = this.canvas.data
+        for(let i=0; i<squares.length; i++){
+            squares[i].style.backgroundColor = datasets[i].cfg.colorSolid
+        }
+        for(let i=0; i<gradients.length; i++){
+            let newGradient = this.buildGradientOverlay(i)
+            let oldGrad = this.html.querySelector("div[name='topGradient_"+i+"']")
+            console.log(newGradient, oldGrad)
+            let parent =  oldGrad.parentNode
+            console.log(parent)
+            oldGrad.remove()
+            parent.appendChild(newGradient)
+        }
+
     }
 
     readDataShownInput(d, index){

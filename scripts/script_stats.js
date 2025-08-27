@@ -944,10 +944,22 @@ class CanvasCell_henry extends CanvasCell{
 
 
 /// Work in progress: Shapiro-Wilk test
+
 //
 function shapiroWilkTest(data){
-
-
+    //computes the mean
+    var mean = 0
+    for(let i=0; i<data.length; i++){
+        if(isNaN(data[i])){continue;}
+        mean += data[i]
+    }
+    mean = mean/data.length
+    //computes the variance (denominator in shapiro wilk)
+    var variance = 0
+        for(let i=0; i<data.length; i++){
+        if(isNaN(data[i])){continue;}
+        variance += (data[i] - mean)^2 
+    }
 }
 //each subarray is for a different n number, in this order: 2,4,6,8,10,15,20,25,30
 var shapiroWilkTable = [

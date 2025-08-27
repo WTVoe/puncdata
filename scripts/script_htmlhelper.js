@@ -523,7 +523,7 @@ class MovableWindowDataConfig extends MovableWindow{
         this.data.canvas.resetFilters()
         this.data.canvas.drawDataset(this.data.index)
         this.data.canvas.redrawAllColourLegends()
-        
+        this.data.canvas.htmlTopMenu.updateColors()
     }
 
     callCellWindow(cellIndex){
