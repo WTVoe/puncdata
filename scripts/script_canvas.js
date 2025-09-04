@@ -11,6 +11,7 @@ class Canvas{
         this.cfg.opacity = cfg.opacity || 1
         this.cells = []
         this.data = []
+        this.filters = []
         this.computedData = []
         this.letter = letterID
         this.html.parentElement.addEventListener('keyup',(d)=>{this.handleKeyboardPress(d)})
@@ -179,6 +180,9 @@ class Canvas{
             case 'samplesPCA':
                 return new CanvasCell_samplesPCA(this, index, cfg)
                 break;
+            case 'massDifferences':
+                return new CanvasCell_massDifferences(this, index, cfg)
+                break;
             default:
                 return new CanvasCell_void(this, index, cfg)
         }
@@ -236,9 +240,12 @@ class Canvas{
 
     /**a function to reset all the filters applied on datasets */
     resetFilters(){
+        console.log("reset all filters - canvas level")
+        this.filters = []
+        console.log(this, this.filters)
         this.data.forEach((item)=>{
             item.dataFiltered = []
-            item.filter = {}
+            item.filters = []
         })
     }
 
@@ -255,6 +262,7 @@ class Canvas{
             cellTypes.push({value:"kendrick", name:"Kendrick map"})
             cellTypes.push({value:"kendrick2D", name:"Kendrick 2D"},)
             cellTypes.push({value:"tableInfos", name:"Table of data"})
+            cellTypes.push({value:"massDifferences", name:"Mass Differences (MOVE)"})
         }
         if(toAllow.histo){
             cellTypes.push({value:"SPLITTER", name:"SPLITTER"})
@@ -585,7 +593,7 @@ class CanvasCell {
             if(activeData !="all" && activeData !=dataIndex){return}
             let dataset = this.canvas.data[dataIndex]
             if(dataset.dataFiltered && dataset.dataFiltered.length>0 && !isTitleDrawn){
-                this.drawFilterTitle(dataset);
+                this.drawFiltersTitles();
                 isTitleDrawn = true
             }
             if(!dotsGroup || !dotsGroup.style){return;}
@@ -631,11 +639,16 @@ class CanvasCell {
         if(debug){console.log("creating the brushing filter for cell n°"+this.index)}
         this.brush = new BrushFilterCanvas(this.canvas, this, cellType)
     }
+    drawFiltersTitles(){
+        let filters = this.canvas.filters
+        if(!filters){return}
+        for(let i=0; i<filters.length; i++){
+            this.drawFilterTitle(filters[i], i)
+        }
+    }
 
-    drawFilterTitle(dataset){
-        if(!dataset.filter){return;}
+    drawFilterTitle(filter, filterIndex){
         if(!this.canvas.cfg.interactivity.showTitleWarning){return;}
-        let filter = dataset.filter
         let text = "Filter active"
         if(filter.origin == "histogram"){
             text = "Filter("+filter.origin+" "+filter.type+")["+filter.domain[0].toFixed(1)+","+filter.domain[1].toFixed(1)+"]"
@@ -646,7 +659,7 @@ class CanvasCell {
         let title = this.svgSpace.append("g").attr("id","cell"+this.index+"_filterTitle")
         .append("text")
         .attr("x", this.cfg.config.width/2)
-        .attr("y", this.cfg.config.legendFontSize)
+        .attr("y", this.cfg.config.legendFontSize*(filterIndex+1)+2*filterIndex)
         .attr("font-size", this.cfg.config.legendFontSize)
         .attr("text-anchor","middle")
         .attr("fill","black")
@@ -759,9 +772,13 @@ class CanvasCell_scatterPlot extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
         this.axesLabels=[];
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[this.cfg.xtype],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, columnNames[this.cfg.ytype],axisOptions, this.cfg.config);
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.noGrid){
             this.grids = [];
             this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
@@ -816,8 +833,12 @@ class CanvasCell_scatterPlot extends CanvasCell{
     }
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        this.axesLabels[1].text(columnNames[this.cfg.ytype])
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
         //TODO :add an update of the brushing
         if(!this.cfg.config.noGrid){
             this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines).tickSize(this.cfg.config.height).tickFormat(""))
@@ -1059,12 +1080,15 @@ class CanvasCell_massSpectra extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = columnNames[config.intensity]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.ytype == "relative"){ axisLabel_y = "%"}
         this.axesLabels=[];
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[config.mz],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, columnNames[config.intensity],axisOptions, this.cfg.config);
-        if(this.cfg.ytype == "relative"){
-            this.axesLabels[1].text("%")
-        }
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
+
         if(!this.cfg.config.noGrid){
             this.grids = [];
             this.grids[1] = appendPlotGrid(this.svgSpace, this.scales[1],this.cfg.config.axisLines,"side", this.cfg.config);
@@ -1080,7 +1104,6 @@ class CanvasCell_massSpectra extends CanvasCell{
         let ytype = this.cfg.ytype
 
         let maxInt = this.canvas.findMaxIntofCell(false, this.index)
-
         //find data 
         let data = dataset.data
         if(dataset.dataFiltered && dataset.dataFiltered.length){data = dataset.dataFiltered}
@@ -1125,12 +1148,13 @@ class CanvasCell_massSpectra extends CanvasCell{
     }
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        this.axesLabels[0].text(columnNames[config.mz])
-        if(this.cfg.ytype == "relative"){
-            this.axesLabels[1].text("%")
-        }else{
-            this.axesLabels[1].text(columnNames[config.intensity])
-        }
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = columnNames[config.intensity]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.ytype == "relative"){axisLabel_y = "%"}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
         //TODO :add an update of the brushing
         if(!this.cfg.config.nogrid){
             this.grids[1].call(d3.axisLeft(this.scales[1]).ticks(this.cfg.config.axisLines).tickSize(-this.cfg.config.width).tickFormat(""))
@@ -1234,20 +1258,20 @@ class CanvasCell_kendrick extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = "KMD("+this.cfg.kendrickFormula+")"
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        else if(this.cfg && this.cfg.xtype =="nkm"){axisLabel_x = "NKM"}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.textKFM){axisLabel_y = "KFM("+this.cfg.kendrickFormula+")"}
         this.axesLabels=[];
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[config.mz],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, "KMD("+this.cfg.kendrickFormula+")",axisOptions, this.cfg.config);
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.nogrid){
             this.grids = [];
             this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
             this.grids[1] = appendPlotGrid(this.svgSpace, this.scales[1],this.cfg.config.axisLines*2,"side", this.cfg.config);
           }
-        if(this.cfg && this.cfg.xtype =="nkm"){
-            this.axesLabels[0].text("NKM")
-        }
-        if(this.cfg.textKFM){
-            this.axesLabels[1].text("KFM("+this.cfg.kendrickFormula+")")
-        }
         //create brushing or filtration
         this.createBrush("kendrick")
         this.drawAllData()
@@ -1306,16 +1330,14 @@ class CanvasCell_kendrick extends CanvasCell{
 
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        if(this.cfg.xtype =="nkm"){
-            this.axesLabels[0].text("NKM")
-        }else{
-            this.axesLabels[0].text(columnNames[config.mz])
-        }
-        if(this.cfg.textKFM){
-            this.axesLabels[1].text("KFM("+this.cfg.kendrickFormula+")")
-        }else{
-            this.axesLabels[1].text("KMD("+this.cfg.kendrickFormula+")")
-        }
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = "KMD("+this.cfg.kendrickFormula+")"
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        else if(this.cfg && this.cfg.xtype =="nkm"){axisLabel_x = "NKM"}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.textKFM){axisLabel_y = "KFM("+this.cfg.kendrickFormula+")"}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
         //TODO :add an update of the brushing
         if(!this.cfg.config.nogrid){
             this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines).tickSize(this.cfg.config.height).tickFormat(""))
@@ -1493,18 +1515,20 @@ class CanvasCell_kendrick2D extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = "KMD 1 :"+this.cfg.kendrickFormula
+        let axisLabel_y = "KMD 2 :"+this.cfg.kendrickFormula2
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        else if(this.cfg.textKFM){axisLabel_x = "KFM 1 :"+this.cfg.kendrickFormula}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.textKFM){axisLabel_y = "KFM 2 :"+this.cfg.kendrickFormula2}
         this.axesLabels=[];
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, "KMD 1 :"+this.cfg.kendrickFormula,axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, "KMD 2 :"+this.cfg.kendrickFormula2,axisOptions, this.cfg.config);
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace,axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace,axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.nogrid){
             this.grids = [];
             this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines*2, "bottom", this.cfg.config);
             this.grids[1] = appendPlotGrid(this.svgSpace, this.scales[1],this.cfg.config.axisLines*2,"side", this.cfg.config);
           }
-        if(this.cfg.textKFM){
-            this.axesLabels[0].text("KFM 1 :"+this.cfg.kendrickFormula)
-            this.axesLabels[1].text("KFM 2 :"+this.cfg.kendrickFormula)
-        }
         //create brushing or filtration
         this.createBrush("kendrick2D")
         this.drawAllData()
@@ -1559,13 +1583,15 @@ class CanvasCell_kendrick2D extends CanvasCell{
 
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        if(this.cfg.textKFM){
-            this.axesLabels[0].text("KFM 1: "+this.cfg.kendrickFormula)
-            this.axesLabels[1].text("KFM 2: "+this.cfg.kendrickFormula2)
-        }else{
-            this.axesLabels[0].text("KMD 1: "+this.cfg.kendrickFormula)
-            this.axesLabels[1].text("KMD 2: "+this.cfg.kendrickFormula2)
-        }
+        let axisLabel_x = "KMD 1 :"+this.cfg.kendrickFormula
+        let axisLabel_y = "KMD 2 :"+this.cfg.kendrickFormula2
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        else if(this.cfg.textKFM){axisLabel_x = "KFM 1 :"+this.cfg.kendrickFormula}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.textKFM){axisLabel_y = "KFM 2 :"+this.cfg.kendrickFormula2}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
+
         //TODO :add an update of the brushing
         if(!this.cfg.config.nogrid){
             this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines*2).tickSize(this.cfg.config.height).tickFormat(""))
@@ -1783,9 +1809,13 @@ class CanvasCell_contourMap extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
         this.axesLabels=[];
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[this.cfg.xtype],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, columnNames[this.cfg.ytype],axisOptions, this.cfg.config);
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.nogrid){
             this.grids = [];
             this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
@@ -1795,6 +1825,7 @@ class CanvasCell_contourMap extends CanvasCell{
         this.createBrush("contourMap")
         this.drawAllData()
         this.drawColourLegends(false)
+         this.drawFiltersTitles();
     }
     /**
      * draws a single dataset
@@ -1810,7 +1841,6 @@ class CanvasCell_contourMap extends CanvasCell{
         let data = dataset.data
         if(dataset.dataFiltered && dataset.dataFiltered.length){
             data = dataset.dataFiltered;
-            this.drawFilterTitle(dataset);
         }
 
         let densityData = this.drawContour(data)
@@ -1848,8 +1878,12 @@ class CanvasCell_contourMap extends CanvasCell{
     }
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        this.axesLabels[1].text(columnNames[this.cfg.ytype])
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x);
+        this.axesLabels[1].text(axisLabel_y);
         //TODO :add an update of the brushing
         if(!this.cfg.config.nogrid){
             this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines).tickSize(this.cfg.config.height).tickFormat(""))
@@ -1887,6 +1921,7 @@ class CanvasCell_contourMap extends CanvasCell{
     //for contourmaps, everything has to be redrawn
     handleFiltering(indexesList){
         this.drawAllData()
+        this.drawFiltersTitles()
     }
 
     prepareCfg(){
@@ -1957,12 +1992,15 @@ class CanvasCell_densityCurve extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = "Relative Density"
+        if(this.cfg.ymethod =="densityAdd"){axisLabel_y = "Relative Density(at most)"}
+        else if(this.cfg.ymethod =="densitySub"){axisLabel_y = "Relative Density(at least)"}
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
         this.axesLabels=[];
-        let yName = "Relative Density"
-        if(this.cfg.ymethod =="densityAdd"){yName = "Relative Density(at most)"}
-        else if(this.cfg.ymethod =="densitySub"){yName = "Relative Density(at least)"}
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[this.cfg.xtype],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, yName,axisOptions, this.cfg.config);
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.noGrid){
             this.grids = [];
             this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
@@ -2037,11 +2075,14 @@ class CanvasCell_densityCurve extends CanvasCell{
     }
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        let yName = "Relative Density"
-        if(this.cfg.ymethod =="densityAdd"){yName = "Relative Density(at most)"}
-        else if(this.cfg.ymethod =="densitySub"){yName = "Relative Density(at least)"}
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        this.axesLabels[1].text(yName)
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = "Relative Density"
+        if(this.cfg.ymethod =="densityAdd"){axisLabel_y = "Relative Density(at most)"}
+        else if(this.cfg.ymethod =="densitySub"){axisLabel_y = "Relative Density(at least)"}
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x);
+        this.axesLabels[1].text(axisLabel_y);
         //TODO :add an update of the brushing
         if(!this.cfg.config.noGrid){
             this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines).tickSize(this.cfg.config.height).tickFormat(""))
@@ -2061,7 +2102,6 @@ class CanvasCell_densityCurve extends CanvasCell{
         for(let i=0; i<this.canvas.data.length; i++){
             if(activeData !="all" && activeData !=i){continue;}
             let dataset = this.canvas.data[i]
-            if(dataset.filter.cellIndex == this.index){continue;}
             if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
             this.drawData(this.canvas.data[i], i, "filter")
         }
@@ -2516,21 +2556,25 @@ class CanvasCell_histogram extends CanvasCell_histo{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-        let yText = "%"
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = "Relative %"
         if(this.cfg.ymethod == "attributions"){
-            yText = "% of attributions"
+            axisLabel_y = "% of attributions"
         }else if(this.cfg.ymethod == "intensity"){
-            yText= "% of intensity"
+            axisLabel_y= "% of intensity"
         }else if(this.cfg.ymethod == "count"){
-            yText = "Number of attributions"
+            axisLabel_y = "Number of attributions"
         }
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
         this.axesLabels=[];
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[this.cfg.xtype],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, yText,axisOptions, this.cfg.config);
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         //create brushing or filtration
         this.createBrushFilter("histogram")
         this.drawAllData()
         this.drawColourLegends(true)
+        this.drawFiltersTitles()
     }
     /**
      * draws a single dataset
@@ -2555,7 +2599,6 @@ class CanvasCell_histogram extends CanvasCell_histo{
         if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
             //drawing bins for filtering
             theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "filteredCell"+this.index, true, dataset.dataFiltered)
-            this.drawFilterTitle(dataset)
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "highlightedCell"+this.index, true, dataset.dataHighlighted)
@@ -2632,7 +2675,7 @@ class CanvasCell_histogram extends CanvasCell_histo{
         if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
             //drawing bins for filtering
             theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "filteredCell"+this.index, true, dataset.dataFiltered)
-            this.drawFilterTitle(dataset)
+            this.drawFiltersTitles()
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "highlightedCell"+this.index, true, dataset.dataHighlighted)
@@ -2727,16 +2770,19 @@ class CanvasCell_histogram extends CanvasCell_histo{
 
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        let yText = "%"
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = "Relative %"
         if(this.cfg.ymethod == "attributions"){
-            yText = "% of attributions"
+            axisLabel_y = "% of attributions"
         }else if(this.cfg.ymethod == "intensity"){
-            yText= "% of intensity"
+            axisLabel_y= "% of intensity"
         }else if(this.cfg.ymethod == "count"){
-            yText = "Number of attributions"
+            axisLabel_y = "Number of attributions"
         }
-        this.axesLabels[1].text(yText);
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x);
+        this.axesLabels[1].text(axisLabel_y);
     }
 
     updateData(content, dataNum){
@@ -2748,13 +2794,16 @@ class CanvasCell_histogram extends CanvasCell_histo{
     handleFiltering(indexesList){
         if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
         let activeData = this.canvas.cfg.interactivity.active
+        //checks if the only filter is on this chart, skips 
+        if(this.canvas.filters.length == 1){
+            if(this.canvas.filters[0] &&this.canvas.filters[0].cellIndex == this.index){return;}
+        }
+
         for(let i=0; i<this.canvas.data.length; i++){
             if(activeData !="all" && activeData !=i){return}
-            let dataset = this.canvas.data[i]
-            if(dataset.filter.cellIndex == this.index){continue;}
-            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
             this.drawData(this.canvas.data[i], i, "filter")
         }
+        this.drawFiltersTitles()
     }
 
     /** handle drawing bars for highlighted data */
@@ -2924,17 +2973,20 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
         }
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-        this.axesLabels=[];
-        let yText = "%"
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = "Relative %"
         if(this.cfg.ymethod == "attributions"){
-            yText = "% of attributions"
+            axisLabel_y = "% of attributions"
         }else if(this.cfg.ymethod == "intensity"){
-            yText= "% of intensity"
+            axisLabel_y= "% of intensity"
         }else if(this.cfg.ymethod == "count"){
-            yText = "Number of attributions"
+            axisLabel_y = "Number of attributions"
         }
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[this.cfg.xtype],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, yText,axisOptions, this.cfg.config);
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         //create brushing or filtration
         this.createBrushFilter("histodiscrete")
         this.drawAllData()
@@ -2963,7 +3015,7 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
         if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
             //drawing bins for filtering
             theseBins = this.prepareDataCatList_special(this.catList,index, dataset.dataFiltered, "filtered")
-            this.drawFilterTitle(dataset)
+            this.drawFiltersTitles()
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = this.prepareDataCatList_special(this.catList,index, dataset.dataHighlighted, "highlighted")
@@ -3044,7 +3096,7 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
         if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
             //drawing bins for filtering
             theseBins = this.prepareDataCatList_special(this.catList,index, dataset.dataFiltered, "filtered")
-            this.drawFilterTitle(dataset)
+            this.drawFiltersTitles()
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = this.prepareDataCatList_special(this.catList,index, dataset.dataHighlighted, "highlighted")
@@ -3253,18 +3305,19 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
         //     this.prepareDataCatList(catList)
         // }
 
-
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        let yText = "%"
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = "Relative %"
         if(this.cfg.ymethod == "attributions"){
-            yText = "% of attributions"
+            axisLabel_y = "% of attributions"
         }else if(this.cfg.ymethod == "intensity"){
-            yText= "% of intensity"
+            axisLabel_y= "% of intensity"
         }else if(this.cfg.ymethod == "count"){
-            yText = "Number of attributions"
+            axisLabel_y = "Number of attributions"
         }
-        this.axesLabels[1].text(yText);
-
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x);
+        this.axesLabels[1].text(axisLabel_y);
     }
 
     updateData(content, dataNum){
@@ -3286,10 +3339,13 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
     handleFiltering(indexesList){
         if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
         let activeData = this.canvas.cfg.interactivity.active
+        //checks if the only filter is on this chart, skips 
+        if(this.canvas.filters.length == 1){
+            if(this.canvas.filters[0] &&this.canvas.filters[0].cellIndex == this.index){return;}
+        }
         for(let i=0; i<this.canvas.data.length; i++){
             if(activeData !="all" && activeData !=i){return}
             let dataset = this.canvas.data[i]
-            if(dataset.filter.cellIndex == this.index){continue;}
             if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
             this.drawData(this.canvas.data[i], i, "filter")
         }
@@ -3465,17 +3521,20 @@ class CanvasCell_histoclass extends CanvasCell_histo{
         }
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-        this.axesLabels=[];
-        let yText = "%"
+        let axisLabel_x = "Class"
+        let axisLabel_y = "Relative %"
         if(this.cfg.ymethod == "attributions"){
-            yText = "% of attributions"
+            axisLabel_y = "% of attributions"
         }else if(this.cfg.ymethod == "intensity"){
-            yText= "% of intensity"
+            axisLabel_y= "% of intensity"
         }else if(this.cfg.ymethod == "count"){
-            yText = "Number of attributions"
+            axisLabel_y = "Number of attributions"
         }
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[this.cfg.xtype],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, yText,axisOptions, this.cfg.config);
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         //create brushing or filtration
         this.createBrushFilter("histoclass")
         this.drawAllData()
@@ -3503,7 +3562,7 @@ class CanvasCell_histoclass extends CanvasCell_histo{
         if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
             //drawing bins for filtering
             theseBins = this.prepareDataClassList_special(this.classList,index, dataset.dataFiltered, "filtered")
-            this.drawFilterTitle(dataset)
+            this.drawFiltersTitles()
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = this.prepareDataClassList_special(this.classList,index, dataset.dataHighlighted, "highlighted")
@@ -3587,7 +3646,7 @@ class CanvasCell_histoclass extends CanvasCell_histo{
         if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
             //drawing bins for filtering
             theseBins = this.prepareDataClassList_special(this.classList,index, dataset.dataFiltered, "filtered")
-            this.drawFilterTitle(dataset)
+            this.drawFiltersTitles()
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = this.prepareDataClassList_special(this.classList,index, dataset.dataHighlighted, "highlighted")
@@ -3849,16 +3908,19 @@ class CanvasCell_histoclass extends CanvasCell_histo{
         // }
 
 
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        let yText = "%"
+        let axisLabel_x = "Class"
+        let axisLabel_y = "Relative %"
         if(this.cfg.ymethod == "attributions"){
-            yText = "% of attributions"
+            axisLabel_y = "% of attributions"
         }else if(this.cfg.ymethod == "intensity"){
-            yText= "% of intensity"
+            axisLabel_y= "% of intensity"
         }else if(this.cfg.ymethod == "count"){
-            yText = "Number of attributions"
+            axisLabel_y = "Number of attributions"
         }
-        this.axesLabels[1].text(yText);
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x);
+        this.axesLabels[1].text(axisLabel_y);
         //this overrides to be sure everything is updated
     }
 
@@ -3884,10 +3946,12 @@ class CanvasCell_histoclass extends CanvasCell_histo{
     handleFiltering(indexesList){
         if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
         let activeData = this.canvas.cfg.interactivity.active
+        if(this.canvas.filters.length == 1){
+            if(this.canvas.filters[0] &&this.canvas.filters[0].cellIndex == this.index){return;}
+        }
         for(let i=0; i<this.canvas.data.length; i++){
             if(activeData !="all" && activeData !=i){return}
             let dataset = this.canvas.data[i]
-            if(dataset.filter.cellIndex == this.index){continue;}
             if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
             this.drawData(this.canvas.data[i], i, "filter")
         }
@@ -3905,30 +3969,7 @@ class CanvasCell_histoclass extends CanvasCell_histo{
             this.drawData(this.canvas.data[i], i, "highlight")
         }
     }/** if the filter comes from this histogram, it should not be counted */
-    handleFiltering(indexesList){
-        if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
-        let activeData = this.canvas.cfg.interactivity.active
-        for(let i=0; i<this.canvas.data.length; i++){
-            if(activeData !="all" && activeData !=i){return}
-            let dataset = this.canvas.data[i]
-            if(dataset.filter.cellIndex == this.index){continue;}
-            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
-            this.drawData(this.canvas.data[i], i, "filter")
-        }
-    }
-
-    handleHighlighting(){
-        //check if this method of brushing is active, because it can be disabled
-        if(!this.canvas.cfg.interactivity.createHistogramBars){return;}
-        for(let i=0; i<this.canvas.data.length; i++){
-            let dataset = this.canvas.data[i]
-            if(!dataset.highlight){continue;}
-            if(dataset.highlight.cellIndex == this.index){continue;}
-            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
-            if(this.canvas.cfg.interactivity.active != "all" && this.canvas.cfg.interactivity.active != i){continue;}
-            this.drawData(this.canvas.data[i], i, "highlight")
-        }
-    }
+    
 
     prepareDataClassList_special(classList, index, specialData, name){
         let data = this.canvas.data[index]
@@ -4134,7 +4175,6 @@ class CanvasCell_density extends CanvasCell{
         if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
         let index = this.cfg.dataIndex
         let dataset = this.canvas.data[index]
-        if(dataset.filter.cellIndex == this.index){return;}
         if(this.cfg.activeData[index] != "1" || !dataset  || dataset.data.length == 0){return;}
         let activeData = this.canvas.cfg.interactivity.active
         if(activeData !="all" && activeData !=index){return}
@@ -4397,15 +4437,17 @@ class CanvasCell_scatterPCA extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-        this.axesLabels=[];
-        let xName = columnNames[this.cfg.xtype]
-        let yName = columnNames[this.cfg.ytype]
-        if((!xName || !yName) && this.canvas.data[0].header){ 
-            xName = this.canvas.data[0].header[this.cfg.xtype]
-            yName = this.canvas.data[0].header[this.cfg.ytype]
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if((!axisLabel_x || !axisLabel_y) && this.canvas.data[0].header){ 
+            axisLabel_x = this.canvas.data[0].header[this.cfg.xtype]
+            axisLabel_y = this.canvas.data[0].header[this.cfg.ytype]
         }
-        this.axesLabels[0] = appendAxisLabel_x(this.svgSpace, xName,axisOptions, this.cfg.config);
-        this.axesLabels[1] = appendAxisLabel_y(this.svgSpace, yName,axisOptions, this.cfg.config);
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.noGrid){
             this.grids = [];
             this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
@@ -4433,8 +4475,12 @@ class CanvasCell_scatterPCA extends CanvasCell{
             this.setAxisTypesDefault()
             if(!this.cfg.axisDefined){return;}
             else{
-                this.axesLabels[0].text(dataset.header[this.cfg.xtype])
-                this.axesLabels[1].text(dataset.header[this.cfg.ytype])
+                if(!this.cfg.overrideAxis_x || this.cfg.overrideAxis_x == ""){
+                    this.axesLabels[0].text(dataset.header[this.cfg.xtype])
+                }
+                if(!this.cfg.overrideAxis_y || this.cfg.overrideAxis_y == ""){
+                    this.axesLabels[1].text(dataset.header[this.cfg.ytype])
+                }
             }
         }
         //if the option is toggled, draw axes inside the chart to better understand the PCA
@@ -4523,8 +4569,16 @@ class CanvasCell_scatterPCA extends CanvasCell{
 
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        this.axesLabels[1].text(columnNames[this.cfg.ytype])
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if((!axisLabel_x || !axisLabel_y) && this.canvas.data[0].header){ 
+            axisLabel_x = this.canvas.data[0].header[this.cfg.xtype]
+            axisLabel_y = this.canvas.data[0].header[this.cfg.ytype]
+        }
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
         //TODO :add an update of the brushing
         if(!this.cfg.config.noGrid){
             this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines).tickSize(this.cfg.config.height).tickFormat(""))
@@ -4666,13 +4720,16 @@ class CanvasCell_massPCA extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-        this.axesLabels=[];
-        let yName = columnNames[this.cfg.ytype]
-        if((!yName) && this.canvas.data[0].header){ 
-            yName = "Contribution to "+this.canvas.data[0].header[this.cfg.ytype]
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = columnNames[config.intensity]
+        if(this.canvas.data[0].header){ 
+            axisLabel_y = "Contribution to "+this.canvas.data[0].header[this.cfg.ytype]
         }
-        this.axesLabels[0] = appendAxisLabel_x(this.svgSpace, columnNames[config.mz],axisOptions, this.cfg.config);
-        this.axesLabels[1] = appendAxisLabel_y(this.svgSpace, yName,axisOptions, this.cfg.config);
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.noGrid){
             this.grids = [];
             this.grids[1] = appendPlotGrid(this.svgSpace, this.scales[1],this.cfg.config.axisLines,"side", this.cfg.config);
@@ -4751,12 +4808,15 @@ class CanvasCell_massPCA extends CanvasCell{
     }
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        this.axesLabels[0].text(columnNames[config.mz])
-        let yName = columnNames[this.cfg.ytype]
-        if((!yName) && this.canvas.data[0].header){ 
-            yName = this.canvas.data[0].header[this.cfg.ytype]
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = columnNames[config.intensity]
+        if(this.canvas.data[0].header){ 
+            axisLabel_y = "Contribution to "+this.canvas.data[0].header[this.cfg.ytype]
         }
-        this.axesLabels[1].text(yName)
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
         //TODO :add an update of the brushing
         if(!this.cfg.config.nogrid){
             this.grids[1].call(d3.axisLeft(this.scales[1]).ticks(this.cfg.config.axisLines).tickSize(-this.cfg.config.width).tickFormat(""))
@@ -4947,15 +5007,18 @@ class CanvasCell_samplesPCA extends CanvasCell{
         super.draw()
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-        this.axesLabels=[];
-        let xName = columnNames[this.cfg.xtype]
-        let yName = columnNames[this.cfg.ytype]
-        if((!xName || !yName) && this.canvas.data[0].header){ 
-            xName = this.canvas.data[0].header[this.cfg.xtype]
-            yName = this.canvas.data[0].header[this.cfg.ytype]
+
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if((!axisLabel_x || !axisLabel_y) && this.canvas.data[0].header){ 
+            axisLabel_x = this.canvas.data[0].header[this.cfg.xtype]
+            axisLabel_y = this.canvas.data[0].header[this.cfg.ytype]
         }
-        this.axesLabels[0] = appendAxisLabel_x(this.svgSpace, xName,axisOptions, this.cfg.config);
-        this.axesLabels[1] = appendAxisLabel_y(this.svgSpace, yName,axisOptions, this.cfg.config);
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         if(!this.cfg.config.noGrid){
             this.grids = [];
             this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
@@ -4983,8 +5046,12 @@ class CanvasCell_samplesPCA extends CanvasCell{
             this.setAxisTypesDefault()
             if(!this.cfg.axisDefined){return;}
             else{
+                if(!this.cfg.overrideAxis_x || this.cfg.overrideAxis_x == ""){
                 this.axesLabels[0].text(dataset.header[this.cfg.xtype])
+                }
+                if(!this.cfg.overrideAxis_y || this.cfg.overrideAxis_y == ""){
                 this.axesLabels[1].text(dataset.header[this.cfg.ytype])
+                }
             }
         }
 
@@ -5096,8 +5163,16 @@ class CanvasCell_samplesPCA extends CanvasCell{
 
     update(content, doNotUpdateDomains){
         super.update(content, doNotUpdateDomains)
-        this.axesLabels[0].text(columnNames[this.cfg.xtype])
-        this.axesLabels[1].text(columnNames[this.cfg.ytype])
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if((!axisLabel_x || !axisLabel_y) && this.canvas.data[0].header){ 
+            axisLabel_x = this.canvas.data[0].header[this.cfg.xtype]
+            axisLabel_y = this.canvas.data[0].header[this.cfg.ytype]
+        }
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
         //TODO :add an update of the brushing
         if(!this.cfg.config.noGrid){
             this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines).tickSize(this.cfg.config.height).tickFormat(""))
@@ -5255,6 +5330,227 @@ class CanvasCell_samplesPCA extends CanvasCell{
         this.cfg.axisDefined = true
     }
     
+}
+
+/************************************************************************************************ */
+/*-----------------------------------------MASS DIFFERENCES---------------------------------------*/
+class CanvasCell_massDifferences extends CanvasCell{
+    constructor(parent, index, cfg){
+        super(parent, index)
+        this.cfg.prepareCfg("massDifferences")
+        this.cfg.xmax = 100
+        this.cfg.ymax = 100
+        if(cfg){this.cfg.copyCfg(cfg)}
+        this.draw()
+    }
+    /**draw the plot */
+    draw(){
+        super.draw()
+        let axisOptions = {}
+        if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = "Δm/z"
+        let axisLabel_y = "Occurences"
+        if(this.cfg.ytype == "origin"){axisLabel_y = "Sum of lowest mass intensities"}
+        else if(this.cfg.ytype == "target"){axisLabel_y = "Sum of highest mass intensities"}
+        else if(this.cfg.ytype == "sum"){axisLabel_y = "Sum of connected mass intensities"}
+        else if(this.cfg.ytype == "product"){axisLabel_y = "Product of connected mass intensities"}
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.yrelative){ axisLabel_y = "%"}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
+
+        if(!this.cfg.config.noGrid){
+            this.grids = [];
+            this.grids[1] = appendPlotGrid(this.svgSpace, this.scales[1],this.cfg.config.axisLines,"side", this.cfg.config);
+          }
+        //create brushing or filtration
+        // this.createBrush("massSpectra")
+        this.drawAllData()
+        this.drawColourLegends(true)
+    }
+    drawData(dataset, index, specialInfo){
+        let suppID = ""
+        if(specialInfo != "highlight"){
+        super.drawData(dataset, index)
+        }else{
+            d3.selectAll("#canvas"+this.canvas.letter+" #cell"+this.index+"data"+index+"_highlight").remove()
+            suppID = "_highlight"
+        }
+        if(!this.cfg.activeData[index]){return;}
+
+        let ytype = this.cfg.ytype
+        let yrelative = this.cfg.yrelative
+
+        //compute data
+        let groups = dataset.prepareMassDifferences([this.cfg.xmin,this.cfg.xmax],this.cfg.tolerance, this.cfg.cutoff)
+        if(groups.length==0){return}
+        let maxOccurences = groups[0].occurences
+        let maxIntensity = 0
+        //prepares special "intensity" cases
+        if(ytype != "occurences"){
+            dataset.prepareMassDifferences_intensity(ytype)
+            //looks for max intensity
+            for(let i=0; i<groups.length; i++){
+                if(groups[i].intensity>maxIntensity){maxIntensity = groups[i].intensity}
+            }
+        }
+
+
+        if(!this.drawnData){this.drawnData = []}
+        this.drawnData[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"data"+index+suppID)
+        .selectAll("rect")
+        .data(groups)
+        .enter()
+        .append("rect")
+        .attr("x",  (d) => {return this.scales[0](d.mass);} ) 
+        .attr("y",  (d) =>  { 
+            if(ytype == "occurences"){
+                if(yrelative){return this.scales[1](100*d.occurences/maxOccurences) ||0
+                }else{return this.scales[1](d.occurences) ||0 }
+            }else{
+                if(yrelative){return this.scales[1](100*d.intensity/maxIntensity) ||0
+                }else{return this.scales[1](d.intensity) ||0 }
+            }}) 
+        .attr("width",1)
+        .attr("height", (d) => { 
+            if(ytype == "occurences"){
+                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d.occurences/maxOccurences) ||0
+                }else{
+                    return this.cfg.config.height - this.scales[1](d.occurences) ||0
+                }
+            }else{
+                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d.intensity/maxIntensity) ||0
+                }else{
+                    return this.cfg.config.height - this.scales[1](d.intensity) ||0
+                }
+            }})
+        .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+        .style("fill", (d) => {return dataset.cfg.colorSolid})
+        .style("opacity",this.canvas.cfg.opacity)
+        .attr('tooltipHTML', (d,n) => {return "massDifferences"+";"+index+";"+n})
+        .on("mouseover", (d) => {this.canvas.tooltip.mouseover(d)} )
+        .on("mousemove", (d,n) => {this.canvas.tooltip.mousemove(d,"massDifferences",n, this)}  )
+        .on("mouseleave" , (d) => {this.canvas.tooltip.mouseleave(d)}  )
+        .on("click", (d,n) =>{this.canvas.tooltip.mouseclick(d,"massDifferences",n, this)} );
+    }
+    update(content, doNotUpdateDomains){
+        let axisLabel_x = "Δm/z"
+        let axisLabel_y = "Occurences"
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.ytype == "relative"){axisLabel_y = "%"}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
+        if(!this.cfg.config.nogrid){
+            this.grids[1].call(d3.axisLeft(this.scales[1]).ticks(this.cfg.config.axisLines).tickSize(-this.cfg.config.width).tickFormat(""))
+        }
+    }
+    
+    updateData(content, dataNum){
+        super.updateData(content, dataNum)
+        let ytype = this.cfg.ytype
+        let yrelative = this.cfg.yrelative
+        let thisData = this.drawnData[dataNum]
+        let maxInt = this.canvas.findMaxInt(false)
+        if(!thisData){return;}
+        if(content.includes("ymin_")|| content.includes("ymax_")){
+             thisData.attr("y",  (d) =>  { 
+               if(ytype == "occurences"){
+                if(yrelative){return this.scales[1](100*d.occurences/maxOccurences) ||0
+                }else{return this.scales[1](d.occurences) ||0 }
+            }else{
+                if(yrelative){return this.scales[1](100*d.intensity/maxIntensity) ||0
+                }else{return this.scales[1](d.intensity) ||0 }
+            }}) 
+            thisData.attr("height", (d) => { 
+                if(ytype == "relative"){
+                    return this.cfg.config.height - this.scales[1](100*d[config.intensity]/maxInt)
+                }else{
+                    return this.cfg.config.height - this.scales[1](d[config.intensity]);
+                }
+            })
+        }else{
+                this.drawData(this.canvas.data[dataNum],dataNum)
+        }
+        if(content.includes("opacity_")|| content.includes("all")){
+            thisData.style("opacity", this.canvas.cfg.opacity)
+        }
+    }
+
+    autoscale(){
+        super.autoscale()
+        if(this.cfg.ymin<0){this.cfg.ymin = 0}
+        if(this.cfg.ytype == "occurences_relative"){ this.cfg.ymax = 100}
+        // this.draw()
+        // this.drawAllData()
+    }
+
+    prepareCfg(){
+        let properties = [
+            {key:"ytype",type:"select",default:"occurences"},
+            {key:"yrelative",type:"checkbox",default:true},
+            {key:"tolerance",type:"number",default:0.2},
+            {key:"cutoff",type:"number",default:10}
+        ]
+        return properties
+    }
+
+    handleHighlighting(){
+        //check if this method of brushing is active, because it can be disabled
+        if(!this.canvas.cfg.interactivity.createHistogramBars){return;}
+        for(let i=0; i<this.canvas.data.length; i++){
+            let dataset = this.canvas.data[i]
+            if(!dataset.highlight){continue;}
+            if(dataset.highlight.cellIndex == this.index){continue;}
+            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
+            if(this.canvas.cfg.interactivity.active != "all" && this.canvas.cfg.interactivity.active != i){continue;}
+            this.drawData(this.canvas.data[i], i, "highlight")
+        }
+    }
+
+    
+    preparePopupCfg(){
+        let varsArray = []
+        varsArray.push({"name":"x",
+            "inputs":[
+                {key:"xmin",type:"number",value:this.cfg.xmin,title: "Minimum axis value",update:(d)=>{this.cfg.update(d)}},
+                {key:"xmax",type:"number",value:this.cfg.xmax,title: "Maximum axis value",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        let ytypeOptions = [{name:"Occurences",value:"occurences"},
+            {name:"Origin intensity",value:"origin"},
+            {name:"Target intensity",value:"target"},
+            {name:"Intensity sum",value:"sum"},
+            {name:"Intensity prod.",value:"product"},
+            {name:"Similarity score",value:"similarity"}
+        ]
+        varsArray.push({ "name":"y",
+            "inputs":[
+                {key:"ytype",type:"select",value:this.cfg.ytype,title: "How to compute y value",options:ytypeOptions,update:(d)=>{this.cfg.update(d)}},
+                {key:"ymin",type:"number",value:this.cfg.ymin,title: "Minimum axis value",update:(d)=>{this.cfg.update(d)}},
+                {key:"ymax",type:"number",value:this.cfg.ymax,title: "Maximum axis value",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+         varsArray.push({ "name":"Relative y axis(%)",
+            "inputs":[
+                {key:"yrelative",type:"checkbox",value:this.cfg.yrelative,title: "Is the y axis in relative proportion of the max displayed value of this dataset",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"Grouping tol.(mDa)",
+            "inputs":[
+                {key:"tolerance",type:"number",value:this.cfg.tolerance,title: "The tolerance to group mass differences together",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"Cutoff value",
+            "inputs":[
+                {key:"cutoff",type:"number",value:this.cfg.cutoff,title: "Cutoff small occurences groups to quicken display",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        return varsArray
+    }
+
 }
 
 
@@ -5935,8 +6231,9 @@ class DataSet {
     }
 
     resetFilters(){
+        console.log("reset all filters - dataset level")
         this.dataFiltered = []
-        this.filter = {}
+        this.filters = []
     }
 
     pushToHighlight_indexList(indexList){
@@ -5953,6 +6250,118 @@ class DataSet {
         for(let i=0; i<dataList.length; i++){
             this.dataHighlighted.push(dataList[i])
         }
+    }
+    /***********Mass differences related functions**********************************************/
+    
+    prepareMassDifferences(bounds,tolerance, cutoff){
+        let groups = this.calculateMassDifferences(bounds, tolerance)
+        //cutoff small groups
+        for(let i=groups.length-1; i>=0; i--){
+            if(groups[i].occurences<=cutoff){groups.splice(i,1)}
+        }
+        this.massDifferences_groups = groups
+        return groups
+    }
+
+    //calculate mass differences in a given range within a mDa tolerance, outputs a list of groups
+    calculateMassDifferences(bounds,tolerance){
+        //sort data by mz values. this.sort cannot be used because it refreshes
+        this.data.sort((a,b)=>a[config.mz]-b[config.mz])
+        let differences = []
+        //starts at 1 to avoid header column
+        for(let i=1; i<this.data.length; i++){
+            let mass1 = this.data[i][config.mz]
+            for(let j=i-1; j>=1; j--){ //also starts at 1 to avoid header
+                let mass2 = this.data[j][config.mz]
+                let diff = mass1-mass2;
+                if(diff ==NaN){continue;}
+                //handle out of bounds mass differences
+                if(diff<bounds[0]){continue;}
+                if(diff>bounds[1]){break;}
+                let massdiff = {"mass":diff,"origin":i,"target":j,"originID":this.data[i].index,"targetID":this.data[j].index}
+                differences.push(massdiff)
+            }
+        }
+        console.log(differences)
+        //sort differences
+        differences.sort((a,b)=> a.mass - b.mass)
+        //prepares tolerance, which is entered in mDa
+        tolerance = tolerance/1000
+        //groups differences
+        let groups = []
+        groups.push({"occurences":1,"mass":differences[0].mass,differences:[differences[0]]})
+        let groupIndex = 0
+        for(let i=1; i<differences.length; i++){
+            let anchorGroup = groups[groupIndex]
+            let mass1 = differences[i].mass
+            let diff = anchorGroup.mass - mass1
+            
+            if(Math.abs(diff)<tolerance){
+                anchorGroup.differences.push(differences[i])
+                anchorGroup.mass = (anchorGroup.mass*anchorGroup.occurences + mass1)/(anchorGroup.occurences+1)
+                anchorGroup.occurences +=1
+            }else{
+                //create a new group
+                groupIndex +=1
+                groups.push({"occurences":1, "mass":mass1, differences:[differences[i]]})
+            }
+        }
+        console.log(groups)
+        groups.sort((a,b)=> b.occurences - a.occurences)
+        return groups
+    }
+
+    /** prepares on already computed groups of mass differences special methods to compute a proxy "intensity" */
+    prepareMassDifferences_intensity(type){
+        let groups = this.massDifferences_groups
+        //loops through each group and computes the "intensity" based on type parameter using each mass difference
+        for(let i=0; i<groups.length; i++){
+            let thisGroup = groups[i]
+            let intensity = 0
+            let differences = thisGroup.differences
+            if(type == "origin"){
+                for(let j=0; j<differences.length; j++){
+                    let origin = this.data[differences[j].origin]
+                    intensity += parseFloat(origin[config.intensity])
+                }
+            }else if(type == "target"){
+                for(let j=0; j<differences.length; j++){
+                    let target = this.data[differences[j].target]
+                    intensity += parseFloat(target[config.intensity])
+                }
+            }else if(type =="product"){
+                for(let j=0; j<differences.length; j++){
+                    let origin = this.data[differences[j].origin]
+                    let target = this.data[differences[j].target]
+                    intensity += parseFloat(origin[config.intensity])*parseFloat(target[config.intensity])
+                }
+            }else if(type =="sum"){
+                for(let j=0; j<differences.length; j++){
+                    let origin = this.data[differences[j].origin]
+                    let target = this.data[differences[j].target]
+                    intensity += parseFloat(origin[config.intensity])+parseFloat(target[config.intensity])
+                }
+            }else if(type =="similarity"){
+                for(let j=0; j<differences.length; j++){
+                    let origin = this.data[differences[j].origin]
+                    let target = this.data[differences[j].target]
+                    let origin_int = origin[config.intensity]
+                    let target_int = target[config.intensity]
+                    let score = 1 - Math.abs(origin_int - target_int)/Math.max(origin_int, target_int)
+                    intensity += score
+                }
+            }
+            thisGroup.intensity =intensity
+        }
+
+    }
+
+    filterMassDifferences(filterType){
+        let groups = this.massDifferences_groups
+    }
+
+    filterMassDifferences_singleGroup(){
+
     }
 
     /***************************MATRIX RELATED FUNCTIONS *************************************** */
@@ -6283,6 +6692,15 @@ class TooltipCanvas{
             })
             button.setAttribute("class","databaseSearch")
             this.htmlStick.node().appendChild(button)
+        }else if(type =="massDifferences"){
+            let button = menuCreate_button(null, "name", "copy Differences",(d)=>{
+                if(this.canvas.data[suppData.dataID]){
+                    let thisData = this.canvas.data[suppData.dataID]
+                    copyMassDifferencesDataToClipboard(element.target.__data__, thisData)
+                }
+            })
+            button.setAttribute("class","databaseSearch")
+            this.htmlStick.node().appendChild(button)
         }
 
         //highlights the selected dot
@@ -6401,6 +6819,9 @@ class TooltipCanvas{
             lines[2] = "   std dev : "+data.matrixStdDevNbAbsolute.toFixed(3)+"("+data.matrixStdDevNb.toFixed(3)+")"
             lines[3] = "intensity : "+100*data.matrixMeanI.toFixed(3)+"%"
             lines[4] = "   std dev : "+data.matrixStdDevI.toFixed(3)
+        }else if(type=="massDifferences"){
+            lines[0] = "Mass : "+data.mass.toFixed(4)
+            lines[1] = "Occurences : "+data.occurences
         }else if(type == "returnData"){
             if(data.length){
                 lines[0]=suppData[0]|| ""
@@ -6668,7 +7089,13 @@ class BrushFilterCanvas{
 
     defineSelection(d){
         if(event.shiftKey){return}
-        if(d.selection[0]==d.selection[1]){this.canvas.resetFilters()}
+        if(d.selection[0]==d.selection[1]){
+            //remove filters with this cell number
+            let removed = false
+            for(let i=this.canvas.filters.length-1; i>=0; i--){
+                if(this.canvas.filters[i].cellIndex == this.cell.index){this.canvas.filters.splice(i,1);removed=true}
+            }
+        }
         //finds all selected
         let selection = d.selection
         let indexesList = []
@@ -6684,6 +7111,7 @@ class BrushFilterCanvas{
             if(cfg.activeData[i] != "1"){continue;}
             if(this.interCfg.active !="all" && this.interCfg.active != i){continue;}
             let selectedBins = []
+            let localSelected = []
             if(this.cellType =="histogram" ||this.cellType =="histoerror"){
                 let filterDomain0 = cell.scales[0].invert(d.selection[0])
                 let filterDomain1 = cell.scales[0].invert(d.selection[1])
@@ -6694,10 +7122,10 @@ class BrushFilterCanvas{
                 selectedBins = this.selectBins(binsData,filter)
                 for(let j=0; j<selectedBins.length;j++){
                     selectedBins[j].forEach((d)=>{
-                        theseSelected[d.index] = true
+                        localSelected[d.index] = true
                     })
                 }
-                this.filterData(i, theseSelected, filter)
+                this.filterData(i, localSelected, filter)
                 // this.canvas.drawAllDatasets([cell.index])
             }else if(this.cellType == "histodiscrete"){
                 let domain = cell.scales[0].domain()
@@ -6708,15 +7136,14 @@ class BrushFilterCanvas{
                 let binsData = this.canvas.data[i].findBinsDiscrete("cell"+cell.index)
                 if(!binsData.bins){continue;}
                 let filter = {domain:[index0, index1],trueDomain:newDomain,binWidth: "-1", type:columnNames[cfg.xtype], origin:this.cellType, cellIndex:this.cell.index}
-                console.log(filter, newDomain)
                 for(let i=0; i<binsData.bins.length; i++){
                     if(!binsData.bins[i] || binsData.bins[i].length == 0){continue;}
                     if(!newDomain.includes(binsData.bins[i].name)){continue;}
                     binsData.bins[i].forEach((d)=>{
-                        theseSelected[d.index] = true
+                        localSelected[d.index] = true
                     })
                 }
-                this.filterData(i, theseSelected, filter)
+                this.filterData(i, localSelected, filter)
             }else if(this.cellType == "histoclass"){
                 let domain = cell.scales[0].domain()
                 let band = cell.scales[0].step()
@@ -6730,10 +7157,10 @@ class BrushFilterCanvas{
                     if(!binsData.bins[i] || binsData.bins[i].length == 0){continue;}
                     if(!newDomain.includes(binsData.bins[i].name)){continue;}
                     binsData.bins[i].forEach((d)=>{
-                        theseSelected[d.index] = true
+                        localSelected[d.index] = true
                     })
                 }
-                this.filterData(i, theseSelected, filter)
+                this.filterData(i, localSelected, filter)
             }else if(this.cellType == "densityCurve"){
                 let filterDomain0 = cell.scales[0].invert(d.selection[0])
                 let filterDomain1 = cell.scales[0].invert(d.selection[1])
@@ -6741,10 +7168,10 @@ class BrushFilterCanvas{
                 if(this.canvas.data[i].data){
                     this.canvas.data[i].data.forEach((d)=>{
                         if(d[cfg.xtype]>=filterDomain0 && d[cfg.xtype]<=filterDomain1)
-                            theseSelected[d.index] = true
+                            localSelected[d.index] = true
                     })
                 }
-                this.filterData(i, theseSelected, filter)
+                this.filterData(i, localSelected, filter)
             }else if(this.cellType == "matrix"){
                 //this is a case where data point are the files from a matrix type dataset.
                 let filterx = [cell.scales[0].invert(d.selection[0][0]),cell.scales[0].invert(d.selection[1][0])]
@@ -6777,11 +7204,17 @@ class BrushFilterCanvas{
                         if(d[xtype]>=filterx[0] && d[xtype]<=filterx[1] && d[ytype]>=filtery[0] && d[ytype]<=filtery[1] ){
                             let selectList = this.filterMatrixData(dataset, colStartIndex+n, cfg.threshold)
                             for(let i=0; i<selectList.length; i++){
-                                theseSelected[selectList[i].index] = true
+                                localSelected[selectList[i].index] = true
                             }
                         }
                     })
                 }
+            }
+            //fuses back this round of data selection with the others
+            let indexes = this.canvas.data[i].filterIndexes 
+            if(!indexes){continue}
+            for(let j=0; j<indexes.length; j++){
+                theseSelected[indexes[j]]= true
             }
         }
         this.canvas.handleFiltering(theseSelected)
@@ -6791,7 +7224,7 @@ class BrushFilterCanvas{
         let selectedBins = []
         let binWidth = (filter.domain[1]- filter.domain[0])/filter.binWidth
         binsData.bins.forEach((bin)=>{
-            if(bin.x0>=filter.domain[0] && bin.x1 <= filter.domain[1]+binWidth){
+            if(bin.x0>=filter.domain[0] && bin.x0 <= filter.domain[1]){
                 selectedBins.push(bin)
             }
         })
@@ -6800,13 +7233,50 @@ class BrushFilterCanvas{
 
     //defines what part of the dataset is filtered
     filterData(dataIndex, selection, filter){
-        let data = this.canvas.data[dataIndex].data
+        filter.selected = selection
+        let thisData = this.canvas.data[dataIndex]
+        if(!thisData.filters){thisData.filters = []}
+        thisData.filters[this.cell.index] = selection
+        //looks if a filter was already active on the same cell
+        let filters = this.canvas.filters
+        for(let i=0; i<filters.length; i++){
+            let filterlooped = filters[i]
+            if(filterlooped.cellIndex == filter.cellIndex){
+                filters.splice(i,1)
+                break;
+            }
+        }
+        //adds it as a new filter if needed
+        if(filter.domain[0] != filter.domain[1]){
+            filters.push(filter)
+        }else{}
+        let data = thisData.data
         let dataFiltered = []
-        data.forEach((d)=>{
-            if(selection[d.index]){dataFiltered.push(d)}
-        })
-        this.canvas.data[dataIndex].dataFiltered = dataFiltered
-        this.canvas.data[dataIndex].filter = filter
+        let indexesList = [] //used for multi-filter search
+        if(filters.length>1){ //longer all filters search
+            data.forEach((d)=>{
+                let isValid = true
+                for(let i=0; i<filters.length; i++){
+                    let cellIndex = filters[i].cellIndex
+                    if(!thisData.filters[cellIndex][d.index]){isValid = false; break;}
+                }
+                if(isValid){
+                    dataFiltered.push(d)
+                    indexesList.push(d.index)
+                }
+            })
+        }else if(filters[0] && filters[0].cellIndex == this.cell.index){//quick 1 filter search for the currently moved filter
+            data.forEach((d)=>{
+                if(selection[d.index]){
+                    dataFiltered.push(d)
+                    indexesList.push(d.index)
+                }
+            })
+        }
+        if(indexesList.length >0){thisData.filterIndexes = indexesList}
+        else{thisData.filterIndexes  = []}
+
+        thisData.dataFiltered = dataFiltered
         return dataFiltered
     }
 
@@ -7183,7 +7653,6 @@ class TopMenuCanvas{
         for(let i=0; i<gradients.length; i++){
             let newGradient = this.buildGradientOverlay(i)
             let oldGrad = this.html.querySelector("div[name='topGradient_"+i+"']")
-            console.log(newGradient, oldGrad)
             let parent =  oldGrad.parentNode
             console.log(parent)
             oldGrad.remove()
@@ -7393,6 +7862,16 @@ function copy2DDataSubsetToClipboard(data, dataForHeaders){
         }
         dataLine += '\n'
      }
+    navigator.clipboard.writeText(dataLine)
+}
+
+function copyMassDifferencesDataToClipboard(data, dataset){
+    if(!data.differences){return;}
+    let differences = data.differences
+    let dataLine = "Δm/z \t origin_id \t target_id \n"
+    for(let i=0; i<differences.length; i++){
+        dataLine+= differences[i].mass + "\t"+differences[i].origin + "\t" + differences[i].target + "\n"
+    }
     navigator.clipboard.writeText(dataLine)
 }
 

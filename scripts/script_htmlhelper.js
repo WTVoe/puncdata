@@ -304,7 +304,35 @@ class MovableWindowCellConfig extends MovableWindow{
         resetButton.style.width = "50%"
         div3.appendChild(resetButton)
         div3.appendChild(document.createElement('br'))
+        if(!this.cfg.overrideAxis_x){this.cfg.overrideAxis_x = ""}
+        if(!this.cfg.overrideAxis_y){this.cfg.overrideAxis_y = ""}
+        let overaxis_x = menuCreate_inputText(null, "override_axis_x",this.cfg.overrideAxis_x)
+        let title_overaxis_x = document.createTextNode("Override x axis text:")
+        overaxis_x.placeholder = "Leave empty to keep default"
+        overaxis_x.style.margin = "2px"
+        overaxis_x.style.width = "auto"
+        div3.appendChild(title_overaxis_x)
+        div3.appendChild(overaxis_x)
+        div3.appendChild(document.createElement("br"))
 
+        let overaxis_y = menuCreate_inputText(null, "override_axis_y",this.cfg.overrideAxis_y)
+        let title_overaxis_y = document.createTextNode("Override y axis text:")
+        overaxis_y.placeholder = "Leave empty to keep default"
+        overaxis_y.style.margin = "2px"
+        overaxis_y.style.width = "auto"
+        div3.appendChild(title_overaxis_y)
+        div3.appendChild(overaxis_y)
+
+        overaxis_x.addEventListener("change",(d)=>{
+            let value = d.target.value
+            this.cfg.overrideAxis_x = value
+        })
+        overaxis_y.addEventListener("change",(d)=>{
+            let value = d.target.value
+            this.cfg.overrideAxis_y = value
+        })
+
+        div3.appendChild(menuCreateSeparator("largest"))
         let checkboxOverride = menuCreate_checkbox(null, "overrideConfig",this.cfg.override)
         let checkboxText = document.createTextNode("Override default configuration")
         div3.appendChild(checkboxOverride)
