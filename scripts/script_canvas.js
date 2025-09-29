@@ -183,6 +183,9 @@ class Canvas{
             case 'massDifferences':
                 return new CanvasCell_massDifferences(this, index, cfg)
                 break;
+            case 'massDifferences_formula':
+                return new CanvasCell_massDifferences_formula(this, index, cfg)
+                break;
             default:
                 return new CanvasCell_void(this, index, cfg)
         }
@@ -263,6 +266,7 @@ class Canvas{
             cellTypes.push({value:"kendrick2D", name:"Kendrick 2D"},)
             cellTypes.push({value:"tableInfos", name:"Table of data"})
             cellTypes.push({value:"massDifferences", name:"Mass Differences (MOVE)"})
+            cellTypes.push({value:"massDifferences_formula", name:"Mass Differences(Formula)"})
         }
         if(toAllow.histo){
             cellTypes.push({value:"SPLITTER", name:"SPLITTER"})
@@ -2602,6 +2606,10 @@ class CanvasCell_histogram extends CanvasCell_histo{
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "highlightedCell"+this.index, true, dataset.dataHighlighted)
+            //for special interactivity case of non+-relative bar heights, must add 1 to the total number computed to account for the absence of title header
+            if(this.canvas.cfg.interactivity){
+                if(!this.canvas.cfg.interactivity.histogramRelativity){theseBins.totalNumber +=1}
+            }
             color = this.canvas.cfg.interactivity.histoColor
         }
         else{
@@ -2642,7 +2650,7 @@ class CanvasCell_histogram extends CanvasCell_histo{
     
         
         if(this.cfg.showPercents){
-            this.drawnData[index] += this.svgSpace.append("g").attr("id","cell"+this.index+"data"+index)
+            this.drawnData[index] += this.svgSpace.append("g").attr("id","cell"+this.index+"data"+index+suppID)
                 .selectAll("rect")
                 .data(theseBins.bins)
                 .enter()
@@ -2679,6 +2687,10 @@ class CanvasCell_histogram extends CanvasCell_histo{
         }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
             //drawing bins for highlighting
             theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "highlightedCell"+this.index, true, dataset.dataHighlighted)
+            //for special interactivity case of non+-relative bar heights, must add 1 to the total number computed to account for the absence of title header
+            if(this.canvas.cfg.interactivity){
+                if(!this.canvas.cfg.interactivity.histogramRelativity){theseBins.totalNumber +=1}
+            }
             color = this.canvas.cfg.interactivity.histoColor
         }
         else{
@@ -3064,7 +3076,7 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
     
         
         if(this.cfg.showPercents){
-            this.drawnData[index] += this.svgSpace.append("g").attr("id","cell"+this.index+"data"+index)
+            this.drawnData[index] += this.svgSpace.append("g").attr("id","cell"+this.index+"data"+index+suppID)
                 .selectAll("rect")
                 .data(theseBins.bins)
                 .enter()
@@ -3243,6 +3255,10 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
     prepareDataCatList_special(catList, index, specialData, name){
         let data = this.canvas.data[index]
         let bins = data.pushToCatList(this.cfg.xtype, catList, "cell"+this.index+"_"+name, specialData)
+        //for special interactivity case of non+-relative bar heights, must add 1 to the total number computed to account for the absence of title header
+        if(this.canvas.cfg.interactivity){
+            if(!this.canvas.cfg.interactivity.histogramRelativity){bins.totalNumber +=1}
+        }
         return bins
     }
 
@@ -3615,7 +3631,7 @@ class CanvasCell_histoclass extends CanvasCell_histo{
     
         
         if(this.cfg.showPercents){
-            this.drawnData[index] += this.svgSpace.append("g").attr("id","cell"+this.index+"data"+index)
+            this.drawnData[index] += this.svgSpace.append("g").attr("id","cell"+this.index+"data"+index+suppID)
                 .selectAll("rect")
                 .data(theseBins.bins)
                 .enter()
@@ -3976,6 +3992,10 @@ class CanvasCell_histoclass extends CanvasCell_histo{
         let skeleton = this.cfg.skeleton.split(",")
         let hetero = this.cfg.heteroEls
         let bins = data.pushToClassList(skeleton, hetero, classList, "cell"+this.index+"_"+name, specialData)
+        //for special interactivity case of non+-relative bar heights, must add 1 to the total number computed to account for the absence of title header
+        if(this.canvas.cfg.interactivity){
+            if(!this.canvas.cfg.interactivity.histogramRelativity){bins.totalNumber +=1}
+        }
         return bins
     }
 
@@ -5366,7 +5386,8 @@ class CanvasCell_massDifferences extends CanvasCell{
             this.grids[1] = appendPlotGrid(this.svgSpace, this.scales[1],this.cfg.config.axisLines,"side", this.cfg.config);
           }
         //create brushing or filtration
-        // this.createBrush("massSpectra")
+        // this.createBrush("massSpectra")        
+         this.createBrushFilter("massDifference")
         this.drawAllData()
         this.drawColourLegends(true)
     }
@@ -5382,15 +5403,38 @@ class CanvasCell_massDifferences extends CanvasCell{
 
         let ytype = this.cfg.ytype
         let yrelative = this.cfg.yrelative
+        let color = dataset.cfg.colorSolid
+        let opacity = this.canvas.cfg.opacity
 
         //compute data
-        let groups = dataset.prepareMassDifferences([this.cfg.xmin,this.cfg.xmax],this.cfg.tolerance, this.cfg.cutoff)
-        if(groups.length==0){return}
+        let groups = []
+        if(specialInfo == "highlight"){
+            groups = dataset.filterMassDifferences(this.cfg.filterType, "mass")
+        }else if(specialInfo == "filter"){
+            groups = dataset.prepareMassDifferences([this.cfg.xmin,this.cfg.xmax],this.cfg.tolerance, this.cfg.cutoff, true)
+        }else{
+            groups = dataset.prepareMassDifferences([this.cfg.xmin,this.cfg.xmax],this.cfg.tolerance, this.cfg.cutoff, false)
+        }
+
+        if(!groups || groups.length==0){return}
         let maxOccurences = groups[0].occurences
         let maxIntensity = 0
+
+        //which property key to select in the groups of differences
+        let key_occ = "occurences"
+        let key_int = "intensity"
+        if(specialInfo == "highlight"){
+            key_occ = "occurences_red"
+            key_int = "intensity_red"
+            color = this.canvas.cfg.interactivity.histoColor
+            opacity = 1
+        }
+        
         //prepares special "intensity" cases
         if(ytype != "occurences"){
-            dataset.prepareMassDifferences_intensity(ytype)
+            let isDataReduced= false
+            if(specialInfo == "highlight"){isDataReduced = true}
+            dataset.prepareMassDifferences_intensity(ytype, isDataReduced, groups)
             //looks for max intensity
             for(let i=0; i<groups.length; i++){
                 if(groups[i].intensity>maxIntensity){maxIntensity = groups[i].intensity}
@@ -5407,28 +5451,28 @@ class CanvasCell_massDifferences extends CanvasCell{
         .attr("x",  (d) => {return this.scales[0](d.mass);} ) 
         .attr("y",  (d) =>  { 
             if(ytype == "occurences"){
-                if(yrelative){return this.scales[1](100*d.occurences/maxOccurences) ||0
-                }else{return this.scales[1](d.occurences) ||0 }
+                if(yrelative){return this.scales[1](100*d[key_occ]/maxOccurences) ||0
+                }else{return this.scales[1](d[key_occ]) ||0 }
             }else{
-                if(yrelative){return this.scales[1](100*d.intensity/maxIntensity) ||0
-                }else{return this.scales[1](d.intensity) ||0 }
+                if(yrelative){return this.scales[1](100*d[key_int]/maxIntensity) ||0
+                }else{return this.scales[1](d[key_int]) ||0 }
             }}) 
         .attr("width",1)
         .attr("height", (d) => { 
             if(ytype == "occurences"){
-                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d.occurences/maxOccurences) ||0
+                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d[key_occ]/maxOccurences) ||0
                 }else{
-                    return this.cfg.config.height - this.scales[1](d.occurences) ||0
+                    return this.cfg.config.height - this.scales[1](d[key_occ]) ||0
                 }
             }else{
-                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d.intensity/maxIntensity) ||0
+                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d[key_int]/maxIntensity) ||0
                 }else{
-                    return this.cfg.config.height - this.scales[1](d.intensity) ||0
+                    return this.cfg.config.height - this.scales[1](d[key_int]) ||0
                 }
             }})
         .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
-        .style("fill", (d) => {return dataset.cfg.colorSolid})
-        .style("opacity",this.canvas.cfg.opacity)
+        .style("fill", (d) => {return color})
+        .style("opacity", opacity)
         .attr('tooltipHTML', (d,n) => {return "massDifferences"+";"+index+";"+n})
         .on("mouseover", (d) => {this.canvas.tooltip.mouseover(d)} )
         .on("mousemove", (d,n) => {this.canvas.tooltip.mousemove(d,"massDifferences",n, this)}  )
@@ -5436,11 +5480,16 @@ class CanvasCell_massDifferences extends CanvasCell{
         .on("click", (d,n) =>{this.canvas.tooltip.mouseclick(d,"massDifferences",n, this)} );
     }
     update(content, doNotUpdateDomains){
+        super.update(content, doNotUpdateDomains)
         let axisLabel_x = "Δm/z"
         let axisLabel_y = "Occurences"
+        if(this.cfg.ytype == "origin"){axisLabel_y = "Sum of lowest mass intensities"}
+        else if(this.cfg.ytype == "target"){axisLabel_y = "Sum of highest mass intensities"}
+        else if(this.cfg.ytype == "sum"){axisLabel_y = "Sum of connected mass intensities"}
+        else if(this.cfg.ytype == "product"){axisLabel_y = "Product of connected mass intensities"}
         if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
         if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
-        else if(this.cfg.ytype == "relative"){axisLabel_y = "%"}
+        else if(this.cfg.yrelative){ axisLabel_y = "%"}
         this.axesLabels[0].text(axisLabel_x)
         this.axesLabels[1].text(axisLabel_y)
         if(!this.cfg.config.nogrid){
@@ -5455,25 +5504,7 @@ class CanvasCell_massDifferences extends CanvasCell{
         let thisData = this.drawnData[dataNum]
         let maxInt = this.canvas.findMaxInt(false)
         if(!thisData){return;}
-        if(content.includes("ymin_")|| content.includes("ymax_")){
-             thisData.attr("y",  (d) =>  { 
-               if(ytype == "occurences"){
-                if(yrelative){return this.scales[1](100*d.occurences/maxOccurences) ||0
-                }else{return this.scales[1](d.occurences) ||0 }
-            }else{
-                if(yrelative){return this.scales[1](100*d.intensity/maxIntensity) ||0
-                }else{return this.scales[1](d.intensity) ||0 }
-            }}) 
-            thisData.attr("height", (d) => { 
-                if(ytype == "relative"){
-                    return this.cfg.config.height - this.scales[1](100*d[config.intensity]/maxInt)
-                }else{
-                    return this.cfg.config.height - this.scales[1](d[config.intensity]);
-                }
-            })
-        }else{
-                this.drawData(this.canvas.data[dataNum],dataNum)
-        }
+        this.drawData(this.canvas.data[dataNum],dataNum)
         if(content.includes("opacity_")|| content.includes("all")){
             thisData.style("opacity", this.canvas.cfg.opacity)
         }
@@ -5492,7 +5523,8 @@ class CanvasCell_massDifferences extends CanvasCell{
             {key:"ytype",type:"select",default:"occurences"},
             {key:"yrelative",type:"checkbox",default:true},
             {key:"tolerance",type:"number",default:0.2},
-            {key:"cutoff",type:"number",default:10}
+            {key:"cutoff",type:"number",default:10},
+            {key:"filterType",type:"select",default:"any"}
         ]
         return properties
     }
@@ -5507,6 +5539,21 @@ class CanvasCell_massDifferences extends CanvasCell{
             if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
             if(this.canvas.cfg.interactivity.active != "all" && this.canvas.cfg.interactivity.active != i){continue;}
             this.drawData(this.canvas.data[i], i, "highlight")
+        }
+    }
+
+    handleFiltering(indexesList){
+         if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
+         let activeData = this.canvas.cfg.interactivity.active
+        //checks if the only filter is on this chart, skips 
+        if(this.canvas.filters.length == 1){
+            if(this.canvas.filters[0] &&this.canvas.filters[0].cellIndex == this.index){return;}
+        }
+         for(let i=0; i<this.canvas.data.length; i++){
+            if(activeData !="all" && activeData !=i){continue;}
+            let dataset = this.canvas.data[i]
+            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
+            this.drawData(this.canvas.data[i], i, "filter")
         }
     }
 
@@ -5548,10 +5595,273 @@ class CanvasCell_massDifferences extends CanvasCell{
                 {key:"cutoff",type:"number",value:this.cfg.cutoff,title: "Cutoff small occurences groups to quicken display",update:(d)=>{this.cfg.update(d)}},
             ]
         })
+        let interactivityOptions = [{name:"Origin selected",value:"origin"},
+            {name:"Target selected",value:"target"},
+            {name:"Both selected",value:"both"},
+            {name:"Any selected",value:"any"},
+        ]
+        varsArray.push({"name":"Interactivity:",
+            "inputs":[
+                {key:"filterType",type:"select",value:this.cfg.filterType,options:interactivityOptions,title: "When highlighting/filtering, which points do the selection keep",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
         return varsArray
     }
 
 }
+
+
+
+/************************************************************************************************ */
+/*-----------------------------------------MASS DIFFERENCES---------------------------------------*/
+class CanvasCell_massDifferences_formula extends CanvasCell{
+    constructor(parent, index, cfg){
+        super(parent, index)
+        this.cfg.prepareCfg("massDifferences_formula")
+        this.cfg.xmax = 100
+        this.cfg.ymax = 100
+        if(cfg){this.cfg.copyCfg(cfg)}
+        this.draw()
+    }
+    /**draw the plot */
+    draw(){
+        super.draw()
+        let axisOptions = {}
+        if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = "Δm/z"
+        let axisLabel_y = "Occurences"
+        if(this.cfg.ytype == "origin"){axisLabel_y = "Sum of lowest mass intensities"}
+        else if(this.cfg.ytype == "target"){axisLabel_y = "Sum of highest mass intensities"}
+        else if(this.cfg.ytype == "sum"){axisLabel_y = "Sum of connected mass intensities"}
+        else if(this.cfg.ytype == "product"){axisLabel_y = "Product of connected mass intensities"}
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.yrelative){ axisLabel_y = "%"}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
+
+        if(!this.cfg.config.noGrid){
+            this.grids = [];
+            this.grids[1] = appendPlotGrid(this.svgSpace, this.scales[1],this.cfg.config.axisLines,"side", this.cfg.config);
+          }
+        //create brushing or filtration
+        // this.createBrush("massSpectra")        
+         this.createBrushFilter("massDifferences_formula")
+        this.drawAllData()
+        this.drawColourLegends(true)
+    }
+    drawData(dataset, index, specialInfo){
+        let suppID = ""
+        if(specialInfo != "highlight"){
+        super.drawData(dataset, index)
+        }else{
+            d3.selectAll("#canvas"+this.canvas.letter+" #cell"+this.index+"data"+index+"_highlight").remove()
+            suppID = "_highlight"
+        }
+        if(!this.cfg.activeData[index]){return;}
+
+        let ytype = this.cfg.ytype
+        let yrelative = this.cfg.yrelative
+        let color = dataset.cfg.colorSolid
+        let opacity = this.canvas.cfg.opacity
+
+        //compute data
+        let groups = []
+        if(specialInfo == "highlight"){
+            groups = dataset.filterMassDifferences(this.cfg.filterType, "formula")
+        }else if(specialInfo == "filter"){
+            groups = dataset.prepareMassDifferences_formula([this.cfg.xmin,this.cfg.xmax], this.cfg.cutoff, true)
+        }else{
+            groups = dataset.prepareMassDifferences_formula([this.cfg.xmin,this.cfg.xmax], this.cfg.cutoff, false)
+        }
+
+        if(!groups || groups.length==0){return}
+        let maxOccurences = groups[0].occurences
+        let maxIntensity = 0
+
+        //which property key to select in the groups of differences
+        let key_occ = "occurences"
+        let key_int = "intensity"
+        if(specialInfo == "highlight"){
+            key_occ = "occurences_red"
+            key_int = "intensity_red"
+            color = this.canvas.cfg.interactivity.histoColor
+            opacity = 1
+        }
+        
+        //prepares special "intensity" cases
+        if(ytype != "occurences"){
+            let isDataReduced= false
+            if(specialInfo == "highlight"){isDataReduced = true}
+            dataset.prepareMassDifferences_intensity(ytype, isDataReduced, groups)
+            //looks for max intensity
+            for(let i=0; i<groups.length; i++){
+                if(groups[i].intensity>maxIntensity){maxIntensity = groups[i].intensity}
+            }
+        }
+
+
+        if(!this.drawnData){this.drawnData = []}
+        this.drawnData[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"data"+index+suppID)
+        .selectAll("rect")
+        .data(groups)
+        .enter()
+        .append("rect")
+        .attr("x",  (d) => {return this.scales[0](d.mass);} ) 
+        .attr("y",  (d) =>  { 
+            if(ytype == "occurences"){
+                if(yrelative){return this.scales[1](100*d[key_occ]/maxOccurences) ||0
+                }else{return this.scales[1](d[key_occ]) ||0 }
+            }else{
+                if(yrelative){return this.scales[1](100*d[key_int]/maxIntensity) ||0
+                }else{return this.scales[1](d[key_int]) ||0 }
+            }}) 
+        .attr("width",1)
+        .attr("height", (d) => { 
+            if(ytype == "occurences"){
+                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d[key_occ]/maxOccurences) ||0
+                }else{
+                    return this.cfg.config.height - this.scales[1](d[key_occ]) ||0
+                }
+            }else{
+                if(yrelative){ return this.cfg.config.height - this.scales[1](100*d[key_int]/maxIntensity) ||0
+                }else{
+                    return this.cfg.config.height - this.scales[1](d[key_int]) ||0
+                }
+            }})
+        .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+        .style("fill", (d) => {return color})
+        .style("opacity", opacity)
+        .attr('tooltipHTML', (d,n) => {return "massDifferences_formula"+";"+index+";"+n})
+        .on("mouseover", (d) => {this.canvas.tooltip.mouseover(d)} )
+        .on("mousemove", (d,n) => {this.canvas.tooltip.mousemove(d,"massDifferences_formula",n, this)}  )
+        .on("mouseleave" , (d) => {this.canvas.tooltip.mouseleave(d)}  )
+        .on("click", (d,n) =>{this.canvas.tooltip.mouseclick(d,"massDifferences_formula",n, this)} );
+    }
+    update(content, doNotUpdateDomains){
+        super.update(content, doNotUpdateDomains)
+        let axisLabel_x = "Δm/z"
+        let axisLabel_y = "Occurences"
+        if(this.cfg.ytype == "origin"){axisLabel_y = "Sum of lowest mass intensities"}
+        else if(this.cfg.ytype == "target"){axisLabel_y = "Sum of highest mass intensities"}
+        else if(this.cfg.ytype == "sum"){axisLabel_y = "Sum of connected mass intensities"}
+        else if(this.cfg.ytype == "product"){axisLabel_y = "Product of connected mass intensities"}
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        else if(this.cfg.yrelative){ axisLabel_y = "%"}
+        this.axesLabels[0].text(axisLabel_x)
+        this.axesLabels[1].text(axisLabel_y)
+        if(!this.cfg.config.nogrid){
+            this.grids[1].call(d3.axisLeft(this.scales[1]).ticks(this.cfg.config.axisLines).tickSize(-this.cfg.config.width).tickFormat(""))
+        }
+    }
+    
+    updateData(content, dataNum){
+        super.updateData(content, dataNum)
+        let ytype = this.cfg.ytype
+        let yrelative = this.cfg.yrelative
+        let thisData = this.drawnData[dataNum]
+        let maxInt = this.canvas.findMaxInt(false)
+        if(!thisData){return;}
+        this.drawData(this.canvas.data[dataNum],dataNum)
+        if(content.includes("opacity_")|| content.includes("all")){
+            thisData.style("opacity", this.canvas.cfg.opacity)
+        }
+    }
+
+    autoscale(){
+        super.autoscale()
+        if(this.cfg.ymin<0){this.cfg.ymin = 0}
+        if(this.cfg.ytype == "occurences_relative"){ this.cfg.ymax = 100}
+    }
+
+    prepareCfg(){
+        let properties = [
+            {key:"ytype",type:"select",default:"occurences"},
+            {key:"yrelative",type:"checkbox",default:true},
+            {key:"cutoff",type:"number",default:10},
+            {key:"filterType",type:"select",default:"any"}
+        ]
+        return properties
+    }
+
+    handleHighlighting(){
+        //check if this method of brushing is active, because it can be disabled
+        if(!this.canvas.cfg.interactivity.createHistogramBars){return;}
+        for(let i=0; i<this.canvas.data.length; i++){
+            let dataset = this.canvas.data[i]
+            if(!dataset.highlight){continue;}
+            if(dataset.highlight.cellIndex == this.index){continue;}
+            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
+            if(this.canvas.cfg.interactivity.active != "all" && this.canvas.cfg.interactivity.active != i){continue;}
+            this.drawData(this.canvas.data[i], i, "highlight")
+        }
+    }
+
+    handleFiltering(indexesList){
+         if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
+         let activeData = this.canvas.cfg.interactivity.active
+        //checks if the only filter is on this chart, skips 
+        if(this.canvas.filters.length == 1){
+            if(this.canvas.filters[0] &&this.canvas.filters[0].cellIndex == this.index){return;}
+        }
+         for(let i=0; i<this.canvas.data.length; i++){
+            if(activeData !="all" && activeData !=i){continue;}
+            let dataset = this.canvas.data[i]
+            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
+            this.drawData(this.canvas.data[i], i, "filter")
+        }
+    }
+
+    
+    preparePopupCfg(){
+        let varsArray = []
+        varsArray.push({"name":"x",
+            "inputs":[
+                {key:"xmin",type:"number",value:this.cfg.xmin,title: "Minimum axis value",update:(d)=>{this.cfg.update(d)}},
+                {key:"xmax",type:"number",value:this.cfg.xmax,title: "Maximum axis value",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        let ytypeOptions = [{name:"Occurences",value:"occurences"},
+            {name:"Origin intensity",value:"origin"},
+            {name:"Target intensity",value:"target"},
+            {name:"Intensity sum",value:"sum"},
+            {name:"Intensity prod.",value:"product"},
+            {name:"Similarity score",value:"similarity"}
+        ]
+        varsArray.push({ "name":"y",
+            "inputs":[
+                {key:"ytype",type:"select",value:this.cfg.ytype,title: "How to compute y value",options:ytypeOptions,update:(d)=>{this.cfg.update(d)}},
+                {key:"ymin",type:"number",value:this.cfg.ymin,title: "Minimum axis value",update:(d)=>{this.cfg.update(d)}},
+                {key:"ymax",type:"number",value:this.cfg.ymax,title: "Maximum axis value",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+         varsArray.push({ "name":"Relative y axis(%)",
+            "inputs":[
+                {key:"yrelative",type:"checkbox",value:this.cfg.yrelative,title: "Is the y axis in relative proportion of the max displayed value of this dataset",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"Cutoff value",
+            "inputs":[
+                {key:"cutoff",type:"number",value:this.cfg.cutoff,title: "Cutoff small occurences groups to quicken display",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        let interactivityOptions = [{name:"Origin selected",value:"origin"},
+            {name:"Target selected",value:"target"},
+            {name:"Both selected",value:"both"},
+            {name:"Any selected",value:"any"},
+        ]
+        varsArray.push({"name":"Interactivity:",
+            "inputs":[
+                {key:"filterType",type:"select",value:this.cfg.filterType,options:interactivityOptions,title: "When highlighting/filtering, which points do the selection keep",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        return varsArray
+    }
+
+}
+
 
 
 /*************************DATASETS CLASS ************************************/
@@ -6253,8 +6563,8 @@ class DataSet {
     }
     /***********Mass differences related functions**********************************************/
     
-    prepareMassDifferences(bounds,tolerance, cutoff){
-        let groups = this.calculateMassDifferences(bounds, tolerance)
+    prepareMassDifferences(bounds,tolerance, cutoff, useFilteredData){
+        let groups = this.calculateMassDifferences(bounds, tolerance, useFilteredData)
         //cutoff small groups
         for(let i=groups.length-1; i>=0; i--){
             if(groups[i].occurences<=cutoff){groups.splice(i,1)}
@@ -6264,31 +6574,33 @@ class DataSet {
     }
 
     //calculate mass differences in a given range within a mDa tolerance, outputs a list of groups
-    calculateMassDifferences(bounds,tolerance){
+    calculateMassDifferences(bounds,tolerance, useFilteredData){
         //sort data by mz values. this.sort cannot be used because it refreshes
-        this.data.sort((a,b)=>a[config.mz]-b[config.mz])
+        let data = this.data
+        if(useFilteredData && this.dataFiltered && this.dataFiltered.length >0){data = this.dataFiltered}
+        data.sort((a,b)=>a[config.mz]-b[config.mz])
         let differences = []
         //starts at 1 to avoid header column
-        for(let i=1; i<this.data.length; i++){
-            let mass1 = this.data[i][config.mz]
+        for(let i=1; i<data.length; i++){
+            let mass1 = data[i][config.mz]
             for(let j=i-1; j>=1; j--){ //also starts at 1 to avoid header
-                let mass2 = this.data[j][config.mz]
+                let mass2 = data[j][config.mz]
                 let diff = mass1-mass2;
                 if(diff ==NaN){continue;}
                 //handle out of bounds mass differences
                 if(diff<bounds[0]){continue;}
                 if(diff>bounds[1]){break;}
-                let massdiff = {"mass":diff,"origin":i,"target":j,"originID":this.data[i].index,"targetID":this.data[j].index}
+                let massdiff = {"mass":diff,"origin":i,"target":j,"originID":data[i].index,"targetID":data[j].index}
                 differences.push(massdiff)
             }
         }
-        console.log(differences)
         //sort differences
         differences.sort((a,b)=> a.mass - b.mass)
         //prepares tolerance, which is entered in mDa
         tolerance = tolerance/1000
         //groups differences
         let groups = []
+        if(!differences[0]){return;}
         groups.push({"occurences":1,"mass":differences[0].mass,differences:[differences[0]]})
         let groupIndex = 0
         for(let i=1; i<differences.length; i++){
@@ -6306,19 +6618,18 @@ class DataSet {
                 groups.push({"occurences":1, "mass":mass1, differences:[differences[i]]})
             }
         }
-        console.log(groups)
         groups.sort((a,b)=> b.occurences - a.occurences)
         return groups
     }
 
     /** prepares on already computed groups of mass differences special methods to compute a proxy "intensity" */
-    prepareMassDifferences_intensity(type){
-        let groups = this.massDifferences_groups
+    prepareMassDifferences_intensity(type, isDataReduced, groups){
         //loops through each group and computes the "intensity" based on type parameter using each mass difference
         for(let i=0; i<groups.length; i++){
             let thisGroup = groups[i]
             let intensity = 0
             let differences = thisGroup.differences
+            if(isDataReduced){differences = thisGroup.differences_red}
             if(type == "origin"){
                 for(let j=0; j<differences.length; j++){
                     let origin = this.data[differences[j].origin]
@@ -6351,17 +6662,120 @@ class DataSet {
                     intensity += score
                 }
             }
-            thisGroup.intensity =intensity
+            if(isDataReduced){
+                thisGroup.intensity_red = intensity
+            }else{
+                thisGroup.intensity =intensity
+            }
         }
 
     }
 
-    filterMassDifferences(filterType){
+    filterMassDifferences(filterType, typeofMassDifference){
+        //build an index list of highlighted
+        if(!this.dataHighlighted || this.dataHighlighted.length == 0){return}
+        let indexes = []
+        for(let i=0; i<this.dataHighlighted.length; i++){
+            indexes[this.dataHighlighted[i].index] = true
+        }
         let groups = this.massDifferences_groups
+        if(typeofMassDifference == "formula"){
+            groups = this.massDifferences_groupsFormula
+        }
+        for(let i=0; i<groups.length; i++){
+            this.filterMassDifferences_singleGroup(groups[i], filterType, indexes)
+        }
+        return groups
     }
 
-    filterMassDifferences_singleGroup(){
+    filterMassDifferences_singleGroup(group, filterType, selection){
+        let count = 0
+        let differences_red = []
+        for(let i=0; i<group.differences.length; i++){
+            let diff = group.differences[i]
+            let valid = false
+            //based on the filter type, counts this occurence or not
+            if(filterType == "origin" && selection[diff.originID]){valid=true}
+            else if(filterType == "target" && selection[diff.targetID]){valid=true}
+            else if(filterType == "any" &&  (selection[diff.originID] || selection[diff.targetID])){valid=true}
+            else if(filterType == "both" && selection[diff.originID] && selection[diff.targetID]){valid=true}
+            if(valid){
+                count +=1
+                differences_red.push(diff)
+            }
+        }
+        group.occurences_red = count
+        group.differences_red = differences_red
+    }
+    /***---------------------------***/
+    prepareMassDifferences_formula(bounds, cutoff, useFilteredData){
+        let groups = this.calculateMassDifferences_formula(bounds, useFilteredData)
+        //cutoff small groups
+        for(let i=groups.length-1; i>=0; i--){
+            if(groups[i].occurences<=cutoff){groups.splice(i,1)}
+        }
+        this.massDifferences_groupsFormula = groups
+        return groups
+    }
 
+    //calculate mass differences in a given range using chemical formulae
+    calculateMassDifferences_formula(bounds, useFilteredData){
+        //sort data by mz values. this.sort cannot be used because it refreshes
+        let data = this.data
+        if(useFilteredData && this.dataFiltered && this.dataFiltered.length >0){data = this.dataFiltered}
+        data.sort((a,b)=>a[config.mz]-b[config.mz])
+        let differences = []
+        //builds formula objects based on data formula
+        for(let i=1; i<data.length; i++){
+            data[i].formula = new Molecule(data[i][config.formulatext])
+        }
+        //starts at 1 to avoid header column
+        let diffmasses = []
+        let groups = []
+        let groupIndex = 0
+        for(let i=1; i<data.length; i++){
+            let formula1 = data[i].formula
+            for(let j=i-1; j>=1; j--){ //also starts at 1 to avoid header
+                let formula2 = data[j].formula
+                let diff = formula1.returnDuplicate()
+                diff.removeFormula(formula2);
+                if(!diff || !diff.mass){continue;}
+                //handle out of bounds mass differences
+                if(diff.mass<bounds[0]){continue;}
+                if(diff.mass>bounds[1]){break;}
+                let linkdiff = {"formula":diff,"mass":diff.mass,"origin":i,"target":j,"originID":data[i].index,"targetID":data[j].index}
+                //since we have exact mass, we can pre-group by mass
+                //if the mass doesn't already exist, create a new group
+                if(!diffmasses[diff.mass]){
+                    diffmasses[diff.mass] = []
+                    diffmasses[diff.mass].push({name:diff.name,index:groupIndex})
+                    groups.push({"occurences":1,"mass":diff.mass,formula:diff.name,differences:[linkdiff]})
+                    groupIndex +=1
+                }else{
+                //look if this formula has already been found
+                let found = false;
+                    for(let k=0; k<diffmasses[diff.mass].length; k++){
+                        if(diffmasses[diff.mass][k].name != diff.name){continue;}
+                        let diffmass = diffmasses[diff.mass][k]
+                        let group = groups[diffmass.index]
+                        group.occurences += 1
+                        group.differences.push(linkdiff)
+                        found = true
+                        break;
+                    }
+                    //if it isn't foud, create a new group
+                    if(!found){
+                        diffmasses[diff.mass].push({name:diff.name,index:groupIndex})
+                        groups.push({"occurences":1,"mass":diff.mass,formula:diff.name,differences:[linkdiff]})
+                        groupIndex +=1
+                    }
+                }
+
+                
+            }
+        }
+        groups.sort((a,b)=> b.occurences - a.occurences)
+        return groups
     }
 
     /***************************MATRIX RELATED FUNCTIONS *************************************** */
@@ -6701,6 +7115,15 @@ class TooltipCanvas{
             })
             button.setAttribute("class","databaseSearch")
             this.htmlStick.node().appendChild(button)
+        }else if(type =="massDifferences_formula"){
+            let button = menuCreate_button(null, "name", "copy Differences",(d)=>{
+                if(this.canvas.data[suppData.dataID]){
+                    let thisData = this.canvas.data[suppData.dataID]
+                    copyMassDifferencesDataToClipboard(element.target.__data__, thisData)
+                }
+            })
+            button.setAttribute("class","databaseSearch")
+            this.htmlStick.node().appendChild(button)
         }
 
         //highlights the selected dot
@@ -6820,8 +7243,12 @@ class TooltipCanvas{
             lines[3] = "intensity : "+100*data.matrixMeanI.toFixed(3)+"%"
             lines[4] = "   std dev : "+data.matrixStdDevI.toFixed(3)
         }else if(type=="massDifferences"){
-            lines[0] = "Mass : "+data.mass.toFixed(4)
+            lines[0] = "Mass : "+data.mass.toFixed(4)+"<button class='databaseSearch' onclick='popupSinglePeakMassSearch(`"+data.mass+"`)'> show formulae </button>"
             lines[1] = "Occurences : "+data.occurences
+        }else if(type=="massDifferences_formula"){
+            lines[0] = "Formula : "+data.formula
+            lines[1] = "Mass : "+data.mass.toFixed(4)+"<button class='databaseSearch' onclick='popupSinglePeakMassSearch(`"+data.mass+"`)'> show formulae </button>"
+            lines[2] = "Occurences : "+data.occurences
         }else if(type == "returnData"){
             if(data.length){
                 lines[0]=suppData[0]|| ""
@@ -7209,6 +7636,30 @@ class BrushFilterCanvas{
                         }
                     })
                 }
+            }else if(this.cellType == "massDifference" || this.cellType == "massDifferences_formula"){
+                let filterDomain0 = cell.scales[0].invert(d.selection[0])
+                let filterDomain1 = cell.scales[0].invert(d.selection[1])
+                let filter = {domain:[filterDomain0, filterDomain1],binWidth: "none", type:"deltam/z", origin:this.cellType, cellIndex:this.cell.index}
+                if(this.cellType == "massDifference"&& this.canvas.data[i].massDifferences_groups){
+                        this.canvas.data[i].massDifferences_groups.forEach((d)=>{
+                            if(d.mass>=filterDomain0 && d.mass<=filterDomain1){
+                                for(let j=0; j<d.differences.length; j++){
+                                    localSelected[d.differences[j].originID] = true
+                                    localSelected[d.differences[j].targetID] = true
+                                }
+                            }
+                        })
+                }else if(this.cellType == "massDifferences_formula"&& this.canvas.data[i].massDifferences_groupsFormula){
+                    this.canvas.data[i].massDifferences_groupsFormula.forEach((d)=>{
+                            if(d.mass>=filterDomain0 && d.mass<=filterDomain1){
+                                for(let j=0; j<d.differences.length; j++){
+                                    localSelected[d.differences[j].originID] = true
+                                    localSelected[d.differences[j].targetID] = true
+                                }
+                            }
+                        })
+                }
+                this.filterData(i, localSelected, filter)
             }
             //fuses back this round of data selection with the others
             let indexes = this.canvas.data[i].filterIndexes 
@@ -7865,13 +8316,21 @@ function copy2DDataSubsetToClipboard(data, dataForHeaders){
     navigator.clipboard.writeText(dataLine)
 }
 
-function copyMassDifferencesDataToClipboard(data, dataset){
+function copyMassDifferencesDataToClipboard(data, isThereFormula){
     if(!data.differences){return;}
     let differences = data.differences
     let dataLine = "Δm/z \t origin_id \t target_id \n"
-    for(let i=0; i<differences.length; i++){
-        dataLine+= differences[i].mass + "\t"+differences[i].origin + "\t" + differences[i].target + "\n"
+    if(!isThereFormula){
+        for(let i=0; i<differences.length; i++){
+            dataLine+= differences[i].mass + "\t"+differences[i].origin + "\t" + differences[i].target + "\n"
+        }
+    }else{
+        dataLine = "formula \t Δm/z \t origin_id \t target_id \n"
+        for(let i=0; i<differences.length; i++){
+            dataLine+= differences[i].formula.name + "\t"+ differences[i].mass + "\t"+differences[i].origin + "\t" + differences[i].target + "\n"
+        }
     }
+
     navigator.clipboard.writeText(dataLine)
 }
 

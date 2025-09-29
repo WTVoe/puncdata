@@ -574,7 +574,6 @@ function saveDataFile(fileNum){
   ]
   
   handlePopup("saveDataFile","Choose the name of the file n°"+(fileNum+1),buttons,selecters,inputs)
-
 }
 
 function saveDataFile_export(){
@@ -1267,6 +1266,7 @@ function importPuncdataFile(input){
       }
     }
     if(debug){console.log("Reading pdata file: assigning variables...")}
+    if(data.version<1.158){loadFilesOldVersion(data)}
     fileData = data.fileData
 
     nameslist = data.nameslist

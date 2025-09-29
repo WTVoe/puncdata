@@ -8,6 +8,7 @@
 <script src="scripts_compute/script_attrib.js" defer>  </script> <!-- Attribution algorithm -->
 <!--module of puncdata: visualisation and graphs, uses open source modules-->
 <script src="scripts/script.js" defer></script> <!-- main js-->
+<script src="scripts/script_file.js" defer></script> <!-- handle files js-->
 <script src="scripts/script_plotfunctions.js" defer></script> <!--function library for plots-->
 <script src="scripts/script_htmlhelper.js" defer></script> <!-- helpers to create html bits-->
 <script src="scripts/script_matrix.js" defer></script> <!-- density tab js -->
@@ -53,6 +54,7 @@
 </div>
 <div class="tab">
   <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_upload')">Data Manager</button>
+  <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_data')">Data M2</button>
   <button class="tablinks datalink"  onclick="openTab('tab_calib')">Calibration</button>
   <button class="tablinks datalink"  onclick="openTab('tab_attrib')">Attribution</button>
   <button class="tablinks datalink"  onclick="openTab('tab_treatment')">Tools</button>
@@ -234,6 +236,12 @@
           <div class="fade_popup" id="popup_file_pasted">Data Pasted</div>
           <div class="fade_popup" id="popup_filedata_copy">Data copied</div>
 </div>
+<!-- TAB Data manager-->
+ <div id="tab_data" class="tabcontent">
+     <div id="datalist">
+
+     </div>
+ </div>
 <!-- TAB Calibration-->
 <div id="tab_calib" class="tabcontent">
      <div class="topselecter">
