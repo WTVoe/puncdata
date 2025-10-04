@@ -24,7 +24,7 @@ function updateTableTab(){
       else if(choice =="none"){ d3.select("#rawDataTable").remove()}
       else if(choice.includes("file")){
           let fileNum = choice.slice(5);
-            arrayToTable(fileData[fileNum], maxLength, currentPage, editMode);
+            arrayToTable(files.list[fileNum].data, maxLength, currentPage, editMode);
       }
 }
 
@@ -182,14 +182,14 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
         if(choice == "matrix"){ matrixData = inputArray}
         else if(choice.includes("file")){
           let fileNum = choice.slice(5);
-          fileData[fileNum] = inputArray
+          files.list[fileNum].data = inputArray
         }
         //redraws everything 
         let special = {"col":i,"order":sortType}
         drawEverything_noData()
         arrayToTable(inputArray, maxLength,pageNum,editMode, special);
 
-        fileData[choice] = inputArray
+        files.list[choice].data = inputArray
       });
     }
     // sets the good sorting to the special place

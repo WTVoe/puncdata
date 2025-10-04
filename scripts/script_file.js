@@ -4,7 +4,7 @@
 class FileList{
     constructor(){
         this.groups = []
-        this.files = []
+        this.list = []
         this.html = document.getElementById("datalist")
     }
 
@@ -15,38 +15,38 @@ class FileList{
         let container = document.createElement("div")
         container.setAttribute("name","container")
         this.html.appendChild(container)
-        for(let i=0; i<this.files.length; i++){
+        for(let i=0; i<this.list.length; i++){
             let filewrapper = document.createElement("div")
             filewrapper.setAttribute("id","fileslot_index_"+i)
-            let fileslot = this.files[i].render()
+            let fileslot = this.list[i].render()
             container.appendChild(filewrapper)
             filewrapper.appendChild(fileslot)
         }
     }
 
-    /**mutates this.files to redo the order and redefines indexes**/
+    /**mutates this.list to redo the order and redefines indexes**/
     moveFile(index, direction){ 
         if(isNaN(index)){return}
         if(direction =="up"){
-            if(!this.files[index-1]){return}
-            [this.files[index], this.files[index-1]] = [this.files[index-1], this.files[index]]
-            this.files[index].index = index
-            this.files[index-1].index = index-1
+            if(!this.list[index-1]){return}
+            [this.list[index], this.list[index-1]] = [this.list[index-1], this.list[index]]
+            this.list[index].index = index
+            this.list[index-1].index = index-1
         }else if(direction == "down"){
-             if(!this.files[index+1]){return}
-             [this.files[index], this.files[index+1]] = [this.files[index+1], this.files[index]]
-            this.files[index].index = index
-            this.files[index+1].index = index+1
+             if(!this.list[index+1]){return}
+             [this.list[index], this.list[index+1]] = [this.list[index+1], this.list[index]]
+            this.list[index].index = index
+            this.list[index+1].index = index+1
         }
         //restarts the render
         this.render()
         //highlight
         if(direction =="up"){
-            this.files[index-1].html.classList.add("bckgrndhighlight")
-            setTimeout(() => {this.files[index-1].html.classList.remove("bckgrndhighlight")}, 200);
+            this.list[index-1].html.classList.add("bckgrndhighlight")
+            setTimeout(() => {this.list[index-1].html.classList.remove("bckgrndhighlight")}, 200);
         }else if(direction =="down"){
-            this.files[index+1].html.classList.add("bckgrndhighlight")
-            setTimeout(() => {this.files[index+1].html.classList.remove("bckgrndhighlight")}, 200);
+            this.list[index+1].html.classList.add("bckgrndhighlight")
+            setTimeout(() => {this.list[index+1].html.classList.remove("bckgrndhighlight")}, 200);
         }
     }
 
@@ -58,29 +58,27 @@ class FileList{
         if(index > targetIndex){direction ="down"}
         var currentIndex = index
         var steps = Math.abs(targetIndex-index)
-        console.log(direction, steps,)
         /** when dropping to a upper index, all files before the current position do not move */
         if(direction == "up"){
             for(let i=0; i<steps; i++){
-                console.log("moveup",index+i)
                 this.moveFile(index+i+1, "up")
             }
         }else{
             for(let i=0; i<steps; i++){
-                console.log("movedown",index-i)
                 this.moveFile(index-i-1, "down")
             }
         }
         /**resets the animation of this.movefile and animates the true file */
         this.render()
-        this.files[targetIndex].html.classList.add("bckgrndhighlight")
-        setTimeout(() => {this.files[targetIndex].html.classList.remove("bckgrndhighlight")}, 200);
+        resetDataSelecters()
+        this.list[targetIndex].html.classList.add("bckgrndhighlight")
+        setTimeout(() => {this.list[targetIndex].html.classList.remove("bckgrndhighlight")}, 200);
     }
 
     createNewFile(name,id, group){
-        let index = this.files.length
+        let index = this.list.length
         let newFile = new File(name,id,index, this, group)
-        this.files.push(newFile)
+        this.list.push(newFile)
         let container = this.html.querySelector("div[name='container']")
         if(container){
             newFile.render(container, index)
@@ -88,11 +86,26 @@ class FileList{
         return newFile
     }
 
+    createNewGroup(name){
+        let trueName = this.findUniqueGroupName(name)
+        let group = new FileGroup(trueName)
+        this.groups.push(group)
+        return group
+    }
+
     /** reset all indexes in the filelist */
     resetIndexes(){
-        for(let i=0; i<this.files.length; i++){
-            this.files[i].index = i
+        for(let i=0; i<this.list.length; i++){
+            this.list[i].index = i
         }
+    }
+
+    /**searches for a file by its name. Returns the first file with the good name */
+    findFileByName(name){
+        for(let i=0; i<this.list.length; i++){
+            if(this.list[i].name == name){return this.list[i]}
+        }
+        return;
     }
 
     /**search in the groups list a group by name. Returns it if found */
@@ -113,12 +126,80 @@ class FileList{
     /**starts with a name group, and increments it until the name doesn't exist anymore. Returns the name that is free to take*/
     findUniqueGroupName(name, iterationNb){
         let nameToSearch = name
-        if(iterationNb && iterationNb>0){nameTosearch += "iterationNb"}
+        if(iterationNb && iterationNb>0){nameToSearch += iterationNb}
         let firstGroup = this.findGroupByName(nameToSearch)
-        if(!firstGroup){return name}
+        if(!firstGroup){return nameToSearch}
         //else, looks again
-        this.findUniqueGroupName(name, iterationNb+1)
+        return this.findUniqueGroupName(name, iterationNb+1)
 
+    }
+    /** sorts the files with a method*/
+    sortFiles(sortMethod, asc){
+        if(sortMethod == "alpha"){
+            this.list.sort((a,b)=>{
+                if(asc){return a.name.localeCompare(b.name)}
+                else{return b.name.localeCompare(a.name)}
+            })
+        }else if(sortMethod == "id"){
+            this.list.sort((a,b)=>{
+                if(asc){return a.id - b.id}
+                else{return b.id - a.id}
+            })
+        }else if(sortMethod == "group"){
+            this.list.sort((a,b)=>{
+                if(!a.fileGroup || !b.fileGroup){return -1}
+                 if(asc){return a.fileGroup.name.localeCompare(b.fileGroup.name)}
+                else{return b.fileGroup.name.localeCompare(a.fileGroup.name)}
+            })
+        }
+        //re-indexes all files
+        for(let i=0; i<this.list.length; i++){
+            this.list[i].index = i
+        }
+        this.render()
+    }
+
+    /**removes every file */
+    deleteAllFiles(){
+        for(let i=this.list.length-1; i>=0; i--){
+            delete this.list[i]
+        }
+        for(let i=this.groups.length-1; i>=0; i--){
+            delete this.groups[i]
+        }
+        this.list = []
+        this.groups = []
+        this.render()
+    }
+
+    /**prepares for an export to save this */
+    export(){
+        let pFileList = {list:[],groups:[]}
+        for(let i =0; i<this.list.length; i++){
+            let pFile = this.list[i].export()
+            pFileList.list.push(pFile)
+        }
+        /**for groups, simplifies without cross references */
+        for(let i=0; i<this.groups.length; i++){
+            let pGroup = this.groups[i].export()
+            pFileList.groups.push(pGroup)
+        }
+        return pFileList
+    }
+    /**loads a saved fileList and recreates all links between elements */
+    import(save){
+        for(let i=0; i<save.list.length; i++){
+            const saveFile = save.list[i]
+            let file = new File(saveFile.name, saveFile.index, saveFile.id, this)
+            file.import(saveFile)
+            this.list.push(file)
+        }
+        for(let i=0; i<save.groups.length; i++){
+            const saveGroup = save.groups[i]
+            let group = new FileGroup(saveGroup.name)
+            group.import(saveGroup)
+            this.groups.push(group)
+        }
     }
 
 }
@@ -128,19 +209,45 @@ class FileGroup{
     constructor(name){
         this.name = name
         this.color = "#000000"
-        this.files = []
+        this.list = []
     }
 
     findFileIndexById(id){
-        for(let i=0; i<this.files.length; i++){
-            if(this.files[i].id == id){return i}
+        for(let i=0; i<this.list.length; i++){
+            if(this.list[i].id == id){return i}
         }
         return -1
     }
 
     updateAllFiles(){
-        for(let i=0; i<this.files.length; i++){
-            this.files[i].update()
+        for(let i=0; i<this.list.length; i++){
+            this.list[i].update()
+        }
+    }
+
+    /**prepares for an export to save this */
+    export(){
+        let pseudoGroup = {}
+        pseudoGroup.name = this.name
+        pseudoGroup.color = this.color
+        pseudoGroup.listIndexes = []
+        for(let i=0; i<this.list.length; i++){
+            if(!this.list[i]){continue;}
+            const index = this.list[i].index
+            pseudoGroup.listIndexes.push(index)
+        }
+        return pseudoGroup
+    }
+    /** imports data from a saved FileGroup */
+    import(saveGroup){
+        this.color = saveGroup.color
+        /**connects files and groups */
+        for(let i=0; i<saveGroup.listIndexes.length; i++){
+            const index = saveGroup.listIndexes[i]
+            const file = files.list[index]
+            if(!file){continue;}
+            file.fileGroup = this
+            this.list.push(file)
         }
     }
 }
@@ -160,6 +267,7 @@ class File{
         //this
         this.data = []
         this.data_derived = {}
+        this.matrix = {auto:true}
         this.logs = []
         this.metadata = {
             calibration:{},
@@ -168,7 +276,7 @@ class File{
         }
         this.fileList = fileList
         this.fileGroup = group
-        if(group && group.files){group.files.push(this)}
+        if(group && group.list){group.list.push(this)}
     }
 
     /** render the file on the datamanager */
@@ -203,7 +311,6 @@ class File{
             if (e.target.type === "file") return;
             e.preventDefault();
             let handleIndex = e.dataTransfer.getData("slot_index")
-            console.log(parseInt(handleIndex), parseInt(this.index))
             this.fileList.moveFileToIndex(parseInt(handleIndex), parseInt(this.index))
         })
 
@@ -222,8 +329,14 @@ class File{
         let button_movedown = document.createElement("button")
         button_movedown.setAttribute("class","slimsmallbutton");
         button_movedown.textContent = "▼"
-        button_moveup.addEventListener("click",()=>{this.fileList.moveFile(this.index, "up")})
-        button_movedown.addEventListener("click",()=>{this.fileList.moveFile(this.index, "down")})
+        button_moveup.addEventListener("click",()=>{
+            this.fileList.moveFile(this.index, "up")
+            resetDataSelecters()
+        })
+        button_movedown.addEventListener("click",()=>{
+            this.fileList.moveFile(this.index, "down")
+            resetDataSelecters()
+        })
         div_move.appendChild(button_moveup)
         div_move.appendChild(button_movedown)
         sortDiv.appendChild(div_move)
@@ -308,7 +421,7 @@ class File{
         input_file1.type = "file"
         input_file1.setAttribute("class", "upload2");
         input_file1.setAttribute("name","input_file")
-        input_file1.addEventListener("input",()=>{this.readUploadedData()})
+        input_file1.addEventListener("input",()=>{this.readUploadedData(input_file1)})
         button_upload.appendChild(input_file1)
 
         var input_file2 = document.createElement("textarea")
@@ -344,8 +457,41 @@ class File{
         defGroup.style.flex = 2
         var input_name = menuCreateInput("text","input_name",this.name)
         input_name.setAttribute("class","fileslot_name")
+        input_name.placeholder = "Write here the dataset name"
         input_name.addEventListener("change",(d)=>{this.changeName(d.target.value)})
+        var stateTable = createTable(2,3)
+        stateTable.style.marginTop = '3px'
+        stateTable.style.border = "0px"
+        stateTable.style.tableLayout = "fixed"
+        stateTable.rows[0].cells[0].textContent = "File type : "
+        stateTable.rows[1].cells[0].textContent = "File state : "
+
+        var typeOptions = [{name:"Single analysis",value:"analysis"},{name:"Matrix",value:"matrix"}]
+        var typeSelecter = menuCreateInput("select","file_type",this.type,typeOptions)
+        typeSelecter.addEventListener("change",(d)=>{
+            this.type = typeSelecter.value
+            this.update()
+        })
+        typeSelecter.style.color = "black"
+        var typeConfigButton = document.createElement("button")
+        typeConfigButton.style.height = "17px"
+        typeConfigButton.style.fontSize = "10px"
+        typeConfigButton.setAttribute("name","type_config_button")
+        typeConfigButton.textContent = "Configure..."
+        typeConfigButton.addEventListener("click",()=>{this.showMatrixPopup()})
+        if(this.type != "matrix"){typeConfigButton.style.display = "none"}
+        stateTable.rows[0].cells[1].appendChild(typeSelecter)
+        stateTable.rows[0].cells[2].appendChild(typeConfigButton)
+        var stateOptions = this.findStateOptions()
+        var stateSelecter = menuCreateInput("select","file_state",this.state,stateOptions)
+        stateSelecter.addEventListener("change",(d)=>{
+            this.state = stateSelecter.value
+        })
+        stateSelecter.style.color = "black"
+        stateTable.rows[1].cells[1].appendChild(stateSelecter)
+
         defGroup.appendChild(input_name)
+        defGroup.appendChild(stateTable)
         mainDiv.appendChild(defGroup)
 
          //separator//
@@ -365,24 +511,34 @@ class File{
         //1-last group: copy and save button
         var buttonsGroup = document.createElement("div")
         buttonsGroup.style.marginRight = "10px"
+        var button_log = document.createElement("button")
         var button_copy = document.createElement("button")
         var button_save = document.createElement("button")
+        button_log.setAttribute("name","button_log")
         button_copy.setAttribute("name","button_copy")
         button_save.setAttribute("name","button_save")
+        button_log.setAttribute("class", "slimiconbutton")
         button_copy.setAttribute("class","slimiconbutton")
         button_save.setAttribute("class","slimiconbutton")
+        button_log.textContent = "LOG"
         button_copy.textContent = "COPY"
         button_save.textContent = "SAVE"
+        var img_log = document.createElement("img")
         var img_copy = document.createElement("img")
         var img_save = document.createElement("img")
+        img_log.setAttribute("class","parametersButton")
         img_copy.setAttribute("class","parametersButton")
         img_save.setAttribute("class","parametersButton")
+        img_log.setAttribute("src","icons/notes_icon.png")
         img_copy.setAttribute("src","icons/copy.png");
         img_save.setAttribute("src","icons/save_icon.png");
+        button_log.appendChild(img_log)
         button_copy.appendChild(img_copy)
         button_save.appendChild(img_save)
+        button_log.addEventListener("click",()=>{this.showLogsPopup()})
         button_copy.addEventListener("click",()=>{this.copyToClipboard()})
         button_save.addEventListener("click",()=>{saveFileToDisk(this)})
+        buttonsGroup.appendChild(button_log)
         buttonsGroup.appendChild(button_copy)
         buttonsGroup.appendChild(button_save)
         mainDiv.appendChild(buttonsGroup)
@@ -425,6 +581,12 @@ class File{
         return div
     }
 
+    /** returns an array of selecter option for the state of this file */
+    findStateOptions(){
+        let states = [{name:"Raw upload",value:"raw"}]
+        return states
+    }
+
     /** update the displayed elements on the file line. Please do refreshSlot if it should update eventListeners */
     update(){
         let groupName = ""
@@ -442,6 +604,10 @@ class File{
 
         let inputName = this.html.querySelector("input[name='input_name']")
         inputName.value = this.name
+        //update the central button display
+        let buttonType = this.html.querySelector("button[name='type_config_button']")
+        if(this.type == "matrix"){buttonType.style.display = "inline"}
+        else{buttonType.style.display = "none"}
 
         //updates the infos
         let infoGroup = this.html.querySelector("div[name='infoGroup']")
@@ -462,12 +628,13 @@ class File{
     /** changes the name of this file */
     changeName(newName){
         this.name = newName
+        this.logs.push("Changed name to: "+newName)
         this.update()
+        resetDataSelecters()
     }
 
     /**event: creates a popup to confirm deletion or if shift is pressed (d.shiftKey) deletes it directly */
     askForDeletion(d){
-        console.log(d)
         if(d.shiftKey){this.delete();return;}
         let textContent = "Are you sure you want to delete this file ?<br> You won't be able to undo this <br> <br> Tip: you can press shift+click next time to disable this warning <br>"
         new Popup_confirmation("deleteFile",textContent, ()=>{this.delete()})
@@ -476,14 +643,14 @@ class File{
     /** deletes the current file, updates the display */
     delete(){
         //looks first if the group needs to be deleted
-        if(this.fileGroup && this.fileGroup.files.length == 1){
+        if(this.fileGroup && this.fileGroup.list.length == 1){
             let index = this.fileList.findGroupIndexByName(this.fileGroup.name)
-            console.log(this.fileList.groups, index)
             this.fileList.groups.splice(index,1)
         }
-        this.fileList.files.splice(this.index,1)
+        this.fileList.list.splice(this.index,1)
         this.fileList.render()
         this.fileList.resetIndexes()
+        resetDataSelecters()
         delete this.data
         delete this.data_derived
         delete this//i'm not sure this works, that's why I added the steps before to remove the biggest data holders
@@ -503,10 +670,10 @@ class File{
         if(this.fileGroup){
             let index = this.fileGroup.findFileIndexById(this.id)
             if(index >= 0){
-                this.fileGroup.files.splice(index,1)
+                this.fileGroup.list.splice(index,1)
             }
             //delete this group if it is empty
-            if(this.fileGroup.files.length == 0){
+            if(this.fileGroup.list.length == 0){
                 let groupIndex = fileList.findGroupIndexByName(this.fileGroup.name)
                 if(groupIndex){
                     fileList.groups.splice(groupIndex,1)
@@ -517,13 +684,13 @@ class File{
         let group = fileList.findGroupByName(newName)
         //if it finds this new group, adds this file to it
         if(group){
-            group.files.push(this)
+            group.list.push(this)
             this.fileGroup = group
         }else{//if it didn't find the group, creates a new one
             let newGroup = new FileGroup(newName)
             newGroup.color = "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
             fileList.groups.push(newGroup)
-            newGroup.files.push(this)
+            newGroup.list.push(this)
             this.fileGroup = newGroup
         }
     }
@@ -554,6 +721,7 @@ class File{
         this.data = []
         this.data_derived = {}
         this.update()
+        this.logs.push("Data removed")
         //display a confirmation
         this.html.classList.add("bckgrndred")
         setTimeout(() => {this.html.classList.remove("bckgrndred")}, 500);
@@ -565,6 +733,17 @@ class File{
         let text = textarea.value
         this.data = parseInputData(text, splitterTextArea)
         this.data_derived = {}
+        /**updates the defaut columns if this is the first upload */
+        if(!isFileUploaded){
+            autoSetupColumns(this.data[0])
+        }
+        /**logs */
+            let log = 'Read data from pasted source, '
+            log+= this.data.length + "peaks"
+            if(this.data[0]){
+                log +=", "+this.data[0].length+" columns"
+            }
+            this.logs.push(log)
 
         this.update()
         /**confirms by display */
@@ -574,21 +753,32 @@ class File{
     }
 
     /**read uploaded data */
-    readUploadedData(){
-        let fileinput = this.html.querySelector("input[name='input_file']")
+    readUploadedData(fileinput){
+        /** either an input is given, or a uploaded file is given */
+        /**either way, inputted file is found */
+        let fileData = fileinput
+        if(fileinput.files && fileinput.files[0]){fileData =fileinput.files[0]}
         let reader = new FileReader();
-        console.log(fileinput)
-        reader.readAsBinaryString(fileinput.files[0]);
+        reader.readAsBinaryString(fileData);
         reader.onload =  (e) => {
-            console.log(e, this)
-            let name = fileinput.files[0].name
+            let name = fileData.name
             name = name.replace(/\.[^/.]+$/, "")
             this.name = name;
             this.size = e.total;
             let rawData = e.target.result
             this.data = parseInputData(rawData, splitter)
-            
             this.data_derived = {}
+            /**setups the columns if this is the first file uploaded */
+            if(!isFileUploaded){
+                autoSetupColumns(this.data[0])
+            }
+            /**logs */
+            let log = 'Read data from external file named '+this.name+', '
+            log+= (this.data.length-1) + "peaks"
+            if(this.data[0]){
+                log +=", "+this.data[0].length+" columns"
+            }
+            this.logs.push(log)
             /**resets the fileinput by re-rendering the whole slot */
             this.refreshSlot()
             /**confirms by display */
@@ -596,32 +786,412 @@ class File{
             setTimeout(() => {this.html.classList.remove("bckgrndgreen")}, 100);
         }
     }
+
+    /**prepares a popup to customize matrix parameters */
+    showMatrixPopup(){
+        let popup = new Popup("matrix_config","") 
+        if(!this.matrix.list){this.initializeMatrix()}       
+        this.fillMatrixPopup(popup)
+    }
+
+    /**fills the matrix popup with data */
+    fillMatrixPopup(popup){
+        if(!this.matrix){return;}
+        if(!this.data || !this.data[0]){return}
+        let cols = this.data[0]
+        let wrapper = popup.popup.querySelector("div[name='popup_content']")
+
+        let containerDiv = document.createElement("div")
+        containerDiv.style.display = "flex"
+        let columns = [document.createElement("div"),document.createElement("div")]
+        columns[0].style.flex = "1"
+        columns[1].style.flex = "1"
+        let titlecol1 = document.createElement("div")
+        titlecol1.textContent = "Define columns for analyses intensities:"
+        titlecol1.style.textAlign = "center"
+        let inputcol1 = document.createElement("div")
+        let inputmincol = menuCreateInput("number","minCol",this.matrix.matrixMin)
+        let inputmaxcol = menuCreateInput("number","maxCol",this.matrix.matrixMax)
+        inputmincol.addEventListener("change",()=>{
+            this.matrix.matrixMin = parseInt(inputmincol.value)
+            this.initializeMatrix()
+            this.fillMatrixPopup(popup)
+            containerDiv.remove()
+        })
+        inputmaxcol.addEventListener("change",()=>{
+            this.matrix.matrixMax = parseInt(inputmaxcol.value)
+            this.initializeMatrix()
+            this.fillMatrixPopup(popup)
+            containerDiv.remove()
+        })
+        inputmincol.placeholder = "min"
+        inputmaxcol.placeholder = "max"
+        inputcol1.appendChild(inputmincol)
+        inputcol1.appendChild(inputmaxcol)
+        inputcol1.style.textAlign = "center"
+
+        let table = createTable(cols.length, 1)
+        table.style.border = "0px"
+        table.style.margin = "5px"
+        for(let i=0; i<cols.length; i++){
+            if(!table.rows[i]){continue;}
+            table.rows[i].cells[0].style.border = "0px"
+            table.rows[i].cells[0].textContent = cols[i]
+        }
+        for(let i=this.matrix.matrixMin; i<=this.matrix.matrixMax; i++){
+            if(!table.rows[i]){continue;}
+            table.rows[i].cells[0].style.fontWeight = "bold"
+            table.rows[i].cells[0].style.color = "#f38f32"
+        }
+
+        columns[0].appendChild(titlecol1)
+        columns[0].appendChild(inputcol1)
+        columns[0].appendChild(document.createElement("br"))
+        columns[0].appendChild(table)
+
+        //second column
+        let titlecol2 = document.createElement("div")
+        titlecol2.textContent = "Automatically look for group based on Data manager group and file names"
+        titlecol2.style.textAlign = "center"
+        let checkboxauto = menuCreateInput("checkbox","checkbox_auto",this.matrix.auto)
+        titlecol2.appendChild(checkboxauto)
+        checkboxauto.addEventListener("change",()=>{
+            this.matrix.auto = checkboxauto.checked
+            if(!this.matrix.auto){this.initializeMatrix()}
+            this.fillMatrixPopup(popup)
+            containerDiv.remove()
+        })
+
+        columns[1].appendChild(titlecol2)
+        if(!this.matrix.auto && this.matrix.matrixMin && this.matrix.matrixMax &&(this.matrix.matrixMax>this.matrix.matrixMin)&& this.matrix.list){
+            let length = this.matrix.matrixMax - this.matrix.matrixMin
+            let table2 = createTable(length+2, 3)
+            table2.style.border = "0px"
+            table2.style.margin = "auto"
+            table2.style.width = "90%"
+            table2.rows[0].cells[0].textContent = "Name"
+            table2.rows[0].cells[1].textContent  = "Group"
+            table2.rows[0].cells[2].textContent  = "Color"
+            for(let i=0; i<length+1; i++){
+                if(!this.matrix.list[i]){continue;}
+                table2.rows[i+1].cells[0].textContent  = this.matrix.list[i].name
+                let inputGroup = menuCreateInput("text","groupName_"+i,this.matrix.list[i].group)
+                inputGroup.addEventListener("change",()=>{
+                    this.matrix.list[i].group = inputGroup.value
+                })
+                let inputColor = menuCreateInput("color","groupColor_"+i, this.matrix.list[i].color)
+                inputColor.addEventListener("change",()=>{
+                    this.matrix.list[i].color = inputColor.value
+                })
+                table2.rows[i+1].cells[1].appendChild(inputGroup)
+                table2.rows[i+1].cells[2].appendChild(inputColor)
+                table2.rows[i+1].cells[0].style.border = "0px"
+                table2.rows[i+1].cells[1].style.border = "0px"
+                table2.rows[i+1].cells[2].style.border = "0px"
+            }
+            columns[1].appendChild(table2)
+        }
+
+        containerDiv.appendChild(columns[0])
+        containerDiv.appendChild(columns[1])
+        wrapper.appendChild(containerDiv)
+    }
+
+    /**initializes matrix data with column names and groups */
+    initializeMatrix(){
+        if(!this.matrix){this.matrix = {}}
+        if(!this.matrix.matrixMin || ! this.matrix.matrixMax){return}
+        if(!this.data || !this.data[0]){return;}
+
+        let cols = this.data[0]
+        if(!this.matrix.list){this.matrix.list = []}
+        let length = this.matrix.matrixMax - this.matrix.matrixMin
+        for(let i=0; i<length+1; i++){
+            let name = this.extractIntensityName(cols[i+this.matrix.matrixMin])
+            if(this.matrix.list[i]){
+                this.matrix.list[i].name = name
+            }else{
+                this.matrix.list[i] = {name:name, group:"", color:"#000000"}
+            }
+        }
+        //find groups and colors for files
+        if(this.matrix.auto){
+            for(let i=0; i<length+1; i++){
+                let file = this.fileList.findFileByName(this.matrix.list[i].name)
+                if(file && file.fileGroup){
+                    this.matrix.list[i].group = file.fileGroup.name
+                    this.matrix.list[i].color = file.fileGroup.color
+                }else{
+                    if(!this.matrix.list[i].group){ this.matrix.list[i].group = "" }
+                    if(!this.matrix.list[i].color){ this.matrix.list[i].color = "#000000" }
+                }
+            }
+        }
+        //removes this.list if the length has been shortened
+        this.matrix.list.splice(length+1)
+    }
+
+    /**returns the name in an intensity column */
+    extractIntensityName(str){  
+        return str.startsWith("I_") ? str.substring(2) : str;
+    }
+
+    showLogsPopup(){
+        let popup = new Popup("file_logs","") 
+        this.fillLogsPopup(popup)
+    }
+
+    fillLogsPopup(popup){
+        let wrapper = popup.popup.querySelector("div[name='popup_content']")
+        let containerDiv = document.createElement("div")
+        wrapper.appendChild(containerDiv)
+        let table = createTable(this.logs.length, 2)
+        containerDiv.appendChild(table)
+        for(let i=0; i<this.logs.length; i++){
+            table.rows[i].cells[0].innerHTML = this.logs[i]
+            let delButton = document.createElement("button")
+            delButton.textContent = "X"
+            delButton.addEventListener("click",()=>{
+                this.logs.splice(i,1)
+                this.fillLogsPopup(popup)
+                containerDiv.remove()
+            })
+            table.rows[i].cells[1].appendChild(delButton)
+        }
+        //add copy and clean logs buttons
+        var copyButton = document.createElement("button")
+        copyButton.setAttribute("class","popupclose")
+        copyButton.textContent = "COPY LOGS"
+        copyButton.addEventListener("click",()=>{
+            let text = ""
+            for(let i=0; i<this.logs.length; i++){
+                text += this.logs[i]
+                text += "\n"
+            }
+            navigator.clipboard.writeText(text)
+        })
+        containerDiv.appendChild(copyButton)
+    }
+
+    /** export to save in a savefile */
+    export(){
+        let pseudoFile = {}
+        pseudoFile.name =this.name
+        pseudoFile.id = this.id
+        pseudoFile.index = this.index
+        pseudoFile.type = this.type
+        pseudoFile.dataType = this.dataType
+        pseudoFile.state = this.state
+        pseudoFile.data = this.data
+        pseudoFile.data_derived = this.data_derived
+        pseudoFile.matrix = this.matrix
+        pseudoFile.logs = this.logs
+        pseudoFile.metadata = this.metadata
+        pseudoFile.groupName = ""
+        if(this.group){pseudoFile.groupName = this.group.name}
+        return pseudoFile
+    }
+
+    /**imports data from a saved File. id and index were already created */
+    import(saveFile){
+        this.type = saveFile.type
+        this.dataType = saveFile.dataType
+        this.state = saveFile.state
+        this.data = saveFile.data
+        this.data_derived = saveFile.data_derived
+        this.matrix = saveFile.matrix
+        this.logs = saveFile.logs
+        this.metadata = saveFile.metadata
+        //group is loaded by FileGroup
+    }
 }
 
-// let test = new FileList
-// test.files = [new File("number1",0,0,test), new File("number2",1,1,test)]
-let files = new FileList
+/********************************************************/
+/**MISCELLANEOUS FUNCTIONS RELATED TO FILE HANDLING******/
+/****************************************************** */
+
+/**creates a new file slot in variable files, default it to group "A" */
+function createNewFileSlot(){
+    let defaultGroup = files.findGroupByName("A")
+    if(!defaultGroup){
+        defaultGroup = files.createNewGroup("A")
+        defaultGroup.color = "#000000"
+    }
+    files.createNewFile("",files.list.length, defaultGroup)
+    files.render()
+    resetDataSelecters()
+    return files[files.list.length-1]
+}
+
+/** creates the option for the data selection
+ * @var onlyFiles: only displays files and not matrix or venn
+ */
+function createDataOptions(selecter,onlyFiles, parentDiv){
+  if(typeof selecter != 'object'){
+      selecter = parentDiv.querySelector('select[name="'+selecter+'"]')
+  }
+  if(!selecter){return;}
+  //remove all previous options
+  var oldValue = selecter.value
+  if(selecter.options != null){
+      for(let j=selecter.options.length-1; j>=0; j--) { //backward for to remove all options
+          selecter.remove(j);
+      }
+  }
+  var options = []
+  options[0] = document.createElement("option")
+  options[0].setAttribute("value","none")
+  options[0].innerHTML = "None"
+  var l = 1
+  if(!onlyFiles){
+     options[l] = document.createElement("option")
+     options[l].setAttribute("value","matrix")
+     options[l].innerHTML = "Matrix"
+     l+=1
+  }
+  options[l] = document.createElement("option")
+  options[l].setAttribute("value","none")
+  options[l].setAttribute("disabled","")
+  options[l].innerHTML = "--------------------"
+  l +=1
+  for(let i=0; i<files.list.length; i++){
+      options[l] = document.createElement("option")
+      options[l].setAttribute("value","file_"+i)
+      options[l].innerHTML = "File : "+files.list[i].name
+      l += 1
+  }
+  if(vennData && ! onlyFiles){
+      if(vennData.A){
+          options[l] = document.createElement("option")
+          options[l].setAttribute("value","none2")
+          options[l].setAttribute("disabled","")
+          options[l].innerHTML = "--------------------"
+          options[l+1] = document.createElement("option")
+          options[l+1].setAttribute("value","A")
+          options[l+1].innerHTML = "Venn only A"
+          options[l+2] = document.createElement("option")
+          options[l+2].setAttribute("value","AuB")
+          options[l+2].innerHTML = "Venn A∩B"
+          options[l+3] = document.createElement("option")
+          options[l+3].setAttribute("value","B")
+          options[l+3].innerHTML = "Venn only B"
+          l+=4
+          if(vennData.C){
+              options[l] = document.createElement("option")
+              options[l].setAttribute("value","C")
+              options[l].innerHTML = "Venn only C"
+              options[l+1] = document.createElement("option")
+              options[l+1].setAttribute("value","AuC")
+              options[l+1].innerHTML = "Venn A∩C"
+              options[l+2] = document.createElement("option")
+              options[l+2].setAttribute("value","BuC")
+              options[l+2].innerHTML = "Venn B∩C"
+              options[l+3] = document.createElement("option")
+              options[l+3].setAttribute("value","AuBuC")
+              options[l+3].innerHTML = "Venn A∩B∩C"
+              l+=4
+              if(vennData.D){
+                  options[l] = document.createElement("option")
+                  options[l].setAttribute("value","D")
+                  options[l].innerHTML = "Venn only D"
+                  options[l+1] = document.createElement("option")
+                  options[l+1].setAttribute("value","AuD")
+                  options[l+1].innerHTML = "Venn A∩D"
+                  options[l+2] = document.createElement("option")
+                  options[l+2].setAttribute("value","BuD")
+                  options[l+2].innerHTML = "Venn B∩D"
+                  options[l+3] = document.createElement("option")
+                  options[l+3].setAttribute("value","CuD")
+                  options[l+3].innerHTML = "Venn C∩D"
+                  options[l+4] = document.createElement("option")
+                  options[l+4].setAttribute("value","AuBuD")
+                  options[l+4].innerHTML = "Venn A∩B∩D"
+                  options[l+5] = document.createElement("option")
+                  options[l+5].setAttribute("value","AuCuD")
+                  options[l+5].innerHTML = "Venn A∩C∩D"
+                  options[l+6] = document.createElement("option")
+                  options[l+6].setAttribute("value","BuCuD")
+                  options[l+6].innerHTML = "Venn B∩C∩D"
+                  options[l+7] = document.createElement("option")
+                  options[l+7].setAttribute("value","AuBuCuD")
+                  options[l+7].innerHTML = "Venn All (A∩B∩C∩D)"
+                  l+=8
+              }
+          }
+      }
+  }
+  //append all the options
+  var length = 2 
+  for(let i=0; i<options.length; i++){
+      if(options[i]){
+          selecter.appendChild(options[i])
+      }
+      length +=1
+  }
+  selecter.value = oldValue
+  return selecter
+}
+
+/** resets all data selecters */
+function resetDataSelecters(){
+    createDataOptions(html_tabTable.querySelector("select[name='fileSelection']"),false);
+    createDataOptions(html_tabParameters.querySelector("select[name='fileSelection']"),false);
+    createDataOptions(html_tabPca.querySelector("select[name='fileSelection']"),false);
+    createDataOptions(html_tabAttrib.querySelector("select[name='fileSelection']"),false);
+    createDataOptions(html_tabCalib.querySelector("select[name='fileSelection']"),false);
+    /** for venn and matrix tab */
+    let fileChoices = document.querySelectorAll(".file_choice")
+    for(let i=0; i<fileChoices.length; i++){
+        createDataOptions(fileChoices[i],true)
+    }
+    addFilesToTreatmentTable();
+    addFilesToMatrixTable();
+    canvasA.htmlTopMenu.draw()
+    canvasA.htmlTopMenu.draw()
+    canvasB.htmlTopMenu.draw()
+    canvasS.htmlTopMenu.draw()
+    canvasNetwork.draw()
+}
+
+/**triggers a general update: visually of the data manager, updates the files indexes and data selecters */
+function generalFilesUpdate(){
+    indexFiles()
+    files.render()
+    resetDataSelecters()
+}
 
 
-/** this function load files from Punc'data 1.15.7 and older versions to the new "File" object methods*/
-function loadFilesOldVersion(savefile){
-    console.log(savefile)
-    //searches if a "upload group was already created"
-    let groupName = files.findUniqueGroupName("upload")
+/**read multiple data uploaded simultaneously */
+async function readMultiImportData(input){
+    if(debug){console.log(input.files.length+" files have been uploaded")}
+    /**creates a new group */
+    let groupName = files.findUniqueGroupName("upload", 0)
     let newGroup = new FileGroup(groupName)
     files.groups.push(newGroup)
-    let names = savefile.nameslist || []
-    let startID = files.files.length
-    for(let i=0; i<savefile.fileData.length; i++){
-        let file = files.createNewFile(names[i], startID, newGroup)
-        file.fill(savefile.fileData[i])
-        startID += 1
+    var file = ""
+    //loops through each file
+    for(let i=0; i<input.files.length; i++){
+        file = input.files[i]
+        var extension = file.name.split('.').pop();
+        let name = input.files[i].name
+        name = name.replace(/\.[^/.]+$/, "")
+        if(extension == "pdata"){
+            //TODO: import only datasets
+            await importPuncdataFilesOnly(file, newGroup)
+        }else{
+            files.createNewFile(name,files.list.length,newGroup)
+            let createdFile = files.list[files.list.length-1]
+            await createdFile.readUploadedData(input.files[i])
+        }
     }
-    files.render()
+    if(debug){console.log("finished multiimport")}
+    generalFilesUpdate()
 }
 
+/**************************************************** */
+/*** functions for saving files********************** */
 
-
+/**triggers a popup to input how to save a File as raw data */
 function saveFileToDisk(file){
   var buttons = [
     {"name":"Save file","function": ()=>{saveFileToDisk_export(file)}}
@@ -640,6 +1210,7 @@ function saveFileToDisk(file){
   handlePopup("saveDataFile",'Choose the name of the file "'+file.name+'"',buttons,selecters,inputs)
 }
 
+/**saves data from a File as raw data */
 function saveFileToDisk_export(fileData){
   var html_popup = document.querySelector('div[name="popup_saveDataFile"]')
   var data = fileData.data
@@ -679,23 +1250,16 @@ function saveFileToDisk_export(fileData){
     file.href = URL.revokeObjectURL(Blobfile);
 }
 
-/**parse a raw input and returns it as an array of arrays */
-function parseInputData(rawData, splittingCharacter){
-    let data = [];
-    let lbreak = rawData.split(/\r?\n/);
-    lbreak.forEach(res => {
-        data.push(res.split(splittingCharacter));
-    });
-    //cleans the data of empty lines
-    for(let i=data.length-1;i>0 ;i--){
-      if(data[i][0]=="" && data[i][1]==""){data.splice(i,1) }
-      if(data[i] <= 1){data.splice(i,1) }
-    }
-    //replaces all remaining commas with dots(french way of placing commas where dots are in the english version)
-    for(let i=data.length-1;i>0 ;i--){
-      for(let j=data[i].length-1;j>0;j--){
-        data[i][j] = data[i][j].replace(/,/g,'.')
-      }
-    } 
-    return data
-}
+/** html page setup */
+/**add a new file */
+document.getElementById("createFile").addEventListener("click",()=>{
+    createNewFileSlot()
+})
+
+let files = new FileList
+
+
+//
+//TODO: look at fileCalibData for logging calibration data
+//TODO: look at fileParameters for matrixes
+//TODO: also handle this when loading older version in script_saveload

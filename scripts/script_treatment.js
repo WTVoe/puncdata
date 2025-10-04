@@ -54,12 +54,12 @@ function addFilesToTreatmentTable(){
     body.appendChild(newTable);
 
     //appends all the options
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         var table = document.getElementById("treatment_file_table");
         var line= document.createElement("tr");
         line.id = "treatment_table_line_"+i;
         var cell_name = document.createElement("td");
-        cell_name.innerHTML = nameslist[i]
+        cell_name.innerHTML = files.list[i].name
         var cell_button = document.createElement("input")
         cell_button.type = "checkbox"
         cell_button.id = "treatment_table_check_"+i;
@@ -72,7 +72,7 @@ function addFilesToTreatmentTable(){
 //listens to the clicking of the select/unselect all for the file selection checkboxes
 document.getElementById("treatment_check_all").addEventListener("click",function(){
     let value = document.getElementById("treatment_check_all").checked
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         document.getElementById("treatment_table_check_"+i).checked = value
     }
 });
@@ -234,7 +234,7 @@ function handleDataOperation(){
     var selectedFiles = []; //contains a list of the files number selected
     var j=0 //counts the number of selected files
     //gather which files are selected in a loop
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         fileButton = document.getElementById("treatment_table_check_"+i)
         if(fileButton.checked){
             selectedFiles[j] = i;
@@ -247,7 +247,7 @@ function handleDataOperation(){
         conditions.operator = html_tabtreatment.querySelector("select[name='opSelecter']").value;
         conditions.value = html_tabtreatment.querySelector("input[name='valueSelecter']").value
         for(let i=0; i<selectedFiles.length; i++){
-            cutData(fileData[selectedFiles[i]],selectedFiles[i],conditions)
+            cutData(files.list[selectedFiles[i]].data,selectedFiles[i],conditions)
         }
     }else if(operation == "parseFormula"){
         //checks if a value has been entered and should be parsed 
@@ -258,14 +258,14 @@ function handleDataOperation(){
             //automatically finds every elements in the selected files
             var elementsLists = []
             for(let i=0; i<selectedFiles.length; i++){
-                elementsLists[i] = buildElementsList(fileData[selectedFiles[i]])
+                elementsLists[i] = buildElementsList(files.list[selectedFiles[i]].data)
             }
             list = combineStringLists(elementsLists)
         }
         var ratiosString = html_tabtreatment.querySelector("input[name='ratioSelecter']").value
         for(let i=0; i<selectedFiles.length; i++){
             var j = selectedFiles[i]
-            fileParseAddElementsColumns(fileData[j],j, ratiosString, list)
+            fileParseAddElementsColumns(files.list[j].data,j, ratiosString, list)
         }
     }else if(operation == "addKMD"){
         let kmdUnit = html_tabtreatment.querySelector("input[name='treatmentKMDunit']").value
@@ -279,24 +279,25 @@ function handleDataOperation(){
             kmdMass = parseFloat(kmdUnit)
         }
         for(let i=0; i<selectedFiles.length; i++){
-            addKMDColumnToFile(fileData[selectedFiles[i]],selectedFiles[i],config.mz,kmdUnit,kmdMass,divisor,roundingMethod)
+            addKMDColumnToFile(files.list[selectedFiles[i]].data,selectedFiles[i],config.mz,kmdUnit,kmdMass,divisor,roundingMethod)
         }
     }else if(operation =="addDBE"){
         for(let i=0; i<selectedFiles.length; i++){
-            addDBEColumnToFile(fileData[selectedFiles[i]],selectedFiles[i])
+            addDBEColumnToFile(files.list[selectedFiles[i]].data,selectedFiles[i])
         }
     }else if(operation == "polymer"){
         let polymerUnitString = html_tabtreatment.querySelector("input[name='polymerUnit']").value
         if(polymerUnitString == ""){return;}
         for(let i=0; i<selectedFiles.length; i++){
-            addPolymerColumnsToFile(fileData[selectedFiles[i]],selectedFiles[i], polymerUnitString)
+            addPolymerColumnsToFile(files.list[selectedFiles[i]].data,selectedFiles[i], polymerUnitString)
         }
     }else if(operation == "removeCol"){
         let colNum = html_tabtreatment.querySelector("input[name='columnNumber']").value
         for(let i=0; i<selectedFiles.length; i++){
-            let file = fileData[selectedFiles[i]]
-            for(let j=0; j<file.length; j++){
-                file[j].splice(colNum, 1)
+            let file = files.list[selectedFiles[i]]
+            let data = file.data
+            for(let j=0; j<data.length; j++){
+                data[j].splice(colNum, 1)
             }
         }
         //logs the operation
@@ -305,7 +306,7 @@ function handleDataOperation(){
         }
     }
     //in all cases, refresh the upload tab infos
-    updateFilesInfos();
+    files.render()
 }
 
 
@@ -372,10 +373,11 @@ function cutData(data,dataNumber, conditions) {
         
     }
     //logs this operation
-    if(dataNumber >-1){
-        fileLogs[dataNumber] += "Deleted "+loggingNumberDeleted+" peaks who did match : "+columnNames[conditions.col]+" "+conditions.operator+" "+conditions.value+"<br>"
-
-        loggingText = loggingText + "Filtering done. Deleted "+loggingNumberDeleted+" peaks from file :"+nameslist[dataNumber]+"</br>"
+    if(dataNumber >-1 && files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Deleted "+loggingNumberDeleted+" peaks who did match : "+columnNames[conditions.col]+" "+conditions.operator+" "+conditions.value+"<br>"
+        file.logs.push(text)
+        loggingText = loggingText + "Filtering done. Deleted "+loggingNumberDeleted+" peaks from file :"+files.list[dataNumber].name+"</br>"
         document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
 
     }
@@ -456,14 +458,15 @@ function fileParseAddElementsColumns(fileChosen,fileNum, ratioString, elementsLi
     }
     //logs the operation
     if(document.getElementById("data_log")){
-        document.getElementById("data_log").innerHTML += "Added "+elementsList.length+" columns for elements at the end of file: "+nameslist[fileNum]+"<br>"
+        document.getElementById("data_log").innerHTML += "Added "+elementsList.length+" columns for elements at the end of file: "+files.list[fileNum].name+"<br>"
     }
-    if(!isNaN(fileNum)){
-        fileLogs[fileNum] += "Parsed the formula. Added "+elementsList.length+" columns for elements at the end"
+    if(!isNaN(fileNum) && files.list[fileNum]){
+        let file = files.list[fileNum]
+        let text = "Parsed the formula. Added "+elementsList.length+" columns for elements at the end"
         if(ratioString != ""){
-            fileLogs[fileNum] += " and "+ parsedRatios.length + " columns for ratios"
+            text += " and "+ parsedRatios.length + " columns for ratios"
         }
-        fileLogs[fileNum] += ".<br>"
+        file.logs.push(text)
     }
 }
 
@@ -482,9 +485,14 @@ function addKMDColumnToFile(data,dataNumber,mzCol,unitName,kmdMass,divisor, roun
     }
     //logs this operation
     loggingText = document.getElementById("data_log").innerHTML
-    loggingText = loggingText + "KMD computed, values added to file :"+nameslist[dataNumber]+"</br>"
+    loggingText = loggingText + "KMD computed, values added to file :"+files.list[dataNumber].name+"</br>"
     document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
-
+    //adds the data log
+    if(files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Added a KMD("+unitName+") column"
+        file.logs.push(text)
+    }
 }
 
 /** adds to a data file a column with the computed DBE at the end */
@@ -496,9 +504,14 @@ function addDBEColumnToFile(data, dataNumber){
     }
     //logs this operation
     loggingText = document.getElementById("data_log").innerHTML
-    loggingText = loggingText + "DBE computed, values added to file :"+nameslist[dataNumber]+"</br>"
+    loggingText = loggingText + "DBE computed, values added to file :"+files.list[dataNumber].name+"</br>"
     document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
-
+    //adds the data log
+    if(files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Added a DBE column"
+        file.logs.push(text)
+    }
 }
 
 /** adds to a data file columns for polymer */
@@ -512,45 +525,12 @@ function addPolymerColumnsToFile(data, dataNumber, polymerString){
     }
     //logs this operation
     loggingText = document.getElementById("data_log").innerHTML
-    loggingText = loggingText + "Polymer chain computed, columns added to file :"+nameslist[dataNumber]+"</br>"
+    loggingText = loggingText + "Polymer chain computed, columns added to file :"+files.list[dataNumber].name+"</br>"
     document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
-
-}
-
-/**resets the default file choice*/
-function resetDefaultFileChoices(selecter){
-    var oldChoice = selecter.value
-    if(debug){console.log("reseting old file choices, old choice:"+oldChoice)}
-    //delete old options
-    if(selecter.options != null){
-          for(let j=selecter.options.length-1; j>=0; j--) { //backward for to remove all options
-              selecter.remove(j);
-          }
-      }
-    var options = []
-    options[0] = document.createElement("option")
-    options[0].setAttribute("value","none")
-    options[0].innerHTML = "None"
-    options[1] = document.createElement("option")
-    options[1].setAttribute("value","matrix")
-    options[1].innerHTML = "Matrix"
-    options[2] = document.createElement("option")
-    options[2].innerHTML = "--------------------"
-    var l = 3
-    for(let i=0; i<fileData.length; i++){
-        options[3+i] = document.createElement("option")
-        options[3+i].setAttribute("value",+i)
-        options[3+i].innerHTML = "File : "+nameslist[i]
-        l += 1
+    //adds the data log
+    if(files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Added 2 columns for polymer chain length and end group, unit: "+polymerString
+        file.logs.push(text)
     }
-    //append all the options
-    var length = 2 
-    for(let i=0; i<options.length; i++){
-        selecter.appendChild(options[i])
-        length +=1
-    }
-    if(oldChoice == undefined || oldChoice == ""){selecter.value = 0;return;}
-    selecter.value = oldChoice
 }
-
-

@@ -230,19 +230,20 @@ function pressCalibration(){
     let method = tableCalib.querySelector("select[name='calibAlgo']").value
     let fileNb = tableCalib.querySelector("select[name='fileSelection']").value
     let ppmTol = calibData.ppmTol
-    let file = []
+    let data = []
     let fileNum = -1
     if(fileNb.includes("file")){
         fileNum = fileNb.slice(5);
-        file = fileData[fileNum];
+        file = files.list[fileNum];
+        data = file.data
     }
 
     let results =[]
     let foundList = []
     if(method == "linear"){
-        results = mainCalibFunction(file, calibList, ppmTol, "linear")
+        results = mainCalibFunction(data, calibList, ppmTol, "linear")
     }else if(method == "quad"){
-        results = mainCalibFunction(file, calibList, ppmTol, "quadratic")
+        results = mainCalibFunction(data, calibList, ppmTol, "quadratic")
     }
     if(results){
         tempDataCalib = results[0]
@@ -293,8 +294,12 @@ function saveCalibration_replace(){
     if(fileNb.includes("file")){
         fileNum = fileNb.slice(5);
         saveCalib_inCalibFileData(fileNum)
-        fileData[fileNum] = tempDataCalib;
-        fileLogs[fileNum] += "Calibrated data <br>"
+        files.list[fileNum].data = tempDataCalib;
+        //logs
+        var calibTypeSelect = document.querySelector("select[name='calibAlgo']")
+        var calibListSelect = document.querySelector("select[name='calibListChoice']")
+        var text = "Calibrated data. Equation :"+calibTypeSelect.value+" , List: "+calibListSelect.value
+        files.list[fileNum].logs.push(text)
     }else{handlePopup("error","Error: no file selected to replace the data with. Please do not modify 'fie to calibrate' while calibrating.")}
 }
 
@@ -311,36 +316,42 @@ function saveCalibration_addNew(){
             newDataClean[i][j] = tempDataCalib[i][j]
         }
     }
-    var name = nameslist[fileNb] + "_calibrated"
+    var name = files.list[fileNb].name + "_calibrated"
     var adder = 1
     //loops through the names to see if it founds one with the same name
-    for(let i=0; i<nameslist.length; i++){
-        if(nameslist[i] == name+"_"+adder){adder +=1}
-        else if(nameslist[i] == name){adder += 1}
+    for(let i=0; i<files.list.length; i++){
+        if(files.list[i].name == name+"_"+adder){adder +=1}
+        else if(files.list[i].name == name){adder += 1}
     }
     if(adder >1){name += "_"+adder}
 
     //finds an empty slot for a file
     var chosenSlot = -1;
-    for(let j=0; j<fileData.length; j++){
-    if(Object.keys(fileData[j]).length ===0){
+    for(let j=0; j<files.list.length; j++){
+    if(Object.keys(files.list[j].data).length ===0){
         chosenSlot = j;
-        fileData[j]={fill:""};//fills with random input the data slot so that it will not be considered empty by the loop
+        files.list[j].data=[""]//fills with random input the data slot so that it will not be considered empty by the loop
         break;
         }
     }
     //if there is no empty slot, create a new slot
     if(chosenSlot == -1){
-        document.getElementById("addFileChoice").click() //creates a new zone
-        fileData[fileData.length-1]={fill:""} //fills with random input the data slot so that it will not be considered empty by the loop
-        chosenSlot = fileData.length-1
+        createNewFileSlot()
+        chosenSlot = files.list.length -1
     }
     saveCalib_inCalibFileData(chosenSlot)
-    nameslist[chosenSlot] = name
-    document.getElementById("namefile"+(chosenSlot+1)).value = name
-    fileData[chosenSlot] = newDataClean
-    fileLogs[chosenSlot] = "Added a new file from a calibration of file named :  "+nameslist[fileNb]+"<br>"
-    updateFilesInfos();
+    files.list[chosenSlot].name = name
+    files.list[chosenSlot].data = newDataClean
+    //logs
+    var calibTypeSelect = document.querySelector("select[name='calibAlgo']")
+    var calibListSelect = document.querySelector("select[name='calibListChoice']")
+    var firstText = "Added a new file from a calibration of file named :  "+files.list[fileNb].name
+    files.list[chosenSlot].logs.push(firstText)
+    var text = "Calibrated data. Equation :"+calibTypeSelect.value+" , List: "+calibListSelect.value
+    files.list[chosenSlot].logs.push(text)
+    ////
+    files.list[chosenSlot].refreshSlot()
+    files.render();
     resetAllFileChoices();
 }
 
@@ -846,7 +857,8 @@ function drawCalibChart(){
     let fileNum = -1
     if(fileNb.includes("file")){
         fileNum = fileNb.slice(5);
-        data = fileData[fileNum];
+        let file = files.list[fileNum];
+        data = file.data
         data.sort((a,b)=>a[config.mz]-b[config.mz])
     }
     if(fileNum == -1){return}
@@ -952,7 +964,8 @@ function drawCalibEquation(){
     let fileNum = -1
     if(fileNb.includes("file")){
         fileNum = fileNb.slice(5);
-        data = fileData[fileNum];
+        let file = files.list[fileNum];
+        data = file.data
         data.sort((a,b)=>a[config.mz]-b[config.mz])
     }
     if(fileNum == -1){return}

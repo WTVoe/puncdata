@@ -1,4 +1,4 @@
-<title id="windowName">Punc'data V 1.15.7</title>
+<title id="windowName">Punc'data V 1.16.0</title>
 <link rel="icon" href="icon.ico">
 <link href="style.css" rel="stylesheet">
 <script src="config.js"></script> <!-- default parameters-->
@@ -9,6 +9,7 @@
 <!--module of puncdata: visualisation and graphs, uses open source modules-->
 <script src="scripts/script.js" defer></script> <!-- main js-->
 <script src="scripts/script_file.js" defer></script> <!-- handle files js-->
+<script src="scripts/script_saveload.js" defer></script> <!-- handle saving/loading parameters-->
 <script src="scripts/script_plotfunctions.js" defer></script> <!--function library for plots-->
 <script src="scripts/script_htmlhelper.js" defer></script> <!-- helpers to create html bits-->
 <script src="scripts/script_matrix.js" defer></script> <!-- density tab js -->
@@ -41,7 +42,7 @@
      <img class="introimg5" src="icons/anim/contour.png">
      <img class="introimg6" src="icons/anim/histoerror.png">
      <img class="introimg7" src="icons/anim/network.png">
-     <div class="introtitle">Punc'data V 1.15.7</div>
+     <div class="introtitle">Punc'data V 1.16.0</div>
      <div id="introinfo" class="introinfo"></div>
      <img class="introladybug" src="icons/anim/ladybugback.png">
      <img class="introwingr" src="icons/anim/wing_r.png">
@@ -53,8 +54,7 @@
      First time ? Go to the "Help" tab for a tutorial & links to video tutorials
 </div>
 <div class="tab">
-  <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_upload')">Data Manager</button>
-  <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_data')">Data M2</button>
+  <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_data')">Data Manager</button>
   <button class="tablinks datalink"  onclick="openTab('tab_calib')">Calibration</button>
   <button class="tablinks datalink"  onclick="openTab('tab_attrib')">Attribution</button>
   <button class="tablinks datalink"  onclick="openTab('tab_treatment')">Tools</button>
@@ -77,16 +77,13 @@
 <button id="notebookButton" class="notebookButton"><img class="smallButton" src="icons/notes_icon.png"/></button>
 <button id="saveSessionButton" class="notebookButton" onclick="exportJSON()"><img class="smallButton" src="icons/download_icon.png"/></button>
 </div>
-
-
-<!-- TAB Upload-->
-<div id="tab_upload" class="tabcontent">
-     <div class="parentFileArea">
-          <div name="wideButtons" style="display:flex">
+<!-- TAB Data manager-->
+ <div id="tab_data" class="tabcontent">
+     <div name="wideButtons" style="display:flex">
                <div class="uploadbuttonWide">
                     <div style="text-align:center" >Deposit (multiple) data file</div>
                     <img class="uploadIconMultiple" src="icons/upload_icon.png"/>
-                    <input type="file" class="uploadMultiple" onChange="readMultipleData(this)" multiple/>
+                    <input type="file" class="uploadMultiple" onChange="readMultiImportData(this)" multiple/>
                </div>
                <div class="uploadbuttonWide" style="margin-left:4px;margin-right:4px">
                     <div style="text-align:center" >Load a Punc'data session</div>
@@ -101,146 +98,11 @@
                     <div style="text-align:center" >Upload parameters</div>
                     <img class="uploadIconMultiple" src="icons/gear.png"/>
                </div>
-          </div>
-          <div class="filearea" id="file1">
-               <div class="filearea_first" >
-                    <div style="display:flex">
-                         <div class="uploadbutton">
-                              <img class="uploadIcon" src="icons/upload_icon.png"/>
-                              <input type="file" class="upload" onChange="readData(this, 1)" />
-                         </div>
-                         <textarea id="textareafile1"  class="uploadTextArea" oninput="readDataTextArea(this, 1)" placeholder="Upload or paste data here "></textarea>
-                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
-                    </div>
-               </div>
-               <div class =filearea_second>
-                    <input type="text" class="namefileupload" placeholder="Name of the first file" id="namefile1"/>
-                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
-                    <div class="fileInfo" name="colNum">Number of columns: </div>
-                    <div class="fileInfo" name="fileType" style="display:flex;">
-                         File type: 
-                         <select name="fileTypeSelect">
-                              <option value="sample">Sample</option>
-                              <option value="matrix">Matrix</option>
-                         </select>
-                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
-                    </div>
-               </div>
-               <div class="filearea_third" >
-                    <div style="display:flex;">
-                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
-                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
-                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
-                    </div>
-              </div>
-          </div>
-          <div class="filearea" id="file2">
-               <div class="filearea_first" >
-                    <div style="display:flex">
-                         <div class="uploadbutton">
-                              <img class="uploadIcon" src="icons/upload_icon.png"/>
-                              <input type="file" class="upload" onChange="readData(this, 2)" />
-                         </div>
-                         <textarea id="textareafile2"  class="uploadTextArea" oninput="readDataTextArea(this, 2)" placeholder="Upload or paste data here "></textarea>
-                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
-                    </div>
-               </div>
-               <div class =filearea_second>
-                    <input type="text" class="namefileupload" placeholder="Name of file n°2" id="namefile2"/>
-                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
-                    <div class="fileInfo" name="colNum">Number of columns: </div>
-                    <div class="fileInfo" name="fileType" style="display:flex;">
-                         File type: 
-                         <select name="fileTypeSelect">
-                              <option value="sample">Sample</option>
-                              <option value="matrix">Matrix</option>
-                         </select>
-                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
-                    </div>
-               </div>
-               <div class="filearea_third" >
-                    <div style="display:flex;">
-                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
-                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
-                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
-                    </div>
-              </div>
-          </div>
-          <div class="filearea" id="file3">
-               <div class="filearea_first" >
-                    <div style="display:flex">
-                         <div class="uploadbutton">
-                              <img class="uploadIcon" src="icons/upload_icon.png"/>
-                              <input type="file" class="upload" onChange="readData(this, 3)" />
-                         </div>
-                         <textarea id="textareafile3"  class="uploadTextArea" oninput="readDataTextArea(this, 3)" placeholder="Upload or paste data here "></textarea>
-                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
-                    </div>
-               </div>
-               <div class =filearea_second>
-                    <input type="text" class="namefileupload" placeholder="Name of file n°3" id="namefile3"/>
-                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
-                    <div class="fileInfo" name="colNum">Number of columns: </div>
-                    <div class="fileInfo" name="fileType" style="display:flex;">
-                         File type: 
-                         <select name="fileTypeSelect">
-                              <option value="sample">Sample</option>
-                              <option value="matrix">Matrix</option>
-                         </select>
-                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
-                    </div>
-               </div>
-               <div class="filearea_third" >
-                    <div style="display:flex;">
-                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
-                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
-                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
-                    </div>
-              </div>
-          </div>
-          <div class="filearea" id="file4">
-               <div class="filearea_first" >
-                    <div style="display:flex">
-                         <div class="uploadbutton">
-                              <img class="uploadIcon" src="icons/upload_icon.png"/>
-                              <input type="file" class="upload" onChange="readData(this, 4)" />
-                         </div>
-                         <textarea id="textareafile4"  class="uploadTextArea" oninput="readDataTextArea(this, 4)" placeholder="Upload or paste data here "></textarea>
-                         <button id="clearTextAreaButton" class="bigiconbutton">DELETE<br><img class="parametersButton" src="icons/remove.png"/></button>
-                    </div>
-               </div>
-               <div class =filearea_second>
-                    <input type="text" class="namefileupload" placeholder="Name of file n°4" id="namefile4"/>
-                    <div class="fileInfo" name="peakNum">Number of peaks: </div>
-                    <div class="fileInfo" name="colNum">Number of columns: </div>
-                    <div class="fileInfo" name="fileType" style="display:flex;">
-                         File type: 
-                         <select name="fileTypeSelect">
-                              <option value="sample">Sample</option>
-                              <option value="matrix">Matrix</option>
-                         </select>
-                         <button name="intensityCols" style="display:none">Define intensity columns</button>      
-                    </div>
-               </div>
-               <div class="filearea_third" >
-                    <div style="display:flex;">
-                         <button  class="bigiconbutton" name="saveButton">Save<br><img class="parametersButton" src="icons/save_icon.png"/></button>
-                         <button  class="bigiconbutton" name="copyButton">Copy<br><img class="parametersButton" src="icons/copy.png"/></button>
-                         <button  class="bigiconbutton" name="logButton">Log<br><img class="parametersButton" src="icons/notes_icon.png"/></button>
-                    </div>
-              </div>
-          </div>
-
      </div>
-          <button id="addFileChoice" style="width:100%;height:50px;">Add a new file</button>
-          <div class="fade_popup" id="popup_file_pasted">Data Pasted</div>
-          <div class="fade_popup" id="popup_filedata_copy">Data copied</div>
-</div>
-<!-- TAB Data manager-->
- <div id="tab_data" class="tabcontent">
      <div id="datalist">
 
      </div>
+     <button id="createFile" style="width:100%;height:50px;">Add a new file</button>
  </div>
 <!-- TAB Calibration-->
 <div id="tab_calib" class="tabcontent">
@@ -984,7 +846,7 @@
           <img src="icon.ico" width="120" height="120">
           <br>
      </div>  
-     <center>Punc'data V.1.15.7</center>
+     <center>Punc'data V.1.16.0</center>
      <center>Web Version</center>
 </div>
 

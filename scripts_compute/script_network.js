@@ -72,9 +72,10 @@ class Network {
         this.dataName = fileName
         if(fileName.includes("file")){
             let fileNum = fileName.slice(5)
-            let file = fileData[fileNum]
-            if(!file || !file.length ||file.length == 0){file = []}
-            this.fill(file,fileName)
+            let file = files.list[fileNum]
+            let data = []
+            if(file && file.data){data = file.data}
+            this.fill(data,fileName)
         }else if(fileName =="none"){
             this.fill([],"")
         }else if(fileName == "matrix"){

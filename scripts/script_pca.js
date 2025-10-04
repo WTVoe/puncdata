@@ -58,7 +58,8 @@ function handlePCA(){
     if(fileChoice == "matrix"){ data = matrixData; cols=matrixFilesColumns}
     else if(fileChoice.includes("file")){
         fileNum = fileChoice.slice(5);  
-        data = fileData[fileNum]
+        var file = files.list[fileNum]
+        data = file.data
         //checks if it is a matrix, if not aborts
         if(!fileParameters[fileNum] || !fileParameters[fileNum].matrixMin || !fileParameters[fileNum].matrixMax){
             return alertPopup("The file selected is not a matrix ! Aborting")
@@ -67,11 +68,12 @@ function handlePCA(){
         
     }
     data = doPCA(data, cols)
-    if(fileNum>=0){  fileLogs[fileNum] += "PCA made on this matrix. Added columns for Components <br>"}
+    if(fileNum>=0 && files.list[fileNum]){files.list[fileNum].logs.push("PCA made on this matrix. Added columns for Components <br>")}
     if(fileChoice == "matrix"){matrixData = data}
     else{ 
         let fileNum = fileChoice.slice(5);
-        fileData[fileNum] = data;
+        var file = files.list[fileNum]
+        file.data = data;
         fileParameters[fileNum].variablesPca = cvsPCA.loadings
     }
     columnNames = data[0]

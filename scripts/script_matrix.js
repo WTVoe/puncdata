@@ -15,12 +15,12 @@ function addFilesToMatrixTable(){
     body.appendChild(newTable);
 
     //appends all the options
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         var table = document.getElementById("matrix_file_table");
         var line= document.createElement("tr");
         line.id = "matrix_table_line_"+i;
         var cell_name = document.createElement("td");
-        cell_name.innerHTML = nameslist[i]
+        cell_name.textContent = files.list[i].name
         var cell_button = document.createElement("input")
         cell_button.type = "checkbox"
         cell_button.id = "matrix_table_check_"+i;
@@ -33,7 +33,7 @@ function addFilesToMatrixTable(){
 //listens to the clicking of the select/unselect all for the file selection checkboxes
 document.getElementById("matrix_check_all").addEventListener("click",function(){
     let value = document.getElementById("matrix_check_all").checked
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         document.getElementById("matrix_table_check_"+i).checked = value
     }
 });
@@ -124,7 +124,7 @@ function calculateMatrix(){
 
     var j=0 //counts the number of selected files
     //gather which files are selected in a loop
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         fileButton = document.getElementById("matrix_table_check_"+i)
         if(fileButton && fileButton.checked){
             selectedFiles[j] = i;
@@ -136,19 +136,19 @@ function calculateMatrix(){
     var matrix = [];
 
     //creates the title line of the matrix
-    matrix.push(fileData[selectedFiles[0]][0].slice());
+    matrix.push(files.list[selectedFiles[0]].data[0].slice());
     var baseCol = matrix[0].length; //counts the number of columns in the original file
     //adds the new columns of intensity names
     for(let i=0; i<selectedFiles.length; i++){
         var newCol_number = baseCol + i;
-        var newCol_name = "I_"+nameslist[selectedFiles[i]];
+        var newCol_name = "I_"+files.list[selectedFiles[i]].name;
         matrix[0].push(newCol_name);
     }
     //checks if all files have the same number of columns
     for(let i=0; i<selectedFiles.length; i++){
-        if(fileData[selectedFiles[i]]){
-            if(fileData[selectedFiles[i]][0]){
-                if(fileData[selectedFiles[i]][0].length != fileData[selectedFiles[0]][0].length){
+        if(files.list[selectedFiles[i]] && files.list[selectedFiles[i]].data){
+            if(files.list[selectedFiles[i]].data[0]){
+                if(files.list[selectedFiles[i]].data[0].length != files.list[selectedFiles[0]].data[0].length){
                     alertPopup("warning ! trying to fuse files that do not have the same number of columns")
                 }
             }
@@ -159,13 +159,13 @@ function calculateMatrix(){
     var masses =  []; //holds the masses for every data line so that they can be averaged out at the end
     var intensityCol = 0;
     for(let i=0; i<selectedFiles.length; i++){
-        if(debug){console.log("adding file n°"+selectedFiles[i]+" to the matrix named: "+nameslist[selectedFiles[i]])}
+        if(debug){console.log("adding file n°"+selectedFiles[i]+" to the matrix named: "+files.list[selectedFiles[i]].name)}
         new_matrix=[]; //resets the new data to add
         fileNumber = parseInt(selectedFiles[i]);
-        if(!fileData[fileNumber][0]){return alertPopup("there is an empty file selected ("+nameslist[fileNumber]+"). Please remove it from your selection")}
-        intensityCol = parseInt(fileData[fileNumber][0].length + i);
-        if(comparaisonMethod=="formula"){new_matrix = addToMatrix(intensityCol,matrix,fileData[fileNumber],config.formulatext, masses)}
-        else if(comparaisonMethod=="mass"){new_matrix = addToMatrix_ppm(intensityCol,matrix,fileData[fileNumber],config.mz, parseFloat(ppmTolerance), masses)}
+        if(!files.list[fileNumber].data || !files.list[fileNumber].data[0]){return alertPopup("there is an empty file selected ("+files.list[fileNumber].name+"). Please remove it from your selection")}
+        intensityCol = parseInt(files.list[fileNumber].data[0].length + i);
+        if(comparaisonMethod=="formula"){new_matrix = addToMatrix(intensityCol,matrix,files.list[fileNumber].data,config.formulatext, masses)}
+        else if(comparaisonMethod=="mass"){new_matrix = addToMatrix_ppm(intensityCol,matrix,files.list[fileNumber].data,config.mz, parseFloat(ppmTolerance), masses)}
         //adds the new data to the matrix
         matrix = matrix.concat(new_matrix)
     }
@@ -298,7 +298,7 @@ function calculateMatrix(){
     //looks if there is a need to substract a blank
     var blank = document.getElementById("matrix_substraction").checked
     if(blank){
-        var blankFile = fileData[document.getElementById("matrix_blank_file_choice").value-1]
+        var blankFile = files.list[document.getElementById("matrix_blank_file_choice").value-1].data
         var deleteMethod = document.getElementById("matrix_blank_delete_choice").value
         var comparaisonMethodBlank = document.getElementById("matrix_blank_comparaison_data").value
         var ppmErrorBlank = document.getElementById("matrix_blank_ppm_tolerance").value
@@ -451,10 +451,10 @@ function substractBlank(matrix, blank, deleteMethod, comparaisonMethod, ppm){
 /**
  *  a function to edit the table info div for a new matrix 
  * @param {*} matrix ther new matrix
- * @param {*} files an array of the numbers of the files selected
+ * @param {*} filesIndexes an array of the numbers of the files selected
  * @param {*} baseCol the number of columns in the base files
  */
-function buildMatrixInfo(matrix, files, baseCol){
+function buildMatrixInfo(matrix, filesIndexes, baseCol){
     //looks if there is a need to do a detailed report or not
     var detailed  = document.getElementById("matrix_detailed_report").checked
     var highDeviation  = document.getElementById("matrix_alert_deviation").checked
@@ -471,7 +471,7 @@ function buildMatrixInfo(matrix, files, baseCol){
     //create each line
     var line = [];
     var cell = [];
-    for(let i=0; i<2+files.length; i++){
+    for(let i=0; i<2+filesIndexes.length; i++){
         line[i] = document.createElement("tr");
         line[i].id = "matrix_infos_table_line_"+i;
         cell[i]=[];
@@ -500,9 +500,9 @@ function buildMatrixInfo(matrix, files, baseCol){
         cell[1][3].innerHTML = "Nb de of unique peaks"
         cell[1][4].innerHTML = "%"
     }
-    for(let i=2; i<2+files.length; i++){
-        cell[i][0].innerHTML = nameslist[files[i-2]]
-        cell[i][1].innerHTML = fileData[files[i-2]].length-1
+    for(let i=2; i<2+filesIndexes.length; i++){
+        cell[i][0].innerHTML = files.list[filesIndexes[i-2]].name
+        cell[i][1].innerHTML = files.list[filesIndexes[i-2]].data.length-1
 
         //computation of the missing values
         var missingVal = 0
@@ -518,7 +518,7 @@ function buildMatrixInfo(matrix, files, baseCol){
                     total_number += 1
                     //check whether or not the peak is unique
                     var occurences = 0;
-                    for(let k=0; k<files.length; k++){
+                    for(let k=0; k<filesIndexes.length; k++){
                         //checks if the peak is unique based on the filling of zeros choice
                         if(!isNaN(matrixMissingValues)){
                             if(matrix[j][baseCol+k] > missingVal){occurences += 1}
@@ -550,7 +550,7 @@ function buildMatrixInfo(matrix, files, baseCol){
             var occurences = 0;
             var deviation = 0;
             //calculation of the mean
-            for(let j=0; j<files.length; j++){
+            for(let j=0; j<filesIndexes.length; j++){
                 if(!isNaN(matrixMissingValues)){ //if the missing value is a 0 or the same value everywhere
                     if(matrix[i][baseCol+j]>matrixMissingValues){
                         sum += parseInt(matrix[i][baseCol+j])
@@ -567,7 +567,7 @@ function buildMatrixInfo(matrix, files, baseCol){
             if(occurences < 2){continue;}else{totalNotUnique +=1};
             var mean = sum/occurences;
             //calculation of the deviation
-            for(let j=0; j<files.length; j++){
+            for(let j=0; j<filesIndexes.length; j++){
                 if(!isNaN(matrixMissingValues)){ //if the missing value is a 0 or the same value everywhere
                     if(matrix[i][baseCol+j]>matrixMissingValues){
                         deviation += Math.pow((matrix[i][baseCol+j]-mean),2)

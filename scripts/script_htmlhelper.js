@@ -508,7 +508,7 @@ class MovableWindowDataConfig extends MovableWindow{
     findData(d){
         let fileName = d.target.value
         let fileNum = -1
-        let file = []
+        let data = []
         let updateThisWindow = true
         if(fileName.includes("file")){
             //do not redraw the whole window if we change file
@@ -516,14 +516,15 @@ class MovableWindowDataConfig extends MovableWindow{
             //to allow for scrolling through file options with the mouse
             if(this.data.dataName.includes("file")){updateThisWindow = false}
             fileNum = fileName.slice(5)
-            file = fileData[fileNum]
-            this.data.fill(file,fileName)
+            let file = files.list[fileNum]
+            data = file.data
+            this.data.fill(data,fileName, file)
             this.data.canvas.resetFilters()
             this.data.canvas.drawDataset(this.data.index)
         }else if(fileName == "matrix"){
-            file = matrixData
+            data = matrixData
             fileNum = -100
-            this.data.fill(file,fileName)
+            this.data.fill(data,fileName)
             this.data.canvas.resetFilters()
             this.data.canvas.drawDataset(this.data.index)
         }else{//venn sector
@@ -833,6 +834,7 @@ class Popup {
         this.popup_box.appendChild(this.popup_close)
         
         this.preText = document.createElement("div")
+        this.preText.setAttribute("name","popup_content")
         this.preText.innerHTML = this.textContent
         this.popup_box.appendChild(this.preText)
         //adds the validate button

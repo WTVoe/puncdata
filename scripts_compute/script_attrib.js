@@ -256,46 +256,6 @@ function checkGoldenRules(molecule, rules){
     return true
 }
 
-/** checks the 13C rule for a peak */
-// function checkIsotopicRule(molecule, peakIndex, data, tolBounds, returnPercent){
-//     //constructs a list of potential 13C peaks
-
-//     //This is a quick&dirty fix: if not return percent, means that it is a classical attributions, and that we should get real raw data
-//     if(!returnPercent){
-//         let dataID = parseInt(attribCfg.main.fileString.slice(5))
-//         if(!(dataID>=0)){logText("attribLog","error of file selection. Please select a valid file.");return;}
-//         data = fileData[dataID]
-//     }
-//     // end of quick&dirty fix: TODO remove & rethink isotopic rule checking
-
-//     let candidates = []
-//     for(let i=peakIndex; i<data.length; i++){
-//         if(!data[i]){return "no13C"}
-//         if(data[i].isFound){continue;}
-//         let mass = molecule.mass
-//         let delta = data[i][config.mz] - mass - 1.003355
-//         if(delta > attribCfg.ppm.daFilter){break;} // the list is sorted, no need to go further
-//         if(Math.abs(delta)< attribCfg.ppm.daFilter){
-//             let mDa = 1e3*delta
-//             if(Math.abs(mDa)< attribCfg.isotope.mDaTol){ 
-//                 candidates.push(data[i].slice())
-//                 candidates[candidates.length-1].mDa = mDa
-//             }
-//         }
-//     }
-//     if(candidates.length == 0){return "no13C"}
-//     //sorts the list of candidates
-//     candidates = sortList(candidates, "mDa")
-//     //looks for the intensity of the best candidate
-//     let intensity = parseFloat(candidates[0][config.intensity])
-//     let numberC =molecule.lookup("C")
-//     let expectedI = parseFloat(data[peakIndex][config.intensity])*numberC*0.010816
-//     let ratio = expectedI/intensity
-//     if(returnPercent){return ratio*100}
-//     if(ratio>tolBounds[0] && ratio<tolBounds[1]){return true}
-//     else{ return false }
-// }   
-
 //helper function. Sets the charge of a chosen pass depending on the parameter
 function setPassCharge(pass, charge){
     //looks if there is already a electron line in the pass
@@ -354,9 +314,10 @@ class AttribInstance{
     fillFromName(fileName){
         if(fileName.includes("file")){
             let fileNum = fileName.slice(5)
-            let file = fileData[fileNum]
-            if(!file || !file.length ||file.length == 0){file = []}
-            this.fill(file,fileName)
+            let file = files.list[fileNum]
+            let data = []
+            if(file && file.data){data = file.data}
+            this.fill(data,fileName)
         }else if(fileName =="none"){
             this.fill([],"")
         }else if(fileName == "matrix"){

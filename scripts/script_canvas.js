@@ -336,7 +336,7 @@ class Canvas{
     }
 
     deleteHighlightedData(){
-    this.data.forEach((dataset, index)=>{
+        this.data.forEach((dataset, index)=>{
             let indexList = []
                 if(!dataset.dataHighlighted){return;}
                 for(let i=dataset.dataHighlighted.length-1; i>=0; i--){
@@ -345,7 +345,8 @@ class Canvas{
 
             if(dataset.dataName.includes("file")){
                 let fileNum = dataset.dataName.slice(5)
-                let file = fileData[fileNum]
+                let file = files.list[fileNum]
+                let data = file.data
                 //gets the logging data zone
                 var loggingText= ""
                 if(document.getElementById("data_log")){
@@ -354,12 +355,12 @@ class Canvas{
                 //logs the number of deleted points
                 var loggingNumberDeleted = indexList.length ;
                 //loops through the indexes and removes data
-                for(let i=file.length-1; i>=0; i--){
+                for(let i=data.length-1; i>=0; i--){
                     for(let j=0; j<indexList.length; j++){
-                        if(!file[i]){continue;}
-                        if(indexList[j] == file[i].index){
-                            loggingText = loggingText + "Deleted :  ("+file[i] +")</br>";
-                            file.splice(i,1)
+                        if(!data[i]){continue;}
+                        if(indexList[j] == data[i].index){
+                            loggingText = loggingText + "Deleted :  ("+data[i] +")</br>";
+                            data.splice(i,1)
                         }
                     }
                 }
@@ -373,6 +374,11 @@ class Canvas{
         this.data.forEach((item,index)=>{
             if(item.dataFiltered){
                 item.dataFiltered = []
+            }
+            //logs deletion
+            if(this.data.file){
+                let file = this.data.file
+                file.logs.push("Peaks may have been deleted from a canvas selection")
             }
         })
         this.drawAllDatasets()
@@ -5881,12 +5887,14 @@ class DataSet {
      * fills a dataset with an array of data
      * @param {Array} rawData an array with data[0] being the headers
      * @param {String} name the name/id when data will be compared to other datasets
-     * @returns an error if it isn't an array, or this.data
+     * @param {Object} File OPTIONAL, links to the file slot holding the data
+      * @returns an error if it isn't an array, or this.data
      */
-    fill(rawData, name){
+    fill(rawData, name, file){
         if(debug){console.log("filling data n°"+this.index+"with data named: "+name)} 
         if(rawData.constructor != Array){throw new Error("data set is not an array")}
         this.header = rawData[0]
+        this.file = file
         this.data = rawData // TODO remove the first line without removing it everywhere
         this.dataName = name
         this.name = getFileNameFromString(name)
@@ -5900,9 +5908,10 @@ class DataSet {
     fillFromName(fileName){
         if(fileName.includes("file")){
             let fileNum = fileName.slice(5)
-            let file = fileData[fileNum]
-            if(!file || !file.length ||file.length == 0){file = []}
-            this.fill(file,fileName)
+            let file = files.list[fileNum]
+            if(!file){return;} /**this happens when loading parameters refering to non-existing files for this session */
+            let data = file.data
+            this.fill(data,fileName, file)
             this.canvas.drawDataset(this.index)
         }else if(fileName =="none"){
             this.fill([],"")
@@ -8458,7 +8467,7 @@ class Popup_canvasLoadout extends Popup{
 /*            -------------------------------------------                       */
 /******************************************************************************* */
 
-/** copy fromt the old canvas types prior to 1.14 */
+/** copy from the old canvas types prior to 1.14 */
 function copyFromOldCvs(cvs, cfgX){
     if(debug){console.log("copying from <1.14 canvas...",cfgX)}
     cvs.cells.forEach((item,index)=>{
@@ -8523,7 +8532,10 @@ function copyFromCfgCvs(cvs, cfg){
 function getFileNameFromString(stringName){
     let fileName ="file"
     if(stringName == "matrix"){fileName = "Matrix"}
-    else if(stringName.includes("file_")){fileName = nameslist[stringName.slice(5)]}
+    else if(stringName.includes("file_")){
+        let file = files.list[stringName.slice(5)]
+        if(file){fileName = file.name}
+    }
     else{fileName = getVennSectorName(stringName)}//venn Case
     return fileName
 }
@@ -8533,33 +8545,33 @@ function getFileNameFromString(stringName){
 function getVennSectorName(vennText){
     var out =""
     if(vennText=="A"){  
-        out = "unique to "+nameslist[cfgVenn.files[0]]
+        out = "unique to "+files.list[cfgVenn.files[0]].name
     }else if(vennText =="B"){
-        out = "unique to "+nameslist[cfgVenn.files[1]]
+        out = "unique to "+files.list[cfgVenn.files[1]].name
     }else if(vennText =="C"){
-        out = "unique to "+nameslist[cfgVenn.files[2]]
+        out = "unique to "+files.list[cfgVenn.files[2]].name
     }else if(vennText =="D"){
-        out = "unique to "+nameslist[cfgVenn.files[3]]
+        out = "unique to "+files.list[cfgVenn.files[3]].name
     }else if(vennText =="AuB"){
-        out = "common to "+nameslist[cfgVenn.files[0]]+" and "+nameslist[cfgVenn.files[1]]
+        out = "common to "+files.list[cfgVenn.files[0]].name+" and "+files.list[cfgVenn.files[1]].name
     }else if(vennText =="AuC"){
-        out = "common to "+nameslist[cfgVenn.files[0]]+" and "+nameslist[cfgVenn.files[2]]
+        out = "common to "+files.list[cfgVenn.files[0]].name+" and "+files.list[cfgVenn.files[2]].name
     }else if(vennText =="BuC"){
-        out = "common to "+nameslist[cfgVenn.files[1]]+" and "+nameslist[cfgVenn.files[2]]
+        out = "common to "+files.list[cfgVenn.files[1]].name+" and "+files.list[cfgVenn.files[2]].name
     }else if(vennText =="AuD"){
-        out = "common to "+nameslist[cfgVenn.files[0]]+" and "+nameslist[cfgVenn.files[3]]
+        out = "common to "+files.list[cfgVenn.files[0]].name+" and "+files.list[cfgVenn.files[3]].name
     }else if(vennText =="BuD"){
-        out = "common to "+nameslist[cfgVenn.files[1]]+" and "+nameslist[cfgVenn.files[3]]
+        out = "common to "+files.list[cfgVenn.files[1]].name+" and "+files.list[cfgVenn.files[3]].name
     }else if(vennText =="CuD"){
-        out = "common to "+nameslist[cfgVenn.files[2]]+" and "+nameslist[cfgVenn.files[3]]
+        out = "common to "+files.list[cfgVenn.files[2]].name+" and "+files.list[cfgVenn.files[3]].name
     }else if(vennText =="AuBuC"){
-        out = "common to "+nameslist[cfgVenn.files[0]]+" and "+nameslist[cfgVenn.files[1]]+" and "+nameslist[cfgVenn.files[2]]
+        out = "common to "+files.list[cfgVenn.files[0]].name+" and "+files.list[cfgVenn.files[1]].name+" and "+files.list[cfgVenn.files[2]].name
     }else if(vennText =="AuBuD"){
-        out = "common to "+nameslist[cfgVenn.files[0]]+" and "+nameslist[cfgVenn.files[1]]+" and "+nameslist[cfgVenn.files[3]]
+        out = "common to "+files.list[cfgVenn.files[0]].name+" and "+files.list[cfgVenn.files[1]].name+" and "+files.list[cfgVenn.files[3]].name
     }else if(vennText =="AuCuD"){
-        out = "common to "+nameslist[cfgVenn.files[0]]+" and "+nameslist[cfgVenn.files[2]]+" and "+nameslist[cfgVenn.files[3]]
+        out = "common to "+files.list[cfgVenn.files[0]].name+" and "+files.list[cfgVenn.files[2]].name+" and "+files.list[cfgVenn.files[3]].name
     }else if(vennText =="BuCuD"){
-        out = "common to "+nameslist[cfgVenn.files[1]]+" and "+nameslist[cfgVenn.files[2]]+" and "+nameslist[cfgVenn.files[3]]
+        out = "common to "+files.list[cfgVenn.files[1]].name+" and "+files.list[cfgVenn.files[2]].name+" and "+files.list[cfgVenn.files[3]].name
     }else if(vennText =="AuBuCuD"){
         out = "common to all"
     }else{ out = vennText}
