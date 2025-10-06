@@ -5910,6 +5910,7 @@ class DataSet {
             let fileNum = fileName.slice(5)
             let file = files.list[fileNum]
             if(!file){return;} /**this happens when loading parameters refering to non-existing files for this session */
+            if(!file.data || file.data.length==0){return;}/**same case for empty files */
             let data = file.data
             this.fill(data,fileName, file)
             this.canvas.drawDataset(this.index)
@@ -8174,7 +8175,7 @@ function drawPieChart(data, namesData, placeToDraw, colors, textColor){
     var pie = d3.pie().value(function(d) {return d[1]})
     var data_t = pie(Object.entries(data))
     //build the svg parts
-
+    console.log(placeToDraw)
     var svg = placeToDraw
         .append("svg")
         .attr("width",200)

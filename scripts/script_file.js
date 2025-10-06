@@ -151,12 +151,25 @@ class FileList{
                  if(asc){return a.fileGroup.name.localeCompare(b.fileGroup.name)}
                 else{return b.fileGroup.name.localeCompare(a.fileGroup.name)}
             })
+        }else if(sortMethod == "peaks"){
+            this.list.sort((a,b)=>{
+                if(!a.data || !b.data){return -1}
+                 if(asc){return a.data.length - b.data.length}
+                else{return b.data.length - a.data.length}
+            })
+        }else if(sortMethod == "columns"){
+            this.list.sort((a,b)=>{
+                if(!a.data || !b.data){return -1}
+                if(!a.data[0] || !b.data[0]){return -1}
+                 if(asc){return a.data[0].length - b.data[0].length}
+                else{return b.data[0].length - a.data[0].length}
+            })
         }
         //re-indexes all files
         for(let i=0; i<this.list.length; i++){
             this.list[i].index = i
         }
-        this.render()
+        generalFilesUpdate()
     }
 
     /**removes every file */
@@ -266,7 +279,7 @@ class File{
         this.state = "raw"
         //this
         this.data = []
-        this.data_derived = {}
+        this.data_derived = []
         this.matrix = {auto:true}
         this.logs = []
         this.metadata = {
@@ -464,7 +477,6 @@ class File{
         stateTable.style.border = "0px"
         stateTable.style.tableLayout = "fixed"
         stateTable.rows[0].cells[0].textContent = "File type : "
-        stateTable.rows[1].cells[0].textContent = "File state : "
 
         var typeOptions = [{name:"Single analysis",value:"analysis"},{name:"Matrix",value:"matrix"}]
         var typeSelecter = menuCreateInput("select","file_type",this.type,typeOptions)
@@ -482,19 +494,27 @@ class File{
         if(this.type != "matrix"){typeConfigButton.style.display = "none"}
         stateTable.rows[0].cells[1].appendChild(typeSelecter)
         stateTable.rows[0].cells[2].appendChild(typeConfigButton)
-        var stateOptions = this.findStateOptions()
-        var stateSelecter = menuCreateInput("select","file_state",this.state,stateOptions)
-        stateSelecter.addEventListener("change",(d)=>{
-            this.state = stateSelecter.value
-        })
-        stateSelecter.style.color = "black"
-        stateTable.rows[1].cells[1].appendChild(stateSelecter)
-
+        
+        let hasStates = false
+        if(this.data_derived.length>0){hasStates = true}
+        if(hasStates){
+            stateTable.rows[1].cells[0].textContent = "File state : "
+            var stateOptions = this.findStateOptions()
+             var stateSelecter = menuCreateInput("select","file_state",this.state,stateOptions)
+            stateSelecter.addEventListener("change",(d)=>{
+                this.switchFileState(stateSelecter.value)
+                this.refreshSlot()
+                console.log(this.state)
+            })
+            stateSelecter.style.color = "black"
+            stateTable.rows[1].cells[1].appendChild(stateSelecter)
+        }
+       
         defGroup.appendChild(input_name)
         defGroup.appendChild(stateTable)
         mainDiv.appendChild(defGroup)
 
-         //separator//
+        //separator//
         let sep3 = document.createElement("div")
         sep3.setAttribute("class","vert-separator")
         mainDiv.appendChild(sep3)
@@ -503,7 +523,7 @@ class File{
         var infoGroup = document.createElement("div")
         infoGroup.setAttribute("name","infoGroup")
         infoGroup.style.marginTop = '2px'
-        infoGroup.style.flex = 0.5
+        infoGroup.style.flex = 0.75
         let subGroup = this.render_infos()
         infoGroup.appendChild(subGroup)
         mainDiv.appendChild(infoGroup)
@@ -574,16 +594,196 @@ class File{
         var dataLength = this.data.length || ""
         var lineLength = ""
         if(this.data[0]){lineLength = this.data[0].length}
-        info_1.textContent = "#peaks:"+(dataLength-1)
-        info_2.textContent = "#columns:"+lineLength
+        info_1.textContent = "#peaks: "+(dataLength-1)
+        info_2.textContent = "#columns: "+lineLength
         div.appendChild(info_1)
         div.appendChild(info_2)
+        if(this.state == "calibrated"){
+            var calibData = this.metadata.calibration
+            var info_c1 = document.createElement("div")
+            info_c1.textContent = "Calibration: "+calibData.method
+            var info_c2 = document.createElement("div")
+            info_c2.textContent = "residuals: "+calibData.residualError.toFixed(3)+" ppm"
+            div.appendChild(info_c1)
+            div.appendChild(info_c2)
+        }else if(this.state == "attributed"){
+            var attData = this.metadata.attribution
+            var percent = 100*attData.peakLength_att / attData.peakLength_raw
+            var info_a1 = document.createElement("div")
+            info_a1.textContent = "attributed: "+percent.toFixed(1)+"%"
+            div.appendChild(info_a1)
+        }
+        if(this.data.length >0){
+            var button = document.createElement("button")
+            button.style.height = "17px"
+            button.style.fontSize = "10px"
+            button.textContent = "More metadata..."
+            div.appendChild(button)
+            button.addEventListener("click",()=>{this.renderMetaPopup()})
+        }
         return div
+    }
+
+    /**displays a popup with the metadata info */
+    renderMetaPopup(){
+        let popup = new Popup("metaData","")
+        let meta = this.metadata
+        popup.valButton.remove()
+        let wrapper = popup.popup.querySelector("div[name='popup_content']")
+        //main report
+        let mainInfo = document.createElement("div")
+        mainInfo.style.marginBottom = '20px'
+        mainInfo.style.textAlign = "left"
+        var line1 = document.createElement("div")
+        line1.textContent = "#peaks: "+this.data.length
+        mainInfo.appendChild(line1)
+        var line2 = document.createElement("div")
+        line2.textContent = "#columns: "+this.data[0].length
+        mainInfo.appendChild(line2)
+        var mzMin = parseFloat(this.data[1][config.mz])
+        var mzMax = parseFloat(this.data[1][config.mz])
+        for(let i=1; i<this.data.length; i++){
+            let mz = parseFloat(this.data[i][config.mz])
+            if(mz>mzMax){mzMax = mz}
+            else if(mz<mzMin){mzMin = mz}
+        }
+        var line3 = document.createElement("div")
+        line3.textContent = "m/z range: "+mzMin.toFixed(3)+" - "+mzMax.toFixed(3)
+        mainInfo.appendChild(line3)
+        wrapper.appendChild(mainInfo)
+        //calibration report
+        if(meta.calibration.method){
+            let calibCollapsed = false
+            let calibDivTitle = document.createElement("div")
+            calibDivTitle.setAttribute("class","collapseHeader")
+            calibDivTitle.style.backgroundColor = '#edc948'
+            calibDivTitle.textContent = "Calibration report ▲"
+            calibDivTitle.addEventListener("click",()=>{
+                if(calibCollapsed){
+                    calibDivTitle.textContent = "Calibration report ▲"
+                    calibCollapsed = false
+                }else{
+                    calibDivTitle.textContent = "Calibration report ▼"
+                    calibCollapsed = true
+                }
+                calibDiv.classList.toggle("collapsed")
+                calibDiv.classList.toggle("shown")
+            })
+            let calibDiv = document.createElement("div")
+            calibDiv.setAttribute("class","collapsable")
+            calibDiv.classList.toggle("shown")
+            calibDiv.style.backgroundColor = '#f3e7bdff'
+            calibDiv.style.textAlign = "left"
+            calibDiv.style.marginBottom = '20px'
+            var c_line1 = document.createElement("div")
+            c_line1.textContent = "Calibration method used: "+meta.calibration.method
+            calibDiv.appendChild(c_line1)
+            var c_line2 = document.createElement("div")
+            c_line2.textContent = "Number of calibrants: "+meta.calibration.points.length
+            calibDiv.appendChild(c_line2)
+            //looks for mass range in the calibrants
+            var c_mzMin = meta.calibration.points[0][0]
+            var c_mzMax = meta.calibration.points[0][0]
+            for(let i=0; i<meta.calibration.points.length; i++){
+                if(meta.calibration.points[i][0]>c_mzMax){c_mzMax = meta.calibration.points[i][0]}
+                else if(meta.calibration.points[i][0]<c_mzMin){c_mzMin = meta.calibration.points[i][0]}
+            }
+            var c_line3 = document.createElement("div")
+            c_line3.textContent = "m/z range: "+c_mzMin.toFixed(3)+" - "+c_mzMax.toFixed(3)
+            calibDiv.appendChild(c_line3)
+            var c_line4 = document.createElement("div")
+            c_line4.textContent = "residual error (ppm): "+meta.calibration.residualError.toFixed(5)
+            calibDiv.appendChild(c_line4)
+            var c_button = document.createElement("button")
+            c_button.textContent = "Copy calibrants list (m/z-ppm-name)"
+            c_button.addEventListener("click",()=>{
+                copy2DDataSubsetToClipboard(meta.calibration.points)
+            })
+            calibDiv.appendChild(c_button)
+            wrapper.appendChild(calibDivTitle)
+            wrapper.appendChild(calibDiv)
+        }
+        //attribution report
+        if(meta.attribution.peakLength_raw){
+            let attribCollapsed = false
+            let attribDivTitle = document.createElement("div")
+            attribDivTitle.setAttribute("class","collapseHeader")
+            attribDivTitle.style.backgroundColor = '#96c756'
+            attribDivTitle.textContent = "Attribution report ▲"
+            attribDivTitle.addEventListener("click",()=>{
+                if(attribCollapsed){
+                    attribDivTitle.textContent = "Attribution report ▲"
+                    attribCollapsed = false
+                }else{
+                    attribDivTitle.textContent = "Attribution report ▼"
+                    attribCollapsed = true
+                }
+                attribDiv.classList.toggle("collapsed")
+                attribDiv.classList.toggle("shown")
+            })
+            let attribDiv = document.createElement("div")
+            attribDiv.setAttribute("class","collapsable")
+            attribDiv.classList.toggle("shown")
+            attribDiv.style.backgroundColor = '#cfe3b4ff'
+            attribDiv.style.textAlign = "left"
+            attribDiv.style.marginBottom = '20px'
+
+            var a_line1 = document.createElement("div")
+            a_line1.textContent = "Attribution duration: "+meta.attribution.time+" ms"
+            attribDiv.appendChild(a_line1)
+            //already prepares last line
+            var a_linef  = document.createElement("div")
+            var color = ["#df4f50","#5aad5f","#2678ca","#979290"]
+            let sectorsName = ["unattribued peaks","attributed peaks","isotopic peaks","removed peaks"]
+            let p_att = meta.attribution.peakLength_att || 0 //attributed peaks
+            let p_iso = meta.attribution.peakLength_iso || 0 //isotopic peaks
+            let p_rem = meta.attribution.peakLength_rem || 0 //removed peaks
+            let p_raw = meta.attribution.peakLength_raw || 0
+            let p_una = p_raw - p_rem - p_iso - p_att
+            let pieData = [p_una, p_att, p_iso, p_rem]
+            if(p_rem ==0){
+                color.pop();
+                sectorsName.pop();
+                pieData.pop();
+            }
+            let p_net = meta.attribution.attribByNetwork || 0
+            let percentNetwork = 0
+            if(p_att>0){
+                percentNetwork = 100* p_net / p_att
+            }
+            var a_line2  = document.createElement("div")
+            a_line2.textContent = "Percentage attributed by network :"+percentNetwork.toFixed(1)+"%"
+            attribDiv.appendChild(a_line2)
+            attribDiv.appendChild(a_linef)
+            wrapper.appendChild(attribDivTitle)
+            wrapper.appendChild(attribDiv)
+
+            a_line2.setAttribute("id","reportAttribution")
+            let pieCell= appendCell("#reportAttribution","pieChartReport")
+            drawPieChart(pieData, sectorsName, pieCell, color, "black")
+        }
+        
     }
 
     /** returns an array of selecter option for the state of this file */
     findStateOptions(){
-        let states = [{name:"Raw upload",value:"raw"}]
+        let states = []
+        for(let i=-1; i<this.data_derived.length; i++){
+            let state={name:this.state}
+            if(i>=0){state = this.data_derived[i]}
+            let option = {value:state.name}
+            if(state.name == "calibrated"){
+                option.name = "Calibrated data"
+            }else if(state.name == "raw"){
+                option.name = "Raw upload"
+            }else if(state.name == "attributed"){
+                option.name = "Attributed data"
+            }else{
+                option.name = state.name
+            }
+            states.push(option)
+        }
+        if(states.length ==0){states.push({name:"Raw upload",value:"raw"})}
         return states
     }
 
@@ -659,7 +859,7 @@ class File{
     /** fill with data */
     fill(data){
         /** reset data_derived */
-        this.data_derived = {}
+        this.data_derived = []
         this.data = data
     }
 
@@ -716,12 +916,17 @@ class File{
         setTimeout(() => {this.html.classList.remove("bckgrndhighlight")}, 500);
     }
 
-    /**removes the data and updates the display */
+    /**removes the data and updates the display. Goes to look for a data_derived that could replace it */
     emptyData(){
         this.data = []
-        this.data_derived = {}
-        this.update()
-        this.logs.push("Data removed")
+        let oldState = this.state
+        if(this.data_derived[0]){
+            this.data = this.data_derived[0].data
+            this.state = this.data_derived[0].name
+            this.data_derived.shift()
+        }
+        this.refreshSlot()
+        this.logs.push("Data removed ("+oldState+")")
         //display a confirmation
         this.html.classList.add("bckgrndred")
         setTimeout(() => {this.html.classList.remove("bckgrndred")}, 500);
@@ -732,7 +937,7 @@ class File{
         let textarea = this.html.querySelector("textarea[name='input_textarea']")
         let text = textarea.value
         this.data = parseInputData(text, splitterTextArea)
-        this.data_derived = {}
+        this.data_derived = []
         /**updates the defaut columns if this is the first upload */
         if(!isFileUploaded){
             autoSetupColumns(this.data[0])
@@ -767,7 +972,7 @@ class File{
             this.size = e.total;
             let rawData = e.target.result
             this.data = parseInputData(rawData, splitter)
-            this.data_derived = {}
+            this.data_derived = []
             /**setups the columns if this is the first file uploaded */
             if(!isFileUploaded){
                 autoSetupColumns(this.data[0])
@@ -973,6 +1178,65 @@ class File{
         containerDiv.appendChild(copyButton)
     }
 
+    /**search a file state by its name */
+    searchFileState(name){
+        if(this.state == name){return "active"}
+        for(let i=0; i<this.data_derived.length; i++){
+            const state = this.data_derived[i]
+            if(state.name == name){return state}
+        }
+        return undefined;
+    }
+
+    /**add a new file state. If setAsActive, replaces the current data */
+    addFileState(stateName, data, setAsActive){
+        if(this.data_derived=={})[this.data_derived = []]
+        let stateSlot = this.searchFileState(stateName)
+        //handle edge case when there is already this file state and it's active
+        if(stateSlot == "active"){
+            this.data = data
+            return;
+        }
+        if(setAsActive){
+            let oldState = {name:this.state, data:this.data}
+            this.data_derived.push(oldState)
+            this.data = data
+            this.state = stateName
+        }else{
+            //searches if this state already exists
+            if(stateSlot){
+                stateSlot.data = data
+            }else{
+                let state = {name:stateName, data:data}
+                this.data_derived.push(state)
+            }
+        }
+        this.refreshSlot()
+    }
+    /**switches from the current filestate to the new one */ 
+    switchFileState(targetName){
+        let newState = this.searchFileState(targetName)
+        if(!newState){return;}
+        let oldState = {name:this.state, data:this.data}
+        this.data_derived.push(oldState)
+        this.state = newState.name
+        this.data = newState.data
+        this.removeFileState(targetName)
+    }
+    /**removes a file state */
+    removeFileState(stateName){
+        let stateIndex = -1
+        for(let i=0; i<this.data_derived.length; i++){
+            if(this.data_derived[i].name == stateName){
+                stateIndex = i
+                break;
+            }
+        }
+        if(stateIndex>=0){
+            this.data_derived.splice(stateIndex,1)
+        }
+    }
+
     /** export to save in a savefile */
     export(){
         let pseudoFile = {}
@@ -1138,7 +1402,7 @@ function resetDataSelecters(){
     createDataOptions(html_tabParameters.querySelector("select[name='fileSelection']"),false);
     createDataOptions(html_tabPca.querySelector("select[name='fileSelection']"),false);
     createDataOptions(html_tabAttrib.querySelector("select[name='fileSelection']"),false);
-    createDataOptions(html_tabCalib.querySelector("select[name='fileSelection']"),false);
+    createDataOptions(html_tabCalib.querySelector("select[name='fileSelection']"),true);
     /** for venn and matrix tab */
     let fileChoices = document.querySelectorAll(".file_choice")
     for(let i=0; i<fileChoices.length; i++){
@@ -1176,7 +1440,6 @@ async function readMultiImportData(input){
         let name = input.files[i].name
         name = name.replace(/\.[^/.]+$/, "")
         if(extension == "pdata"){
-            //TODO: import only datasets
             await importPuncdataFilesOnly(file, newGroup)
         }else{
             files.createNewFile(name,files.list.length,newGroup)
@@ -1258,8 +1521,16 @@ document.getElementById("createFile").addEventListener("click",()=>{
 
 let files = new FileList
 
+/**handles the sort bar buttons */
+document.getElementById("sortDataButton").addEventListener("click",()=>{
+    let type = document.getElementById("sortDataSelect1").value
+    let order = document.getElementById("sortDataSelect2").value
+    let asc = false
+    if(order == "asc"){asc = true}
+    files.sortFiles(type, asc)
+})
 
-//
-//TODO: look at fileCalibData for logging calibration data
+//TODO: import matrix data PCA
 //TODO: look at fileParameters for matrixes
 //TODO: also handle this when loading older version in script_saveload
+//TODO: choose wether or not to activate createPopup_changelog()

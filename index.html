@@ -49,9 +49,7 @@
      <img class="introwingl" src="icons/anim/wing_l.png">
      <img class="introladybugfront" src="icons/anim/ladybugfront.png">
 </div>
-<div id="introTooltip" class="introtooltip">
-     <div id="introTooltipClose" class="introtooltipclose">X</div>
-     First time ? Go to the "Help" tab for a tutorial & links to video tutorials
+<div id="tooltipWrapper">
 </div>
 <div class="tab">
   <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_data')">Data Manager</button>
@@ -99,6 +97,21 @@
                     <img class="uploadIconMultiple" src="icons/gear.png"/>
                </div>
      </div>
+     <div id="sortDataBar" class="sort-bar">
+          <label for="sortDataSelect1">Sort by:</label>
+          <select id="sortDataSelect1">
+               <option value="alpha">Dataset name</option>
+               <option value="id">Dataset ID</option>
+               <option value="group">Group</option>
+               <option value="peaks"># Peaks</option>
+               <option value="columns"># Columns</option>
+          </select>
+          <select id="sortDataSelect2">
+               <option value="asc">Ascending</option>
+               <option value="desc">Descending</option>
+          </select>
+            <button id="sortDataButton" class="sortDataButton">⟳ Sort</button>
+     </div>
      <div id="datalist">
 
      </div>
@@ -114,12 +127,13 @@
                          <select name="calibAlgo">
                               <option value="linear">Linear</option>
                               <option value="quad">Quadratic</option>
+                              <option value="mobile">Mobile Mean</option>
                          </select>
                     </td></tr>
                     <tr><td><select name="calibListChoice"></select><button name="newCalibList">ADD</button> <button name="removeCalibList">REMOVE</button></td></tr>
                     <tr><td><button name="buttonEditCalib">Edit Calibration list</button> <button name="buttonCopyCalib">Copy</button> <button name="buttonPasteCalib">Paste</button></td></tr>
                     <tr><td>ppm tolerance: <input type="number" name="ppmTolCalib" value="1"></td></tr>
-                    <tr><td></tr>
+                    <tr><td><button id="calibAdvancedButton">Advanced options</button></td></tr>
                </table>
           </div>
           <div id="menu" style="flex:0.25">
@@ -669,7 +683,7 @@
      <div class="collapseHeader" collapsid="helpTips">Startup guide: ▼</div>
      <div class="collapsable collapsed" collapsidtarget="helpTips" >
           First time ? You can download a test file at <a href="https://github.com/WTVoe/puncdata">https://github.com/WTVoe/puncdata</a> called tesdata_cellulose.csv <br>
-          1) Upload your file on tab "upload". Make sure the number of column is correct. If not, the wrong separator might be selected in "upload parameters" (gear icon) <br>
+          1) Upload your file on tab "Data Manager". Make sure the number of column is correct. If not, the wrong separator might be selected in "upload parameters" (gear icon) <br>
           2) You may go to tab "table" to check if a file has been imported correctly<br>
           3) If you are using Punc'data for the first time with this data table, you need to check in the parameters tab if all the columns (intensity, m/z ratio...) are correct <br>
           4) From there, you can go to any of the other operations presented down below <br>

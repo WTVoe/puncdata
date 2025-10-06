@@ -8,10 +8,10 @@ function mainCalibFunction(data, database, ppmTol, calibAlgorithm){
     }
     let residualError = -1
     let equation = {}
+    let otherData = {}
     switch (calibAlgorithm){
         case 'linear':
             let results = calibrate_linear(data, foundList)
-            console.log(results)
             data = results.data
             residualError = results.residualError
             equation = results.equation
@@ -26,8 +26,15 @@ function mainCalibFunction(data, database, ppmTol, calibAlgorithm){
         case 'freq':
             data = calibrate_freq(data, foundList)
             break;
+        case 'mobile':
+            let resultsMobile = calibrate_mobilemean(data, foundList)
+            data = resultsMobile.data
+            residualError = resultsMobile.residualError
+            equation = resultsMobile.equations
+            otherData={name:"means",means:resultsMobile.means}
+            break;
     }
-    return [data, foundList, residualError, equation]
+    return [data, foundList, residualError, equation, otherData]
 }
 
 
@@ -49,7 +56,6 @@ function calibrationFindList(data, database, ppmTol){
         }
         database = database.concat(...isotopes)
     }
-    console.log(database)
     //loops through the database
     for(let i=0; i<database.length; i++){
         //if the element in the DB is an isotope and its parent hasn't been found, skips it
@@ -112,8 +118,6 @@ function calibrate_linear(rawData, foundList){
  }
  let residualError = sumSquares/(foundList.length - 2) //2 is the number of parameters for linear
  residualError = Math.sqrt(residualError)
-
- console.log(foundList, sumSquares, residualError)
  
  return {data:data, foundList: foundList, residualError:residualError, equation:[b,a]}
 }
@@ -154,6 +158,79 @@ function calibrate_quadratic(rawData, foundList){
     let residualError = sumSquares/(foundList.length - 3) //3 is the number of parameters for quadratic
      residualError = Math.sqrt(residualError)
      return {data:data, foundList: foundList, residualError:residualError, equation: [c,b,a]}
+}
+
+function calibrate_mobilemean(rawData, foundList){
+    console.log(rawData, foundList)
+    //first, computes meanpoints from the foundlist
+    var meanOver = calibData.meanOver || 2
+    var meanNumber = Math.floor(foundList.length / meanOver)
+    console.log(meanNumber)
+    //sorts the foundlist
+    foundList.sort((a,b)=>{return a.massCalc - b.massCalc})
+    var means = []
+    for(let i=0; i<meanNumber; i++){
+        let mean={mass:0,ppm:0}
+        for(let j=0; j<meanOver; j++){
+            mean.mass += foundList[meanOver*i+j].massCalc
+            mean.ppm += foundList[meanOver*i+j].ppm
+        }
+        mean.mass = mean.mass/meanOver
+        mean.ppm = mean.ppm/meanOver
+        means.push(mean)
+    }
+    //does regression for every part of the mass range
+    var equations = []
+    for(let i=0; i<means.length-1; i++){
+        var points = [means[i],means[i+1]]
+        var equation = linearRegression_generalized(points, "mass","ppm")
+        equations.push(equation)
+    }
+    console.log(means,equations)
+    //makes a copy of data
+    let data =[]
+    for(let i=0; i<rawData.length; i++){
+        data.push(rawData[i].slice())
+    }
+    //calibrates
+    let currentEquationIndex = 0
+    for(let i=1; i<data.length; i++){
+        let mass = parseFloat(data[i][config.mz])
+        //looks if it needs to go the next equation
+        if(mass>means[currentEquationIndex+1].mass){
+            if(equations[currentEquationIndex+1]){
+             currentEquationIndex +=1
+            }
+        }
+        let a= equations[currentEquationIndex].slope
+        let b= equations[currentEquationIndex].intercept
+        let expectedError = a*mass+b
+        let deltaMass = expectedError*mass*1e-6
+        data[i][config.mz] = mass + parseFloat(deltaMass)
+    }
+    //recalibrates the data points used for calibration
+    let sumSquares = 0
+    currentEquationIndex = 0
+    for(let i=0; i<foundList.length; i++){
+        let mass = parseFloat(foundList[i].massExp)
+        //looks if it needs to go the next equation
+        if(mass>means[currentEquationIndex+1].mass){
+            if(equations[currentEquationIndex+1]){
+             currentEquationIndex +=1
+            }
+        }
+        let a= equations[currentEquationIndex].slope
+        let b= equations[currentEquationIndex].intercept
+        let expectedError = a*mass+b
+        let deltaMass = expectedError*mass*1e-6
+        foundList[i].massExp = mass + parseFloat(deltaMass)
+        foundList[i].ppm = 1e6*(foundList[i].massCalc- foundList[i].massExp)/foundList[i].massCalc
+        foundList[i].expectedError = expectedError
+        sumSquares += Math.pow(foundList[i].ppm,2)
+    }
+    let residualError = sumSquares/(foundList.length - 2) //2 is the number of parameters for linear
+    residualError = Math.sqrt(residualError)
+    return {data:data, foundList: foundList, residualError:residualError, equations:equations, means:means }
 }
 
 function linearRegression_generalized(data,xName, yName){
@@ -244,6 +321,8 @@ function pressCalibration(){
         results = mainCalibFunction(data, calibList, ppmTol, "linear")
     }else if(method == "quad"){
         results = mainCalibFunction(data, calibList, ppmTol, "quadratic")
+    }else if(method == "mobile"){
+        results = mainCalibFunction(data, calibList, ppmTol, "mobile")
     }
     if(results){
         tempDataCalib = results[0]
@@ -251,6 +330,8 @@ function pressCalibration(){
         tempDataCalibrants = results[1]
         tempDataCalibrants.residualError = results[2]
         tempDataCalibrants.equation = results[3]
+        tempDataCalibrants.otherData = results[4]
+        tempDataCalibrants.method = method
     }
     //logs what has been found
     clearLogBox("calibLog")
@@ -281,8 +362,8 @@ html_tabCalib.querySelector("button[id='save_calib']").addEventListener("click",
 function saveCalibration(){
 
     var buttons = [
-        {"name":"Replace file","function":saveCalibration_replace},
-        {"name":"Add as new file","function":saveCalibration_addNew},
+        {"name":"Add as a file state","function":saveCalibration_replace},
+        {"name":"Add as a new file","function":saveCalibration_addNew},
       ]
       var text = "Please specify how you want to save your calibrated data"
       
@@ -293,8 +374,8 @@ function saveCalibration_replace(){
     let fileNb = tableCalib.querySelector("select[name='fileSelection']").value
     if(fileNb.includes("file")){
         fileNum = fileNb.slice(5);
-        saveCalib_inCalibFileData(fileNum)
-        files.list[fileNum].data = tempDataCalib;
+        saveCalibState(fileNum);
+        files.list[fileNum].addFileState("calibrated",tempDataCalib, true)
         //logs
         var calibTypeSelect = document.querySelector("select[name='calibAlgo']")
         var calibListSelect = document.querySelector("select[name='calibListChoice']")
@@ -339,7 +420,7 @@ function saveCalibration_addNew(){
         createNewFileSlot()
         chosenSlot = files.list.length -1
     }
-    saveCalib_inCalibFileData(chosenSlot)
+    saveCalibState(chosenSlot)
     files.list[chosenSlot].name = name
     files.list[chosenSlot].data = newDataClean
     //logs
@@ -351,22 +432,22 @@ function saveCalibration_addNew(){
     files.list[chosenSlot].logs.push(text)
     ////
     files.list[chosenSlot].refreshSlot()
-    files.render();
-    resetAllFileChoices();
+    generalFilesUpdate()
 }
 
-/** saves the calibration status inside the data  */
-function saveCalib_inCalibFileData(fileNum){
-    if(!fileCalibData[fileNum]){fileCalibData[fileNum] = {}}
-    fileCalibData[fileNum].points = []
+
+function saveCalibState(fileNum){
+    if(!files.list[fileNum]){return "error";}
+    let metaData = files.list[fileNum].metadata.calibration
+    metaData.method =  tempDataCalibrants.method
+    metaData.equation = tempDataCalibrants.equation
+    metaData.residualError = tempDataCalibrants.residualError
+    metaData.points = []
     for(let i=0; i<tempDataCalibrants.length; i++){
         let thisCalibrant = [parseFloat(tempDataCalibrants[i].massCalc), tempDataCalibrants[i].ppm, tempDataCalibrants[i].formula]
-        fileCalibData[fileNum].points.push(thisCalibrant)
+        metaData.points.push(thisCalibrant)
     }
-    fileCalibData[fileNum].equation = tempDataCalibrants.equation
-    fileCalibData[fileNum].residualError = tempDataCalibrants.residualError
-    console.log(fileCalibData)
-
+    return metaData
 }
 
 
@@ -416,6 +497,7 @@ function readTableCalib(){
     calibData.searchIsotopeC = html_tabCalib.querySelector("input[name='calibSearchIsotope']").checked
     updateShownValuesTableCalib()
 }
+
 
 //handles the ADD and REMOVE buttons for calibration lists
 
@@ -849,6 +931,31 @@ function readPasteCalibPopup(){
 
 }
 
+/** add functionality to the advanced options for calib equation */
+document.getElementById("calibAdvancedButton").addEventListener("click",()=>{
+    let method = tableCalib.querySelector("select[name='calibAlgo']").value
+    if(method == "mobile"){
+        let popup = new Popup("calibAdvanced","Advanced calibration parameters")
+        let html = popup.popup_box.querySelector("div[name='popup_content']")
+        let wrapper = document.createElement("div")
+        wrapper.setAttribute("name",'wrapper')
+        html.appendChild(wrapper)
+
+        let line1 = document.createElement("div")
+        line1.textContent = "Mean over x data points : "
+        let input1 = menuCreateInput("number","meanOver",calibData.meanOver || 2)
+        line1.appendChild(input1)
+        wrapper.appendChild(line1)
+        popup.valButton.addEventListener("click",()=>{readCalibAdvancedPopup(popup)})
+    }else{
+        let popup = new Popup("calibAdvanced","no Advanced options for this calibration equation")
+    }
+})
+
+function readCalibAdvancedPopup(popup){
+    let meanOver = popup.popup_box.querySelector("input[name='meanOver']").value
+    calibData.meanOver = meanOver
+}
 
 function drawCalibChart(){
     //finds the data
@@ -1017,15 +1124,33 @@ function drawCalibEquation(){
         .style("opacity",1)
     // draws the regression line
     let dataReg = []
-    let equation = tempDataCalibrants.equation
-    let step = (cfg.xmax - cfg.xmin)/100
-    for(let i=0; i<100; i++){
-        let x = cfg.xmin + i*step
-        let y = equation[0] + equation[1]*x
-        if(equation[2]){y += equation[2]*x*x}
-        dataReg.push({x:x,y:y})
+    if(tempDataCalibrants.otherData && tempDataCalibrants.otherData.name == "means"){
+        //this is for mobile means
+        let means = tempDataCalibrants.otherData.means
+        let equation_f = tempDataCalibrants.equation[0]
+        let equ_number = tempDataCalibrants.equation.length
+        let equation_l = tempDataCalibrants.equation[equ_number-1]
+        //computes a point for the first equation
+        let ymin = equation_f.slope*cfg.xmin + equation_f.intercept
+        dataReg.push({x:cfg.xmin,y:ymin})
+        //pushes all other points
+        for(let i=0; i<means.length; i++){
+            dataReg.push({x:means[i].mass, y:means[i].ppm})
+        }
+        //computes a last point
+        let ymax = equation_l.slope*cfg.xmax + equation_l.intercept
+        dataReg.push({x:cfg.xmax,y:ymax})
+        console.log(dataReg)
+    }else{
+        let equation = tempDataCalibrants.equation
+        let step = (cfg.xmax - cfg.xmin)/100
+        for(let i=0; i<100; i++){
+            let x = cfg.xmin + i*step
+            let y = equation[0] + equation[1]*x
+            if(equation[2]){y += equation[2]*x*x}
+            dataReg.push({x:x,y:y})
+        }
     }
-
     calibChart.line =calibChart.svgSpace.append("path").attr("id","calibEquation")
     .datum(dataReg)
     .attr('stroke',"red")
@@ -1033,8 +1158,8 @@ function drawCalibEquation(){
     .attr("fill","none")
     .attr("clip-path", "url(#clipCalibChart2)")
     .attr("d", d3.line()
-    .x((d)=>{ return calibChart.scales[0](d.x); })
-    .y((d)=>{ return calibChart.scales[1](d.y); })
+    .x((d)=>{ return calibChart.scales[0](d.x || d.mass); })
+    .y((d)=>{ return calibChart.scales[1](d.y || d.ppm); })
     )
 
 }

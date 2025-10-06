@@ -895,7 +895,12 @@ class Popup {
             html_buttons[i].setAttribute("class","popupclose")
             html_buttons[i].setAttribute("name","popup_button_"+i)
             html_buttons[i].innerHTML = buttons[i].name
-            html_buttons[i].addEventListener("click",(d)=>{buttons[i].function()})
+            html_buttons[i].addEventListener("click",(d)=>{
+                console.log("here", this);
+                buttons[i].function(buttons[i].arg1)
+                let close = this.popup.querySelector("button[class='popuptrueclose']")
+                close.click()
+            })
             this.popup_box.appendChild(document.createElement("br"))
             this.popup_box.appendChild(html_buttons[i])
         }

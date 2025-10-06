@@ -73,8 +73,6 @@ var columnNames = {};
 var fileParameters=[{},{},{},{}];
 /** logs if a file has yet been uploaded*/
 var isFileUploaded=false;
-/**logs the calibration data of the files */
-var fileCalibData=[{},{},{},{}];
 //contains the data of the selected zones on Venn diagrams
 var vennData = [];
 
@@ -92,6 +90,9 @@ var html_tabCalib = document.getElementById("tab_calib")
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log('Hello  ! Puncdata ready for use');
+    /** remove the intro animation */
+   var introAnim = document.getElementById("introAnim")
+   deleteDOM(introAnim, 2500)
 
     //adapts for every screen resolution:
   if(document.body.offsetWidth >1500){
@@ -120,6 +121,9 @@ document.addEventListener("DOMContentLoaded", () => {
     closeLabel: 'X',
     wrap: false
   });
+
+  /** displays an intro popup */
+  handleConnexionIntro()
 });
 
 //*********************************************************************//
@@ -568,17 +572,16 @@ document.getElementById("refreshButton").addEventListener("click", function(){
   for(let i=0; i<allTabs.length; i++){
     if(allTabs[i].style.display == "block"){
       var tabName = allTabs[i].id
+      resetDataSelecters()
       indexFiles()
       if(tabName == "tab_venn"){
         drawVennChoices();
         drawVenn();
       }
       else if(tabName == "tab_table"){
-        resetFilesChoices(html_tabTable.querySelector("select[name='fileSelection']"));
         updateTableTab()
       }
       else if(tabName =="tab_parameters"){
-        resetFilesChoices(html_tabParameters.querySelector("select[name='fileSelection']"));
       }
       else if(tabName == "tab_classes"){
         startClassesTab();
@@ -606,7 +609,6 @@ document.getElementById("refreshButton").addEventListener("click", function(){
         generalFilesUpdate()
       }
       else if(tabName == "tab_pca"){
-        resetFilesChoices(html_tabPca.querySelector("select[name='fileSelection']"));
         handlePCA();
       }
       else if(tabName == "tab_network"){
@@ -618,7 +620,6 @@ document.getElementById("refreshButton").addEventListener("click", function(){
         attribCheckboxMenuUpdate()
       }
       else if(tabName == "tab_calib"){
-        resetFilesChoices(html_tabCalib.querySelector("select[name='fileSelection']"));
       }
     }
   }
@@ -633,20 +634,6 @@ function resetColumnNames(){
     }
   }
 }
-
-/***------------------------------- */
-//functions for the help button
-
-// document.getElementById("helpButton").addEventListener("click", function(){
-//   let text = "Hover any menu where you would like details to get a helping tooltip explaining the menu. "
-//   var buttons = [{"name":"OK","function":function(){}},]
-//   handlePopup("helpIntro",text,buttons,[],[])
-
-//   helpMode = true
-//   document.body.setAttribute("style","cursor:help !important")
-
-// })
-
 
 /**------------------------------------------------------------------------- */
 //function for editing and creating new color scales
@@ -1318,9 +1305,6 @@ function isLowerCase (input) {
   return input === String(input).toLowerCase()
 }
 
-
-// handlePopup("oui","blabla",[{"name":"TEST BOUTON","function":""}])
-
 /******************************************************* */
 /** a function to handle Popups 
  * "buttons" must be an array containing "name" and "function" and arg1, arg2, arg3
@@ -1507,26 +1491,78 @@ function getRandomAnimTip(){
   animTipDiv.innerHTML = tip
 }
 
-
-
-/***Deletes the intro animation */
-let animDiv = document.getElementById("introAnim")
-
-/** to set back to normal value, put 2500 */
-deleteAnimIntro(2500)
-if(localStorage.getItem("alreadyVisited") == "true"){
-  deleteTooltipIntro(0)}
-else{
-  deleteTooltipIntro(6000)
+/**based on stored browser data, looks if a popup should be created or a changelog */
+function handleConnexionIntro() {
+  //check if a popup should be created
+  var shouldCreate = true;
+  var shouldCreateChangelog = false;
+  if(localStorage.getItem("alreadyVisited") == "true"){
+    shouldCreate = false;
+  }
+  if(shouldCreate)
+  var versionLastVisited = localStorage.getItem("versionLastVisited")
+  if(versionLastVisited && versionLastVisited <1.160){
+    shouldCreateChangelog = true;
+  }
+  //sets new storage
   localStorage.setItem("alreadyVisited",true)
+  localStorage.setItem("versionLastVisited",version.number)
+  //show needed popup
+  if(shouldCreate){
+    createPopup_firstConnexion()
+  }
+  if(shouldCreateChangelog){
+    //createPopup_changelog()
+  }
 }
 
-function deleteAnimIntro(delay){
+/** creates the popup to tip to go to the help section */
+function createPopup_firstConnexion(){
+  var wrapper = document.getElementById("tooltipWrapper")
+  var popup = document.createElement("div")
+  popup.setAttribute("class","introtooltip")
+  var popupClose = document.createElement("div")
+  popupClose.setAttribute("class","introtooltipclose")
+  popupClose.textContent = "X"
+  popupClose.addEventListener("click",()=>{
+    popup.remove()
+  })
+  popup.textContent = "First time ? Go to the tab help to learn how to use Punc'data. Video tutorial will soon be added"
+  popup.appendChild(popupClose)
+  wrapper.appendChild(popup)
+  /**automatically deletes after 6 seconds */
+  deleteDOM(popup, 6000)
+}
+
+/** creates a popup to display a changelog. Would it be really useful ? maybe a link ? */
+function createPopup_changelog(){
+  var popup = new Popup("changelog","Punc'data has been updated ! You can review the changelog here")
+  console.log(popup)
+  var wrapper = popup.popup_box.querySelector("div[name='popup_content']")
+  var collapser = document.createElement("div")
+  var link = document.createElement("a")
+  collapser.setAttribute("class","collapseHeader")
+  collapser.style.height="25px"
+  collapser.style.textAlign="center"
+  collapser.style.marginTop = "30px"
+  link.style.color = "black"
+  link.style.textDecoration = "none"
+  link.textContent = "Click here to go to the Changelog on Github"
+  link.setAttribute("href","https://github.com/WTVoe/puncdata/blob/master/changelog.md")
+  collapser.appendChild(link)
+  wrapper.appendChild(document.createElement("br"))
+  wrapper.appendChild(collapser)
+  popup.valButton.remove()
+}
+
+
+/**deletes a dom element with a delay in ms */
+function deleteDOM(DOMelement, delay){
   document.body.style.overflow = "hidden";
   sleep(delay).then(()=> endAnim())
 
   function endAnim(){
-    animDiv.remove()
+    DOMelement.remove()
     document.body.style.overflow = "auto";
   }
 }
@@ -1534,18 +1570,6 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/******************************************************* */
-/** handles the starting tooltip automatic deletion */
-function deleteTooltipIntro(delay){
-  var introTooltip = document.getElementById("introTooltip")
-    sleep(delay).then(()=>{
-      if(introTooltip){introTooltip.remove()}
-  })
-}
-document.getElementById("introTooltipClose").addEventListener("click",()=>{
-  var introTooltip = document.getElementById("introTooltip")
-  if(introTooltip){introTooltip.remove()}
-})
 
 
 /******************************************************************************************************************************************* */

@@ -3251,28 +3251,28 @@ async function pressAttribButton(){
 html_tabAttrib.querySelector("button[id='save_attrib']").addEventListener("click",pressSaveAttribButton)
 
 function pressSaveAttribButton(){
+    var popup = new Popup("saveAttrib", "Please specify how you want to save your attributed data")
     var buttons = [
-        {"name":"Replace peaklist with assigned","function":saveAttribution_replaceDataFile,"arg1":"attributed"},
-        {"name":"Replace peaklist with UNassigned","function":saveAttribution_replaceDataFile,"arg1":"unattributed"},
+        {"name":"Add as a file state","function":saveAttribution_replaceDataFile},
         {"name":"Add as a new file assigned","function":saveAttribution_addNewFile,"arg1":"attributed"},
         {"name":"Add as a new file UNassigned","function":saveAttribution_addNewFile,"arg1":"unattributed"},
         {"name":"Add as a new file both","function":saveAttribution_addNewFile,"arg1":"both"},
       ]
       var text = "Please specify how you want to save your attributed data"
-      
-      handlePopup("saveAttribution",text,buttons,[],[])
+      popup.buildInputs([], [], buttons)
+      popup.valButton.remove()
+      let button1 = popup.popup.querySelector("button[name='popup_button_0']")
+      button1.style.marginBottom = '10px'
 }
 
-function saveAttribution_replaceDataFile(whichData){
+function saveAttribution_replaceDataFile(){
     var dataID = parseInt(attribCfg.main.fileString.slice(5))
     if(!(dataID>=0)){return;}
     var file = files.list[dataID]
     var data = file.data
     if(!data || !data[0]){return;}
-    var newData = []
+    var newData = attribData.matrix
     var newDataClean = [] //duplicate
-    if(whichData == "attributed"){ newData = attribData.matrix}
-    else if(whichData == "unattributed"){newData = attribData.unattributed}
     if(!newData || !newData[0]){return;}
     //duplicate the data
     for(let i=0; i<newData.length; i++){
@@ -3281,32 +3281,24 @@ function saveAttribution_replaceDataFile(whichData){
             newDataClean[i][j] = newData[i][j]
         }
     }
-    file.data = newDataClean
+    //adds the new file state
+    file.addFileState("attributed",newDataClean, true)
+    saveAttribMetadata(file)
     //updates the log
     file.logs.push("Attribution made with Punc'data")
-    if(whichData == "attributed"){ 
-        let text = "All non-attributed peaks were removed <br>"
-        file.logs.push("All non-attributed peaks were removed")
-        if(attribData.unattributed && attribData.unattributed.length>0){text += "Non-attributed peaks removed: "+attribData.unattributed.length+"<br>"}
-        if(attribData.isotopes && attribData.isotopes.length>0){text += "Isotopic peaks removed: "+attribData.isotopes.length+"<br>" }
-        if(attribData.suspects && attribData.suspects.length>0){text += "Suspect peaks removed: "+attribData.suspects.length+"<br>" }
-        if(attribData.attributed && attribData.attributed.length>0){text += "Attributed peaks: "+attribData.attributed.length+"<br>"}
-        file.logs.push(text)
-    }else if(whichData == "unattributed"){
-        let text = "Only non-attributed peaks were kept <br>"
-        if(attribData.attributed && attribData.attributed.length>0){text += "Attributed peaks removed: "+attribData.attributed.length+"<br>"}
-        if(attribData.isotopes && attribData.isotopes.length>0){text += "Isotopic peaks removed: "+attribData.isotopes.length+"<br>" }
-        if(attribData.suspects && attribData.suspects.length>0){text += "Suspect peaks removed: "+attribData.suspects.length+"<br>" }
-        file.logs.push(text)
-    }
-    files.render();
-    resetAllFileChoices();
+    let text = "All non-attributed peaks were removed <br>"
+    file.logs.push("All non-attributed peaks were removed")
+    if(attribData.unattributed && attribData.unattributed.length>0){text += "Non-attributed peaks removed: "+attribData.unattributed.length+"<br>"}
+    if(attribData.isotopes && attribData.isotopes.length>0){text += "Isotopic peaks removed: "+attribData.isotopes.length+"<br>" }
+    if(attribData.suspects && attribData.suspects.length>0){text += "Suspect peaks removed: "+attribData.suspects.length+"<br>" }
+    if(attribData.attributed && attribData.attributed.length>0){text += "Attributed peaks: "+attribData.attributed.length+"<br>"}
+    file.logs.push(text)
     //finds the columns if needed
     if(!config.formulatext && (whichData == "attributed" || whichData == "both")){
         autoSetupColumns(attribData.matrix[0])
         columnNames = attribData.matrix[0]
     }
-    indexFiles()
+    generalFilesUpdate();
 }
 
 async function saveAttribution_addNewFile(whichData){
@@ -3359,12 +3351,13 @@ async function saveAttribution_addNewFile(whichData){
 
     files.list[chosenSlot].name = name
     files.list[chosenSlot].data = newDataClean
-    files.render()
     //updates the log
     files.list[chosenSlot].logs.push("Attribution made with Punc'data")
      if(whichData == "attributed" || whichData == "both"){
         if(attribData.attributed && attribData.attributed.length){
             files.list[chosenSlot].logs.push("Attributed peaks kept here:"+attribData.attributed.length)
+            files.list[chosenSlot].state = "attributed"
+            saveAttribMetadata(files.list[chosenSlot])
         }
      }else if(whichData =="unattributed"){
         if(attribData.unattributed && attribData.unattributed.length){
@@ -3379,15 +3372,14 @@ async function saveAttribution_addNewFile(whichData){
         autoSetupColumns(attribData.matrix[0])
         columnNames = attribData.matrix[0]
     }
-    files.render();
-    resetAllFileChoices();
-    indexFiles();
+    generalFilesUpdate();
 }
 
 /** duplicates the calibration status when saving a file to another location */
 function duplicateCalibStatus(origin, target){
-    let calibOrigin = fileCalibData[origin]
-    let calibTarget = fileCalibData[target]
+    if(!files.list[origin] || !files.list[target]){return;}
+    let calibOrigin = files.list[origin].metadata.calibration
+    let calibTarget = files.list[target].metadata.calibration
     if(!calibTarget || !calibOrigin){return;}
     calibTarget.points = []
     if(!calibOrigin || !calibOrigin.points){ return;}
@@ -3399,9 +3391,23 @@ function duplicateCalibStatus(origin, target){
             newPoint[j] = calibOrigin.points[i][j]
         }
         calibTarget.points.push(newPoint)
-        calibTarget.equation = calibOrigin.equation
-        calibTarget.residualError = calibOrigin.residualError
     }
+    calibTarget.method = calibOrigin.method
+    calibTarget.equation = calibOrigin.equation
+    calibTarget.residualError = calibOrigin.residualError
+}
+
+function saveAttribMetadata(file){
+    let meta = {}
+    let savedMeta = attribData.log
+    meta.time = savedMeta.time
+    meta.attribByNetwork = savedMeta.attribByNetwork
+    meta.peakLength_raw = savedMeta.peakLength_raw
+    meta.peakLength_iso = savedMeta.peakLength_iso
+    meta.peakLength_att = savedMeta.peakLength_att
+    meta.peakLength_rem = savedMeta.peakLength_rem
+    file.metadata.attribution = meta
+    console.log(file.metadata.attribution)
 }
 
 
@@ -4064,11 +4070,14 @@ function drawDataAttrib_errorPlot(cvsX, cfgX, cellNum, dataNum, data){
     }
     //handles the calibration dots TODO: re-do them once it has been readded as part of file management
     if(dataNum == 1 && !cfgX.data.hideCalib){
-        let dataLine = attribCfg.main.fileString.slice(5)
-        if(!fileCalibData[dataLine]){return;}
-        let dataCalib = fileCalibData[dataLine].points
-        if(!dataCalib){return;}
         d3.select("#attribCalibDots").remove()
+        let dataLine = attribCfg.main.fileString.slice(5)
+        let fileOrigin = files.list[dataLine]
+        if(!fileOrigin){return;}
+        let fileCalib = fileOrigin.metadata.calibration
+        if(!fileCalib || !fileCalib.points){return;}
+        let dataCalib = fileCalib.points
+        if(!dataCalib){return;}
         cell.calibData = cell.self.append('g').attr("id", "attribCalibDots")
         .selectAll("circle")
         .data(dataCalib)

@@ -92,7 +92,9 @@ class CanvasCell_errorMass extends CanvasCell{
     //does not draw anything if there is no file 
     if(!dataName.includes("file") || !dataName){return;}
     const fileNum = dataName.slice(5)
-    const data = fileCalibData[fileNum]
+    const file = files.calib[fileNum]
+    if(!file || !file.metadata.calibration){return;}
+    const data = file.metadata.calibration
     if(!data){return;}
     if(!this.drawnDataCalibrants){this.drawnDataCalibrants = []}
     this.drawnDataCalibrants[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"dataCalib"+index)
@@ -235,7 +237,9 @@ class CanvasCell_errorMass extends CanvasCell{
         //does not draw anything if there is no file 
         if(!dataName.includes("file") || !dataName){return;}
         const fileNum = dataName.slice(5)
-        const data = fileCalibData[fileNum]
+        const file = files.list[fileNum]
+        if(!file || !file.metadata.calibration){return;}
+        const data = file.metadata.calibration
         if(!data){return;}
         let firstBound = parseFloat(data.residualError)*parseFloat(this.cfg.calibBoundsMultiplier)
         let lastBound = -firstBound

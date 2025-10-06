@@ -190,8 +190,10 @@ function importPuncdataFile(input){
     if(debug){console.log("version: "+data.version)}
     if(debug){console.log("Reading pdata file: assigning variables...",data)}
     //load data
-    if(data.version<1.16){
+    console.log(data.version)
+    if(!data.version || data.version<1.16){
         loadFilesOldVersion(data)
+
     }else{
         files = new FileList()
         files.import(data.files)
@@ -204,7 +206,6 @@ function importPuncdataFile(input){
     splitterTextArea = data.splitterTextArea
     isFileUploaded = data.isFileUploaded
     matrixFilesColumns = data.matrixFilesColumns || []
-    fileParameters = data.fileParameters || [{},{},{},{}]
     matrixData = data.matrixData
     if(!data.config.margin){config.margin = {top: 10, right: 30, bottom: 90, left: 60}}
     if(data._textLog){_textLog = data._textLog}
@@ -218,7 +219,6 @@ function importPuncdataFile(input){
     if(data.cvsPCA){ cvsPCA = data.cvsPCA}
     if(data.cfgPCA){ cfgPCA = data.cfgPCA}
     if(data.cfgNetwork){canvasNetwork.prepareCfg(data.cfgNetwork)}
-    if(data.fileCalibData){fileCalibData = data.fileCalibData}
     if(data.calibData){calibData = data.calibData}
     //for previous compatibility on canvases
     if(!data.version || data.version<1.14){
@@ -278,9 +278,36 @@ function loadFilesOldVersion(savefile){
     let startID = files.list.length
     for(let i=0; i<savefile.fileData.length; i++){
         let file = files.createNewFile(names[i], startID, newGroup)
-        file.fill(savefile.fileData[i])
+        if(savefile.fileData[i].length){
+            file.fill(savefile.fileData[i])
+        }
         file.logs.push(savefile.fileLogs[i])
         startID += 1
+    }
+    //looks for fileCalibData metadata
+    let calibData = []
+    if(savefile.fileCalibData){calibData = savefile.fileCalibData}
+    for(let i=0; i<calibData.length; i++){
+        let file = files.list[i]
+        if(!file || !calibData[i]){continue;}
+        let metadata = file.metadata.calibration
+        metadata.equation = calibData[i].equation
+        metadata.residualError = calibData[i].residualError
+        metadata.points = calibData[i].points
+    }
+    //looks for matrix data
+    let fileParameters = []
+    if(savefile.fileParameters){fileParameters = savefile.fileParameters}
+    for(let i=0; i<fileParameters.length; i++){
+        let file = files.list[i]
+        if(!file || !fileParameters[i]){continue;}
+        let matrixconfig = fileParameters[i]
+        if(matrixconfig.fileType && matrixconfig.fileType =="matrix"){
+            file.type = "matrix"
+        }
+        file.matrix.matrixMin = matrixconfig.matrixMin
+        file.matrix.matrixMax = matrixconfig.matrixMax
+        //TODO: import PCA data
     }
     files.render()
 }
@@ -402,11 +429,9 @@ function exportJSONPuncdataFile(){
     "splitterTextArea": splitterTextArea,
     "fileLogs":fileLogs,
     "matrixFilesColumns":matrixFilesColumns,
-    "fileParameters":fileParameters,
     "cfgVenn":cfgVenn,
     "cfgPCA":cfgPCA,
     "cvsPCA":cvsPCA,
-    "fileCalibData":fileCalibData,
     //for ATTRIBUTION AND CALIBRATION
     "cfgAttribDraw":cfgAttribDraw,
     "attribCfg":attribCfg,

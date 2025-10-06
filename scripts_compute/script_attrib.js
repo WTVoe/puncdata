@@ -489,6 +489,8 @@ class AttribInstance{
         const timeStep = []
         timeStep.push(start)
         this.attributedIndex = 0 //resets the index
+        this.log = {} //saves information about assignment
+        this.log.peakLength_raw = this.data.length
         this.reIndexData()
         //isotopy
         let isotopyData = []
@@ -498,6 +500,7 @@ class AttribInstance{
             this.reIndexData()
             await new Promise(resolve => setTimeout(resolve, 1));
             logText("attribLog","Isotope search finished. Found "+isotopyData.isotopes.length)
+            this.log.peakLength_iso = isotopyData.isotopes.length
         }
 
         //remove suspect peaks
@@ -507,6 +510,7 @@ class AttribInstance{
             this.reIndexData()
             await new Promise(resolve => setTimeout(resolve, 1));
             logText("attribLog","Suspect peaks search finished. Found "+suspectPeaks.length)
+            this.log.peakLength_rem = suspectPeaks.length
         }
         let attributions = []
         //seeds
@@ -644,14 +648,15 @@ class AttribInstance{
             if(!this.data[i].attrib){unattributed.push(this.data[i])}
         }
         attributions.sort((a,b)=>a[config.mz]-b[config.mz])
-
+        this.log.peakLength_att = attributions.length
         let results = {
             attributed:attributions,
             isotopes: isotopyData.isotopes ||[],
             unattributed : unattributed||[],
             suspects: suspectPeaks||[],
             matrix : this.writeDataMatrix(attributions, unattributed),
-            network : this.network
+            network : this.network,
+            log: this.log
         }
         /** verifies network logic */
         if(this.network && this.network.edges){
@@ -681,8 +686,10 @@ class AttribInstance{
                 if(attributions[i].attrib && attributions[i].attrib.type == "network"){attribByNetwork +=1}
             }
             logText("attribLog", (100*attribByNetwork/attributions.length).toFixed(2)+"% found by network")
+            this.log.attribByNetwork = attribByNetwork
         }
         logText("attribLog",`Execution time: ${end - start} ms`)
+        this.log.time = end - start
 
         return results
     }
