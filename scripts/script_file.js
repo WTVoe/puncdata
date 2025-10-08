@@ -609,7 +609,7 @@ class File{
             var attData = this.metadata.attribution
             var percent = 100*attData.peakLength_att / attData.peakLength_raw
             var info_a1 = document.createElement("div")
-            info_a1.textContent = "attributed: "+percent.toFixed(1)+"%"
+            info_a1.textContent = "attributed peaks: "+percent.toFixed(1)+"%"
             div.appendChild(info_a1)
         }
         if(this.data.length >0){
@@ -753,11 +753,14 @@ class File{
             var a_line2  = document.createElement("div")
             a_line2.textContent = "Percentage attributed by network :"+percentNetwork.toFixed(1)+"%"
             attribDiv.appendChild(a_line2)
+            var a_line3  = document.createElement("div")
+            a_line3.textContent = "Percentages of attribution (% of total peaks):"
+            attribDiv.appendChild(a_line3)
             attribDiv.appendChild(a_linef)
             wrapper.appendChild(attribDivTitle)
             wrapper.appendChild(attribDiv)
 
-            a_line2.setAttribute("id","reportAttribution")
+            a_linef.setAttribute("id","reportAttribution")
             let pieCell= appendCell("#reportAttribution","pieChartReport")
             drawPieChart(pieData, sectorsName, pieCell, color, "black")
         }

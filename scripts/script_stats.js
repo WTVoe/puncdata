@@ -92,7 +92,7 @@ class CanvasCell_errorMass extends CanvasCell{
     //does not draw anything if there is no file 
     if(!dataName.includes("file") || !dataName){return;}
     const fileNum = dataName.slice(5)
-    const file = files.calib[fileNum]
+    const file = files.list[fileNum]
     if(!file || !file.metadata.calibration){return;}
     const data = file.metadata.calibration
     if(!data){return;}

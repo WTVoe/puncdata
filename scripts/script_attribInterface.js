@@ -3294,7 +3294,7 @@ function saveAttribution_replaceDataFile(){
     if(attribData.attributed && attribData.attributed.length>0){text += "Attributed peaks: "+attribData.attributed.length+"<br>"}
     file.logs.push(text)
     //finds the columns if needed
-    if(!config.formulatext && (whichData == "attributed" || whichData == "both")){
+    if(!config.formulatext){
         autoSetupColumns(attribData.matrix[0])
         columnNames = attribData.matrix[0]
     }
@@ -4051,22 +4051,23 @@ function drawDataAttrib_errorPlot(cvsX, cfgX, cellNum, dataNum, data){
     //handles the average line
     d3.select("#lineaverageAttrib").remove()
     if(dataNum == 1){
-    data.sort(function(a, b){return a.massExp-b.massExp})
-    let meanLine = cfg.meanLine || 10000
-    cvsX.sideData.averageLine = calculateAverageLine(data,config.mz,"ppmError", meanLine)
-            /** average line for a cell */
-    if(!cvsX.sideData.averageLine){return;}
-    cell.lineAverage = cell.self.append("path")
-    .datum(cvsX.sideData.averageLine)
-    .attr('id','lineaverageAttrib')
-    .attr('stroke','black')
-    .attr('stroke-width',3)
-    .attr("fill","none")
-    .attr("clip-path", "url(#clipCvs"+cfgX.letter+"Cell"+cellNum+")")  //cuts everything outside of charrt area
-    .attr("d", d3.line()
-      .x(function(d){ return cell.scales[0](d.averagemz); })
-      .y(function(d){ return cell.scales[1](d.averageerror); })
-    )
+        data.sort(function(a, b){return a.massExp-b.massExp})
+        let meanLine = cfg.meanLine || 10000
+        cvsX.sideData.averageLine = calculateAverageLine(data,config.mz,"ppmError", meanLine)
+                /** average line for a cell */
+        if(cvsX.sideData.averageLine){
+            cell.lineAverage = cell.self.append("path")
+            .datum(cvsX.sideData.averageLine)
+            .attr('id','lineaverageAttrib')
+            .attr('stroke','black')
+            .attr('stroke-width',3)
+            .attr("fill","none")
+            .attr("clip-path", "url(#clipCvs"+cfgX.letter+"Cell"+cellNum+")")  //cuts everything outside of charrt area
+            .attr("d", d3.line()
+            .x(function(d){ return cell.scales[0](d.averagemz); })
+            .y(function(d){ return cell.scales[1](d.averageerror); })
+            )
+        }
     }
     //handles the calibration dots TODO: re-do them once it has been readded as part of file management
     if(dataNum == 1 && !cfgX.data.hideCalib){
