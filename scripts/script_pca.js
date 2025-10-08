@@ -61,10 +61,10 @@ function handlePCA(){
         var file = files.list[fileNum]
         data = file.data
         //checks if it is a matrix, if not aborts
-        if(!fileParameters[fileNum] || !fileParameters[fileNum].matrixMin || !fileParameters[fileNum].matrixMax){
+        if(file.type != "matrix"){
             return alertPopup("The file selected is not a matrix ! Aborting")
         }
-        cols = [parseInt(fileParameters[fileNum].matrixMin), parseInt(fileParameters[fileNum].matrixMax)+1] //+1 because it should be [[ type of interval
+        cols = [parseInt(file.matrix.matrixMin), parseInt(file.matrix.matrixMax)+1] //+1 because it should be [[ type of interval
         
     }
     data = doPCA(data, cols)
@@ -74,7 +74,7 @@ function handlePCA(){
         let fileNum = fileChoice.slice(5);
         var file = files.list[fileNum]
         file.data = data;
-        fileParameters[fileNum].variablesPca = cvsPCA.loadings
+        file.matrix.pca_loadings = cvsPCA.loadings
     }
     columnNames = data[0]
     indexFiles();
@@ -305,10 +305,10 @@ class Popup_PCAVariables extends Popup{
 
   buildSuppContext(){
      console.log(this)
-     if(!fileParameters[this.fileNum] || !fileParameters[this.fileNum].variablesPca){return;}
-     let variables = fileParameters[this.fileNum].variablesPca
+     let file = files.list[this.fileNum]
+     if(!file || !file.matrix.pca_loadings){return;}
+     let variables = file.matrix.pca_loadings
      let table = createTable(variables.length, variables[0].length)
-     console.log(variables, table)
      for(let i=0; i<variables.length; i++){
         for(let j=0; j<variables[i].length; j++){
             if(!table.rows[i]|| !table.rows[i].cells[j]){continue;}
@@ -330,6 +330,7 @@ class Popup_PCAVariablesPaste extends Popup{
     constructor(fileNum) {
         super("heteroClassesEdit","Paste here the variables from a spreadsheet<br>1 Column for each component<br> Do not put title lines<br>")
         this.fileNum = fileNum
+        this.file = files.list[fileNum]
         this.buildSuppContext()
         this.valButton.addEventListener("click",()=>{this.replaceOldValues()})
     }
@@ -349,8 +350,7 @@ class Popup_PCAVariablesPaste extends Popup{
         lbreak.forEach(res => {
             finalData.push(res.split("	"));
         });
-        if(!fileParameters[this.fileNum]){fileParameters[this.fileNum]= {}}
-        fileParameters[this.fileNum].variablesPca = finalData
+        this.file.matrix.pca_loadings = finalData
     }
 }
 
@@ -582,9 +582,12 @@ function tabPCA_drawData_Loadings(intensityCols){
     .attr("cy", function (d) { return yscale(d[cfg.ytype]); } ) 
     .attr("r", function (d) { return cfg.dotSize})
     .attr("clip-path", "url(#tabPCA_ClipPath2)")
-    .attr('tooltipHTML', function(d, n){return "pca;pca;"+buildTooltipLoadings(n)})
+    .attr('tooltipHTML', function(d, n){return "pca;pca;"+buildTooltipLoadings(n,true)})
     .style("opacity", 1)
-    .style("fill", function(d){return "black"})
+    .style("fill", function(d,n){
+        if(cfg.color){return buildPointGroupColor(cfgPCA.fileChoice,n)}
+        else{return "black"}
+    })
     .on("mouseover", cfgPCA.main.functions.mouseover )
     .on("mousemove", cfgPCA.main.functions.mousemove  )
     .on("mouseleave" , cfgPCA.main.functions.mouseleave  )
@@ -631,7 +634,7 @@ function tabPCA_drawData_Loadings(intensityCols){
             return yscale(d[cfg.ytype])- config.legendFontSizeSmall;
         }} ) 
     .attr("font-size", config.legendFontSizeSmall)
-    .text(function(d, n){return buildTooltipLoadings(n)})
+    .text(function(d, n){return buildTooltipLoadings(n,false)})
     .attr("clip-path", "url(#tabPCA_ClipPath2)")
     .style("opacity", 1)
     .on("mousemove", function(event, d){
@@ -647,14 +650,24 @@ function tabPCA_drawData_Loadings(intensityCols){
  }
  
  //function to build theses specific tooltips
- function buildTooltipLoadings(n){
+ function buildTooltipLoadings(n, addGroupName){
     let name = cvsPCA.data[0][intensityCols[0]+n]
     if(name.startsWith("I_")){
         name = name.slice(2)
     }
+    if(!addGroupName){return name}
+    //add a group name
+    let group = findFileGroup(cfgPCA.fileChoice,n)
+    let groupName = group.name
+    //handles if this is a matrix
+    name += "<br> Group :"+groupName
     return name
  }
-
+}
+/**returns the color of a group based on a filestring(file_index or matrix)*/
+function buildPointGroupColor(fileString, matrixColumn){
+    let group = findFileGroup(fileString, matrixColumn)
+    return group.color
 }
 
 function tabPCA_drawData_histogram(){
@@ -868,6 +881,7 @@ function updatePCAtable(){
     cfgLoad.ytype = table.querySelector("select[id='loadings_component_y']").value
     cfgLoad.dotSize = table.querySelector("input[name='loadings_dotSize']").value
     cfgLoad.showLabels = table.querySelector("input[name='loadings_showLabels']").checked
+    cfgLoad.color = table.querySelector("input[name='loadings_color']").checked
 
     cfgProj.xmin = table.querySelector("input[name='projection_component_xmin']").value
     cfgProj.xmax = table.querySelector("input[name='projection_component_xmax']").value

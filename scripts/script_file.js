@@ -504,7 +504,6 @@ class File{
             stateSelecter.addEventListener("change",(d)=>{
                 this.switchFileState(stateSelecter.value)
                 this.refreshSlot()
-                console.log(this.state)
             })
             stateSelecter.style.color = "black"
             stateTable.rows[1].cells[1].appendChild(stateSelecter)
@@ -1019,15 +1018,20 @@ class File{
         let inputmaxcol = menuCreateInput("number","maxCol",this.matrix.matrixMax)
         inputmincol.addEventListener("change",()=>{
             this.matrix.matrixMin = parseInt(inputmincol.value)
+            this.logs.push("Matrix columns were redefined as ["+this.matrix.matrixMin+";"+this.matrix.matrixMax+"]")
             this.initializeMatrix()
             this.fillMatrixPopup(popup)
             containerDiv.remove()
+            loadingsButton.remove()
         })
         inputmaxcol.addEventListener("change",()=>{
             this.matrix.matrixMax = parseInt(inputmaxcol.value)
+            this.logs.push("Matrix columns were redefined as ["+this.matrix.matrixMin+";"+this.matrix.matrixMax+"]")
             this.initializeMatrix()
             this.fillMatrixPopup(popup)
             containerDiv.remove()
+            loadingsButton.remove()
+
         })
         inputmincol.placeholder = "min"
         inputmaxcol.placeholder = "max"
@@ -1063,8 +1067,10 @@ class File{
         checkboxauto.addEventListener("change",()=>{
             this.matrix.auto = checkboxauto.checked
             if(!this.matrix.auto){this.initializeMatrix()}
+            else{this.matrix.list = undefined}
             this.fillMatrixPopup(popup)
             containerDiv.remove()
+            loadingsButton.remove()
         })
 
         columns[1].appendChild(titlecol2)
@@ -1097,9 +1103,19 @@ class File{
             columns[1].appendChild(table2)
         }
 
+        //add a button for pca
+        let loadingsButton = document.createElement("button")
+        loadingsButton.textContent = "Visualize/Edit PCA loadings"
+        loadingsButton.setAttribute("class","popupclose")
+        loadingsButton.addEventListener("click",()=>{
+            let popup = new Popup_PCAVariables(this.index)
+        })
+
         containerDiv.appendChild(columns[0])
         containerDiv.appendChild(columns[1])
         wrapper.appendChild(containerDiv)
+        wrapper.appendChild(loadingsButton)
+
     }
 
     /**initializes matrix data with column names and groups */
@@ -1451,6 +1467,47 @@ async function readMultiImportData(input){
     generalFilesUpdate()
 }
 
+
+/**returns the group of a file based on the matrix (fileString is its name, "file_index" or "matrix") and the column*/
+function findFileGroup(fileString,matrixColumn){
+    let group = {}
+    if(fileString == "matrix"){
+        let colStart = parseInt(matrixFilesColumns[0])
+        let header = matrixData[0]
+        if(!header){return group}
+        let fileName = header[parseInt(matrixColumn) + colStart]
+        if(!fileName){return group}
+        if(fileName.startsWith("I_")){
+            fileName = fileName.slice(2)
+        }
+        let file = files.findFileByName(fileName)
+        if(file && file.fileGroup){group = file.fileGroup}
+    }else{
+        let fileNum = parseInt(fileString.slice(5))
+        let matrixFile = files.list[fileNum]
+        if(!matrixFile || !matrixFile.matrix){return group}
+        let fileList = matrixFile.matrix.list
+        if(!matrixFile.matrix.auto && fileList){
+            let element = fileList[matrixColumn]
+            if(!element){return group}
+            group = {name:element.group, color:element.color}
+        }else{
+            let colStart = parseInt(matrixFile.matrix.matrixMin)
+            let header = matrixFile.data[0]
+            if(!header || !colStart){return group}
+            let fileName = header[parseInt(matrixColumn) + colStart]
+            if(!fileName){return group}
+            if(fileName.startsWith("I_")){
+            fileName = fileName.slice(2)
+            }
+            let file = files.findFileByName(fileName)
+            if(file && file.fileGroup){group = file.fileGroup}
+        }
+    }
+    return group
+}
+
+
 /**************************************************** */
 /*** functions for saving files********************** */
 
@@ -1529,8 +1586,3 @@ document.getElementById("sortDataButton").addEventListener("click",()=>{
     if(order == "asc"){asc = true}
     files.sortFiles(type, asc)
 })
-
-//TODO: import matrix data PCA
-//TODO: look at fileParameters for matrixes
-//TODO: also handle this when loading older version in script_saveload
-//TODO: choose wether or not to activate createPopup_changelog()

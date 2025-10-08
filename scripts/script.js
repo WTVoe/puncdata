@@ -129,10 +129,6 @@ document.addEventListener("DOMContentLoaded", () => {
 //*********************************************************************//
 //*******************HANDLING OF FILE UPLOADING***********************//
 
-function createPcaVectorsPopup(fileNum){
-  new  Popup_PCAVariables(fileNum)
-}
-
 /** copies inputted 2D array to clipboard */
 function copyData(data){
   let dataLine = ""
@@ -1499,9 +1495,8 @@ function handleConnexionIntro() {
   if(localStorage.getItem("alreadyVisited") == "true"){
     shouldCreate = false;
   }
-  if(shouldCreate)
   var versionLastVisited = localStorage.getItem("versionLastVisited")
-  if(versionLastVisited && versionLastVisited <1.160){
+  if(versionLastVisited && parseFloat(versionLastVisited) <1.160){
     shouldCreateChangelog = true;
   }
   //sets new storage
@@ -1512,6 +1507,7 @@ function handleConnexionIntro() {
     createPopup_firstConnexion()
   }
   if(shouldCreateChangelog){
+    //uncomment this if the changelog popup should appear
     //createPopup_changelog()
   }
 }

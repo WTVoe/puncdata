@@ -712,6 +712,8 @@ class MovableWindowDataCellMatrix extends MovableWindow{
         check_stats.addEventListener("change",(d)=>{cellTypes.stats = check_stats.checked})
         let check_comp = menuCreate_checkbox(null, "cellTypes_comp", cellTypes.comp)
         check_comp.addEventListener("change",(d)=>{cellTypes.comp = check_comp.checked})
+        let check_diff = menuCreate_checkbox(null, "cellTypes_diff", cellTypes.diff)
+        check_diff.addEventListener("change",(d)=>{cellTypes.diff = check_diff.checked})
 
         col3.appendChild(check_common)
         col3.appendChild(document.createTextNode("Common types (scatter plots...)"))
@@ -724,6 +726,9 @@ class MovableWindowDataCellMatrix extends MovableWindow{
         col3.appendChild(document.createElement("br"))
         col3.appendChild(check_comp)
         col3.appendChild(document.createTextNode("Comparison types"))
+        col3.appendChild(document.createElement("br"))
+        col3.appendChild(check_diff)
+        col3.appendChild(document.createTextNode("Mass differences"))
         col3.appendChild(document.createElement("br"))
 
         col3.addEventListener("change",(d)=>{this.canvas.htmlTopMenu.draw()})

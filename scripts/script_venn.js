@@ -988,9 +988,6 @@ function tooltipTextFraction_4sets(dataFrac, fileNumber1, fileNumber2, fileNumbe
         if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber3].name){col_I3 = i}
         if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber4].name){col_I4 = i}
     }
-    console.log(dataFrac, dataWhole4)
-    console.log(intensityWhole1,intensityWhole4)
-    console.log(col_I1,col_I2,col_I3,col_I4)
 
     //calculates the intensity of the partial sets
     var intensityFrac1 = 0
@@ -1003,9 +1000,6 @@ function tooltipTextFraction_4sets(dataFrac, fileNumber1, fileNumber2, fileNumbe
         if (!isNaN(dataFrac[i][col_I3])){ intensityFrac3 = intensityFrac3 + parseFloat(dataFrac[i][col_I3])}
         if (!isNaN(dataFrac[i][col_I4])){ intensityFrac4 = intensityFrac4 + parseFloat(dataFrac[i][col_I4])}
     }
-
-    console.log(intensityFrac1,intensityFrac4)
-
 
     //calculates the percents
     var intensityPercent1 = 0

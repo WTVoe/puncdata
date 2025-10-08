@@ -419,7 +419,6 @@ class Network {
     }
 
     exportEdges(isAttributionNetwork){
-        console.log("here",this)
         //sets the text zone to contain the data separated by tab
         var text = "Source" + ';'+ "Target" + ';' + "Name" + ';' + "Error(mDa)"
         if(isAttributionNetwork){text += ";"+"wasVisited"+";"+"Category"}

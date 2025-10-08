@@ -15,7 +15,6 @@ document.getElementById("tablePageNext").addEventListener("click",function(){
 
 function updateTableTab(){
   var choice = html_tabTable.querySelector("select[name='fileSelection']").value
-  console.log("displaying on the table: "+choice)
   //finds the table values
   let maxLength = document.getElementById("tableLinesMax").value
   let currentPage = document.getElementById("tablePageNum").value

@@ -163,7 +163,7 @@ class ChemFormula {
             formula = parseChemicalFormula(formula)
         }
         if(!ignoreElectrons && (formula.length != this.formula.length)){return false;}
-        if(ignoreElectrons && (Math.abs(formula.length - this.formula.length)>1)){console.log("here");return false;}
+        if(ignoreElectrons && (Math.abs(formula.length - this.formula.length)>1)){return false;}
         //sort arrays
         let sortedF1 = [...formula].sort((a, b) => a.name.localeCompare(b.name));
         let sortedF2 = [...this.formula].sort((a, b) => a.name.localeCompare(b.name));

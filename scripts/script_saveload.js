@@ -160,11 +160,14 @@ function importPuncdataFilesOnly(input, group) {
         if (debug) console.log("version: " + version);
         if (debug) console.log("Reading pdata file: assigning variables...", data);
 
-        for (let i = 0; i < data.fileData.length; i++) {
-          let file = files.createNewFile(data.nameslist[i], files.list.length, group);
-          file.fill(data.fileData[i])
+        if(data.version <1.16){
+            for (let i = 0; i < data.fileData.length; i++) {
+              let file = files.createNewFile(data.nameslist[i], files.list.length, group);
+              file.fill(data.fileData[i])
+          }
+        }else if(data.version >=1.16){
+          files.import(data.files)
         }
-
         resolve("importation finished");
       } catch (err) {
         reject(err);
@@ -190,7 +193,6 @@ function importPuncdataFile(input){
     if(debug){console.log("version: "+data.version)}
     if(debug){console.log("Reading pdata file: assigning variables...",data)}
     //load data
-    console.log(data.version)
     if(!data.version || data.version<1.16){
         loadFilesOldVersion(data)
 
@@ -307,6 +309,7 @@ function loadFilesOldVersion(savefile){
         }
         file.matrix.matrixMin = matrixconfig.matrixMin
         file.matrix.matrixMax = matrixconfig.matrixMax
+        file.matrix.pca_loadings = matrixconfig.variablesPca
         //TODO: import PCA data
     }
     files.render()

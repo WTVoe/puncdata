@@ -265,8 +265,6 @@ class Canvas{
             cellTypes.push({value:"kendrick", name:"Kendrick map"})
             cellTypes.push({value:"kendrick2D", name:"Kendrick 2D"},)
             cellTypes.push({value:"tableInfos", name:"Table of data"})
-            cellTypes.push({value:"massDifferences", name:"Mass Differences (MOVE)"})
-            cellTypes.push({value:"massDifferences_formula", name:"Mass Differences(Formula)"})
         }
         if(toAllow.histo){
             cellTypes.push({value:"SPLITTER", name:"SPLITTER"})
@@ -287,6 +285,11 @@ class Canvas{
             cellTypes.push({value:"scatterPCA", name:"PCA variables"})
             cellTypes.push({value:"massPCA", name:"MS PCA contribution"})
             cellTypes.push({value:"samplesPCA", name:"PCA samples"})
+        }
+        if(toAllow.diff){
+            cellTypes.push({value:"SPLITTER", name:"SPLITTER"})
+            cellTypes.push({value:"massDifferences", name:"Mass Differences"})
+            cellTypes.push({value:"massDifferences_formula", name:"Formula Differences"})
         }
         return cellTypes
     }
@@ -5091,18 +5094,18 @@ class CanvasCell_samplesPCA extends CanvasCell{
             colStartIndexPCA = parseInt(matrixFilesColumns[1])
         }else if(dataset.dataName.includes("file")){
             let fileNum = parseInt(dataset.dataName.slice(5))
-            if(!fileParameters[fileNum] || !fileParameters[fileNum]){return;}
-            data = fileParameters[fileNum].variablesPca
+            let file = files.list[fileNum]
+            if(!file || !file.matrix){return;}
+            data = file.matrix.pca_loadings
             if(!data || !data.length){return;}
-            colStartIndex = parseInt(fileParameters[fileNum].matrixMin)
-            colStartIndexPCA = parseInt(fileParameters[fileNum].matrixMax)+1
+            colStartIndex = parseInt(file.matrix.matrixMin)
+            colStartIndexPCA = parseInt(file.matrix.matrixMax)+1
             if(data[0]&& data[0][0] && isNaN(data[0][0])){data.shift()}
         }else{return;}
         this.colStartIndex = colStartIndex
         this.colStartIndexPCA = colStartIndexPCA
         if(this.cfg.showAxes){this.drawInsideAxes()}
         //draws data
-        console.log(dataset, dataset.header, data)
         this.drawnData[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"data"+index)
         .selectAll("circle")
         .data(data)
@@ -5115,8 +5118,14 @@ class CanvasCell_samplesPCA extends CanvasCell{
             return this.cfg.dotSize
         })
         .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
-        .style("fill", (d) => {
-           return dataset.cfg.colorSolid
+        .style("fill", (d,n) => {
+            if(this.cfg.colorGroup){
+                const fileGroup = findFileGroup(dataset.dataName,n)
+                if(!fileGroup ||!fileGroup.color){return "black"}
+                return fileGroup.color
+            }else{
+                return dataset.cfg.colorSolid
+            }
         })
         .style("opacity",this.canvas.cfg.opacity)
         .attr('tooltipHTML', (d,n) => {return "scatterPlot"+";"+index+";"+n})
@@ -5124,14 +5133,18 @@ class CanvasCell_samplesPCA extends CanvasCell{
         .on("mousemove", (d,n) => {
             const index = data.indexOf(n);
             const fileIndex = parseInt(colStartIndex) +  index
-            const returnText = dataset.header[fileIndex]
+            let returnText = dataset.header[fileIndex]
+            const fileGroup = findFileGroup(dataset.dataName,index)
+            if(fileGroup.name){returnText += "<br> Group: "+fileGroup.name}
             this.canvas.tooltip.mousemove(d,"returnThis",returnText, this)
         }  )
         .on("mouseleave" , (d) => {this.canvas.tooltip.mouseleave(d)}  )
         .on("click", (d,n) =>{
             const index = data.indexOf(n);
             const fileIndex = parseInt(colStartIndex) +  index
-            const returnText = dataset.header[fileIndex]
+            let returnText = dataset.header[fileIndex]
+            const fileGroup = findFileGroup(dataset.dataName,index)
+            if(fileGroup.name){returnText += "<br> Group: "+fileGroup.name}
             this.canvas.tooltip.mouseclick(d,"returnThis",returnText, this)
         } );
 
@@ -5220,6 +5233,9 @@ class CanvasCell_samplesPCA extends CanvasCell{
         if(content.includes("opacity_")|| content.includes("all")){
             thisData.style("opacity", this.canvas.cfg.opacity)
         }
+        if(content.includes("colorGroup_")){
+            this.drawAllData()
+        }
         if(this.cfg.showAxes){this.drawInsideAxes()}
     }
     prepareCfg(){
@@ -5230,7 +5246,8 @@ class CanvasCell_samplesPCA extends CanvasCell{
             {key:"threshold",type:"number",default:0},
             {key:"showAxes",type:"checkbox",default:false},
             {key:"axesColor",type:"color",default:"#000000"},
-            {key:"selectedCols",type:"text",default:"Component,PCA,Variable"}
+            {key:"selectedCols",type:"text",default:"Component,PCA,Variable"},
+            {key:"colorGroup",type:"checkbox",default:true}
         ]
         return properties
     }
@@ -5268,6 +5285,12 @@ class CanvasCell_samplesPCA extends CanvasCell{
                 {key:"threshold",type:"number",value:this.cfg.threshold,title: "The intensity threshold under which peaks are considered absent from the file selected by interactivity ",update:(d)=>{this.cfg.update(d)}},
             ]
         })
+         varsArray.push({"name":"Color by group",
+            "inputs":[
+                {key:"colorGroup",type:"checkbox",value:this.cfg.colorGroup,title: 'Check this to color by the groups defined in "group manager"',update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        
         
         return varsArray
     }
@@ -5322,8 +5345,9 @@ class CanvasCell_samplesPCA extends CanvasCell{
                 data = cvsPCA.loadings
             }else if(item.dataName.includes("file")){
                 let fileNum = parseInt(item.dataName.slice(5))
-                if(!fileParameters[fileNum] || !fileParameters[fileNum]){return;}
-                data = fileParameters[fileNum].variablesPca
+                let file = files.list[fileNum]
+                if(!file || !file.matrix){return;}
+                data = file.matrix.pca_loadings || []
             }else{return;}
             data.unshift(["header"])
             allSamples.push(data)
@@ -6792,10 +6816,11 @@ class DataSet {
     /** prepares the file if it is considered as a matrix by puncdata */
     prepareAsMatrix(){
         if(!this.dataName.includes("file") && this.dataName !="matrix"){return false;}
-        let dataIndex = parseInt(this.dataName.slice(5))    
-        if(fileParameters && fileParameters[dataIndex] && fileParameters[dataIndex].matrixMin){
-            let matrixMin = fileParameters[dataIndex].matrixMin
-            let matrixMax = fileParameters[dataIndex].matrixMax
+        let dataIndex = parseInt(this.dataName.slice(5))  
+        let file = files.list[dataIndex]  
+        if(file && file.matrix && file.matrix.matrixMin){
+            let matrixMin = file.matrix.matrixMin
+            let matrixMax = file.matrix.matrixMax
             this.matrixCols = [matrixMin, matrixMax]
         }else if(this.dataName == "matrix"){
             this.matrixCols = [matrixFilesColumns[0],matrixFilesColumns[1]]
@@ -7628,11 +7653,12 @@ class BrushFilterCanvas{
                         colStartIndexPCA = parseInt(matrixFilesColumns[1])
                     }else if(dataset.dataName.includes("file")){
                         let fileNum = parseInt(dataset.dataName.slice(5))
-                        if(!fileParameters[fileNum] || !fileParameters[fileNum]){continue;}
-                        data = fileParameters[fileNum].variablesPca
+                        let file = files.list[fileNum]
+                        if(!file || !file.matrix){continue;}
+                        data = file.matrix.pca_loadings
                         if(!data || !data.length){continue;}
-                        colStartIndex = parseInt(fileParameters[fileNum].matrixMin)
-                        colStartIndexPCA = parseInt(fileParameters[fileNum].matrixMax)+1
+                        colStartIndex = parseInt(file.matrix.matrixMin)
+                        colStartIndexPCA = parseInt(file.matrix.matrixMax)+1
                     }else{continue;}
                     //filters
                     let xtype = cfg.xtype - colStartIndexPCA
@@ -7646,6 +7672,7 @@ class BrushFilterCanvas{
                         }
                     })
                 }
+                this.filterData(i, localSelected, filter)
             }else if(this.cellType == "massDifference" || this.cellType == "massDifferences_formula"){
                 let filterDomain0 = cell.scales[0].invert(d.selection[0])
                 let filterDomain1 = cell.scales[0].invert(d.selection[1])
