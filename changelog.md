@@ -1,3 +1,28 @@
+# 1.16
+## New features
+- New data manager - you can sort files, group them and reorder them
+- New calibration method : mobile mean
+- Mass differences and Formula differences charts (by default, deactivated in canvas)
+
+## Enhancements
+- Filtering interactivity with multiple histograms is now possible
+- Canvas top menu now includes color and gradient selecter
+- Added lines for x and y axes on PCA tab charts
+- Same change (lines for axes) on the canvas tab, with customizable colors
+-  You can now force rename axis titles on canvas charts (under "override" menu)
+- File logs are now segmented and some lines can be deleted if needed
+- Drag & Drop option to reorder files was added
+- Files can now be grouped. The group colors can be reflected on PCA
+- (DOC) "data.filter" was renamed to "data.filters" to account for changes in multiple simultaneous filters
+- (DOC)  File management is now cleaner, done with objects "FileList", "FileGroup" and "File"
+- (DOC) In consequence to file management update, fileData and nameslist are deprecated. You can now access each file through the object named "files". Individual files are stored under files.list
+
+## Bug fixes
+- Fixed an autoscale bug for PCA 
+- Fixed bar height overestimation when selecting on a number of occurences histogram with the option "height of brushed histogram bars are relative to full datasets" disabled.
+- For histograms, "% over bars" now disappear correctly when using the interactive highlighting
+
+
 
 # 1.15.3
 ## New features
