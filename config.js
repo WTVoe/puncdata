@@ -1,7 +1,7 @@
 //This file contains the default configuration and configuration modes of Punc'data on opening.
 /*-------------------------- */
 //Configuration of column numbers (enables Punc'data to know which column represents m/z, intensity...)
-var version = {"number":1.160,"name":"1.16.0"}
+var version = {"number":1.161,"name":"1.16.1"}
 var config= {};
 config.mz = 0; //column number of the m/z ratio 
 config.intensity = 9;  //column number of the signal intensity

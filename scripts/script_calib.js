@@ -33,6 +33,13 @@ function mainCalibFunction(data, database, ppmTol, calibAlgorithm){
             equation = resultsMobile.equations
             otherData={name:"means",means:resultsMobile.means}
             break;
+        case 'multi':
+            let resultsMulti = calibrate_multi(data, foundList)
+            data = resultsMulti.data
+            residualError = resultsMulti.residualError
+            equation = resultsMulti.equations
+            otherData={name:"multi",subGroups:resultsMulti.subGroups}
+            break;
     }
     return [data, foundList, residualError, equation, otherData]
 }
@@ -323,6 +330,8 @@ function pressCalibration(){
         results = mainCalibFunction(data, calibList, ppmTol, "quadratic")
     }else if(method == "mobile"){
         results = mainCalibFunction(data, calibList, ppmTol, "mobile")
+    }else if(method == "multi"){
+        results = mainCalibFunction(data, calibList, ppmTol, "multi")
     }
     if(results){
         tempDataCalib = results[0]
@@ -343,10 +352,11 @@ function pressCalibration(){
     for(let i=0; i<foundList.length; i++ ){
         text += "Calibrant : "+foundList[i].formula+" (Theoretical m/z "+foundList[i].massCalc+") ppm error : "+foundList[i].ppm.toFixed(4) + "<br>"
     }
+    if(debug){console.log(results)}
     //logs the equation
     if(results[3] && results[3].length ==3){
         text+= "Calibration equation (ax²+bx+c) : a="+results[3][2]+", b="+results[3][1]+", c="+results[3][0]+"<br>"
-    }else if(results[3].length ==2){
+    }else if(results[3] && results[3].length ==2){
         text+= "Calibration equation (ax+b) : a="+results[3][1]+", b="+results[3][0]+"<br>"
     }
     text += "Residual error: "+results[2]+" ppm<br>"
@@ -947,6 +957,38 @@ document.getElementById("calibAdvancedButton").addEventListener("click",()=>{
         line1.appendChild(input1)
         wrapper.appendChild(line1)
         popup.valButton.addEventListener("click",()=>{readCalibAdvancedPopup(popup)})
+    }else if(method=="multi"){
+        let popup = new Popup("calibAdvanced","Advanced calibration parameters")
+        let html = popup.popup_box.querySelector("div[name='popup_content']")
+        let wrapper = document.createElement("div")
+        wrapper.setAttribute("name",'wrapper')
+        html.appendChild(wrapper)
+
+        let line1 = document.createElement("div")
+        line1.textContent = "Number of calibrants in each calibration equation : "
+        let input1 = menuCreateInput("number","meanOver",calibData.meanOver || 2)
+        line1.appendChild(input1)
+        //should add: extrapolation(boolean), method(linear or quadratic), overextend 
+        let line2 = document.createElement("div")
+        line2.textContent = "Type of calibration curve :"
+        let equOptions = [{name:"Linear",value:"linear"},{name:"Quadratic",value:"quadratic"}]
+        let select1 = menuCreateInput("select","multiEquation",calibData.multiEquation ||"linear", equOptions)
+        select1.style.color = "black"
+        line2.appendChild(select1)
+        let line3 = document.createElement("div")
+        line3.textContent = "Extend every calibration curve before&after its min/max values, by m/z :"
+        let input2 = menuCreateInput("number","overshoot",calibData.overshoot || 0)
+        line3.appendChild(input2)
+        let line4 = document.createElement("div")
+        line4.textContent = "How many equations overextend before&after the calibration domain : "
+        let input3 = menuCreateInput("number","equationOver",calibData.equationOver || 0)
+        line4.appendChild(input3)
+        ///
+        wrapper.appendChild(line1)
+        wrapper.appendChild(line2)
+        wrapper.appendChild(line3)
+        wrapper.appendChild(line4)
+        popup.valButton.addEventListener("click",()=>{readCalibAdvancedPopup(popup)})
     }else{
         let popup = new Popup("calibAdvanced","no Advanced options for this calibration equation")
     }
@@ -955,6 +997,12 @@ document.getElementById("calibAdvancedButton").addEventListener("click",()=>{
 function readCalibAdvancedPopup(popup){
     let meanOver = popup.popup_box.querySelector("input[name='meanOver']").value
     calibData.meanOver = meanOver
+    let multiEquation = popup.popup_box.querySelector("select[name='multiEquation']").value
+    calibData.multiEquation = multiEquation
+    let overshoot = popup.popup_box.querySelector("input[name='overshoot']").value
+    calibData.overshoot = parseFloat(overshoot)
+    let equationOver = popup.popup_box.querySelector("input[name='equationOver']").value
+    calibData.equationOver = parseFloat(equationOver)
 }
 
 function drawCalibChart(){
@@ -1060,6 +1108,32 @@ function drawCalibChart(){
     .y((d)=>{ return calibChart.scales[1](d.y); })
     )
 
+    //if needed,draws horizontal lines for each calibrant for individual errors
+    if(tempDataCalibrants.otherData && tempDataCalibrants.otherData.name == "multi"){
+        for(let i=0; i<calibrants.length; i++){
+            let stdDev = calibrants[i].stdDev
+            let ppmError = calibrants[i].ppm
+            let mass = calibrants[i].massExp
+            //the standard deviation is in m/z. Has to be converted in ppm
+            stdDev = 1e6*stdDev/mass
+            if(debug){console.log(stdDev, ppmError, mass)}
+            let minBound = ppmError - normalCoeff*Math.abs(stdDev)
+            let maxBound = ppmError + normalCoeff*Math.abs(stdDev)
+            let point1 = {x:mass, y:minBound}
+            let point2 = {x:mass, y:maxBound}
+            let points = [point1, point2]
+            calibChart.svgSpace.append("path").attr("id","boundCalibrant")
+                .datum(points)
+                .attr('stroke',"grey")
+                .attr("fill","none")
+                .attr("clip-path", "url(#clipCalibChart)")
+                .attr("d", d3.line()
+                .x((d)=>{ return calibChart.scales[0](d.x); })
+                .y((d)=>{ return calibChart.scales[1](d.y); })
+                )
+        }
+    }
+
 
 }
 
@@ -1141,7 +1215,55 @@ function drawCalibEquation(){
         let ymax = equation_l.slope*cfg.xmax + equation_l.intercept
         dataReg.push({x:cfg.xmax,y:ymax})
         console.log(dataReg)
+    }else if(tempDataCalibrants.otherData && tempDataCalibrants.otherData.name == "multi"){
+        //this is for multi regression lines
+        let subGroups = tempDataCalibrants.otherData.subGroups
+        let linesData = []
+        let method = calibData.multiEquation || "linear"
+
+        if(method == "linear"){
+            for(let i=0; i<subGroups.length; i++){ //for each equation
+                let equation = subGroups[i].equation
+                let xmin = subGroups[i].min
+                let xmax = subGroups[i].max
+                let ymin = equation.intercept + equation.slope*xmin
+                let ymax = equation.intercept + equation.slope*xmax
+                let points = []
+                points.push({x:xmin,y:ymin})
+                points.push({x:xmax,y:ymax})
+                linesData.push(points)
+            }
+        }else if(method=="quadratic"){
+            for(let i=0; i<subGroups.length; i++){ //for each equation
+                let equation = subGroups[i].equation
+                if(equation.equation){equation = equation.equation}
+                console.log(equation)
+                let xmin = subGroups[i].min
+                let xmax = subGroups[i].max
+                let points = []
+                let step = (xmax - xmin)/100
+                for(let i=0; i<100; i++){
+                    let x = xmin + i*step
+                    let y = equation[0]*x*x + equation[1]*x + equation[2]
+                    points.push({x:x,y:y})
+                }
+                linesData.push(points)
+            }
+        }
+        console.log(linesData)
+        for(let i=0; i<linesData.length; i++){
+            calibChart.svgSpace.append("path").attr("id","calibEquation")
+            .datum(linesData[i])
+            .attr('stroke',"red")
+            .attr('stroke-width',1)
+            .attr("fill","none")
+            .attr("clip-path", "url(#clipCalibChart2)")
+            .attr("d", d3.line()
+            .x((d)=>{ return calibChart.scales[0](d.x || d.mass); })
+            .y((d)=>{ return calibChart.scales[1](d.y || d.ppm); }))
+        }
     }else{
+        //this is for a regular equation
         let equation = tempDataCalibrants.equation
         let step = (cfg.xmax - cfg.xmin)/100
         for(let i=0; i<100; i++){
@@ -1162,4 +1284,148 @@ function drawCalibEquation(){
     .y((d)=>{ return calibChart.scales[1](d.y || d.ppm); })
     )
 
+}
+
+
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+////// EXPERIMENTAL MULTICALIBRATION METHOD /////////
+
+
+function calibrate_multi(rawData, foundList){
+    console.log(rawData, foundList)
+    //first, computes meanpoints from the foundlist
+    var meanOver = parseInt(calibData.meanOver) || 2
+    var meanNumber = Math.floor(foundList.length / meanOver)
+    console.log(meanNumber)
+    //sorts the foundlist
+    foundList.sort((a,b)=>{return a.massCalc - b.massCalc})
+    //create subgroups of calibrants for each calibration line
+    var subGroups = []
+    for(let i=0; i<foundList.length; i++){
+        let subGroup={points:[]}
+        //checks if there is enough points to create a group. If not, stops
+        if(!foundList[i+meanOver-1]){break;}
+        subGroup.min = foundList[i].massCalc 
+        subGroup.max = foundList[i+meanOver-1].massCalc
+        if(calibData.overshoot){
+            subGroup.min -= calibData.overshoot
+            subGroup.max += calibData.overshoot
+        }
+        for(let j=0; j<meanOver; j++){
+            subGroup.points.push(foundList[i+j])
+        }
+        let method = calibData.multiEquation || "linear"
+        if(method == "linear"){
+            subGroup.equation = linearRegression_generalized(subGroup.points, "massExp","ppm")
+        }else{
+            let calibArray = []
+            for(let i=0; i<subGroup.points.length; i++){
+                calibArray.push([subGroup.points[i].massExp, subGroup.points[i].ppm])
+            }
+            subGroup.equation = regression.polynomial(calibArray, {order: 2,precision: 8});
+        }
+        
+        subGroups.push(subGroup)
+    }
+    console.log(subGroups)
+    //makes a copy of data
+    let dataMin = rawData[1][config.mz]
+    let dataMax = rawData[1][config.mz]
+    let data =[]
+    for(let i=0; i<rawData.length; i++){
+        data.push(rawData[i].slice())
+        if(rawData[i][config.mz]>dataMax){dataMax = rawData[i][config.mz]}
+        if(rawData[i][config.mz]<dataMin){dataMin = rawData[i][config.mz]}
+    }
+    //overextends the first and last calibration curves 
+    if(calibData.equationOver){
+        let lastGroupIndex = subGroups.length -1
+        for(let i=0; i<calibData.equationOver; i++){
+            subGroups[i].min = dataMin
+            subGroups[lastGroupIndex-i].max = dataMax
+        }
+    }
+    //calibrates
+    for(let i=1; i<data.length; i++){
+        let mass = parseFloat(data[i][config.mz])
+        let calcMasses = []
+        //calculates a mass for every calibration equation that fits in the range
+        for(let i=0; i<subGroups.length; i++){
+            if(mass>subGroups[i].max){continue;}//skips calibration eq before it
+            if(mass<subGroups[i].min){break;}//stops once we got over the mass
+            let res = exp_recalculatemass(mass,subGroups[i].equation)
+            calcMasses.push(res.mass)
+        }
+        //calculates mean mass and standard deviation
+        if(calcMasses.length==0){continue}
+        let meanMass =  parseFloat(calcMasses.reduce((a, b) => a + b, 0) / calcMasses.length);
+        let variance = parseFloat(calcMasses.reduce((a, b) => a + (b - meanMass) ** 2, 0) / calcMasses.length);
+        let stdDev = Math.sqrt(variance)
+        data[i][config.mz] = meanMass
+        data[i].stdDev = stdDev
+    }
+    //recalibrates the data points used for calibration
+    let sumSquares = 0
+    for(let i=0; i<foundList.length; i++){
+        let mass = parseFloat(foundList[i].massExp)
+        let calcMasses = []
+        let calcErrors = []
+        //calculates a mass for every calibration equation that fits in the range
+        for(let i=0; i<subGroups.length; i++){
+            if(mass>subGroups[i].max){continue;}//skips calibration eq before it
+            if(mass<subGroups[i].min){break;}//stops once we got over the mass
+            let res = exp_recalculatemass(mass,subGroups[i].equation)
+            calcMasses.push(res.mass)
+            calcErrors.push(res.expectedError)
+        }
+        //calculates mean mass and standard deviation
+        if(calcMasses.length==0){continue}
+        let meanMass =  parseFloat(calcMasses.reduce((a, b) => a + b, 0) / calcMasses.length);
+        let variance = parseFloat(calcMasses.reduce((a, b) => a + (b - meanMass) ** 2, 0) / calcMasses.length);
+        let stdDev = Math.sqrt(variance)
+        let meanError = parseFloat(calcErrors.reduce((a, b) => a + b, 0) / calcErrors.length);
+        foundList[i].massExp = meanMass
+        foundList[i].ppm = 1e6*(foundList[i].massCalc- foundList[i].massExp)/foundList[i].massCalc
+        foundList[i].stdDev = stdDev
+        foundList[i].expectedError = meanError
+
+        sumSquares += Math.pow(foundList[i].ppm,2)
+    }
+    let residualError = sumSquares/(foundList.length - 2) //2 is the number of parameters for linear
+    residualError = Math.sqrt(residualError)
+    return {data:data, foundList: foundList, residualError:residualError, subGroups:subGroups}
+}
+
+/**returns an object with properties "mass", "originalMass","expectedError" */
+function exp_recalculatemass(mass,equation){
+    //Dirty but for tests on calibration it works
+    if(equation.equation){equation = equation.equation}
+    let method = "linear"
+    let deltaMass = 0
+    let expectedError = 0
+    let a = 0
+    let b = 0
+    let c = 0
+    if(equation.length && equation.length >0){
+        a = equation[0]
+        b = equation[1]
+        if(equation.length >2){
+            c = equation[2]
+            method = "quadratic"
+        }
+    }else{
+        a = equation.slope
+        b = equation.intercept
+    }
+    if(method == "linear"){
+        expectedError = a*mass+b
+        deltaMass = expectedError*mass*1e-6
+    }else if(method == "quadratic"){
+        expectedError = a*mass*mass+b*mass+c
+        deltaMass = expectedError*mass*1e-6
+    }
+    
+    return {mass:mass+deltaMass, originalMass:mass, expectedError: expectedError}
 }

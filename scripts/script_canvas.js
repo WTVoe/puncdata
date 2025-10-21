@@ -6958,6 +6958,9 @@ class ConfigCell{
         this.ymin = cfg.ymin || this.ymin
         this.ymax = cfg.ymax || this.ymax
         this.activeData = cfg.activeData || this.activeData
+        this.override = cfg.override || false
+        this.overrideAxis_x = cfg.overrideAxis_x || ""
+        this.overrideAxis_y = cfg.overrideAxis_y || ""
         let properties  = this.cell.prepareCfg(cfg.type)
         properties.forEach((d)=>{
             this[d.key] = cfg[d.key] || this[d.key]
