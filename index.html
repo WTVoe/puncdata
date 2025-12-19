@@ -6,6 +6,8 @@
 <script src="scripts_compute/script_molecule.js" defer>  </script> <!-- Attribution algorithm -->
 <script src="scripts_compute/script_network.js" defer></script> <!-- network tabs js-->
 <script src="scripts_compute/script_attrib.js" defer>  </script> <!-- Attribution algorithm -->
+
+<script src="scripts/script_spectra.js" defer>  </script> <!-- Attribution algorithm -->
 <!--module of puncdata: visualisation and graphs, uses open source modules-->
 <script src="scripts/script.js" defer></script> <!-- main js-->
 <script src="scripts/script_file.js" defer></script> <!-- handle files js-->
@@ -53,6 +55,7 @@
 </div>
 <div class="tab">
   <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_data')">Data Manager</button>
+  <button class="tablinks datalink"  onclick="openTab('tab_peaks')">Peaks</button>
   <button class="tablinks datalink"  onclick="openTab('tab_calib')">Calibration</button>
   <button class="tablinks datalink"  onclick="openTab('tab_attrib')">Attribution</button>
   <button class="tablinks datalink"  onclick="openTab('tab_treatment')">Tools</button>
@@ -117,6 +120,45 @@
      </div>
      <button id="createFile" style="width:100%;height:50px;">Add a new file</button>
  </div>
+ <!-- TAB Peaks-->
+<div id="tab_peaks" class="tabcontent">
+     <div class="topselecter">
+          <div id="menu">
+               <table name="mainTableCalib">
+                    <tr><td>Peak picking in file: <select name="fileSelection" style="color:white"></select> </td></tr>
+                    <tr><td>Noise threshold: <input type="number" name="noiseThreshold" value="1"></td></tr>
+                    <tr><td>Min. Peak points : <input type="number" name="windowSize" value="1"></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+                    <tr></td></tr>
+               </table>
+          </div>
+          <div id="menu" style="flex:0.25">
+          </div>
+          <div id="menu">
+               <table name="secondTableCalib">
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+                    <tr><td></td></tr>
+               </table>
+          </div>
+          <div id="menu" style="flex:0.25">
+          </div>
+          <div id="menu">
+          </div>
+          <div id="menubuttons" >
+               <div id="buttons" class="subtabbuttonmenu">
+                    <button id="calculate_peaks" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
+                    <button id="save_peaks" class="iconbutton">Save Peak picking<br><img class="parametersButton" src="icons/validate.png"/></button><br>
+                    <button  class="iconbutton"><center>Import <br> config</center><input  onChange="importPopup(this)" style="opacity:0;height:70px;width:70px;z-index:2;margin-top:-32px;margin-left:-10px" id="uploadParameters" type="file"><img style="margin-top:-35px" class="parametersButton" src="icons/upload_icon.png"/></button>
+               </div>
+          </div>
+     </div>
+     <div id="calibPeaks"></div>
+</div>
 <!-- TAB Calibration-->
 <div id="tab_calib" class="tabcontent">
      <div class="topselecter">

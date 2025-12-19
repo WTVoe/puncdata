@@ -1502,13 +1502,14 @@ function handleConnexionIntro() {
   //sets new storage
   localStorage.setItem("alreadyVisited",true)
   localStorage.setItem("versionLastVisited",version.number)
+  console.log("version last visited : "+versionLastVisited)
   //show needed popup
   if(shouldCreate){
     createPopup_firstConnexion()
   }
   if(shouldCreateChangelog){
     //uncomment this if the changelog popup should appear
-    //createPopup_changelog()
+    createPopup_changelog()
   }
 }
 

@@ -584,7 +584,7 @@ class File{
     render_infos(){
         var div = document.createElement("div")
         div.setAttribute("name","infoSubGroup")
-        if(this.data.length ==0 || !this.data){
+        if(!this.data || this.data.length ==0){
             div.textContent = "Empty data slot"
             return div
         }
@@ -953,6 +953,7 @@ class File{
             this.logs.push(log)
 
         this.update()
+        resetDataSelecters()
         /**confirms by display */
         textarea.value = ""
         this.html.classList.add("bckgrndgreen")
@@ -991,6 +992,8 @@ class File{
             /**confirms by display */
             this.html.classList.add("bckgrndgreen")
             setTimeout(() => {this.html.classList.remove("bckgrndgreen")}, 100);
+            /**refreshes the name selecters */
+            resetDataSelecters()
         }
     }
 
@@ -1231,6 +1234,7 @@ class File{
             }
         }
         this.refreshSlot()
+        this.indexFiles()
     }
     /**switches from the current filestate to the new one */ 
     switchFileState(targetName){
@@ -1422,6 +1426,9 @@ function resetDataSelecters(){
     createDataOptions(html_tabPca.querySelector("select[name='fileSelection']"),false);
     createDataOptions(html_tabAttrib.querySelector("select[name='fileSelection']"),false);
     createDataOptions(html_tabCalib.querySelector("select[name='fileSelection']"),true);
+    if(html_tabPeaks){
+            createDataOptions(html_tabPeaks.querySelector("select[name='fileSelection']"),true);
+    }
     /** for venn and matrix tab */
     let fileChoices = document.querySelectorAll(".file_choice")
     for(let i=0; i<fileChoices.length; i++){

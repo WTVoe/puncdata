@@ -1,7 +1,6 @@
 # 1.16
 ## New features
 - New data manager - you can sort files, group them and reorder them
-- New calibration method : mobile mean
 - Mass differences and Formula differences charts (by default, deactivated in canvas)
 
 ## Enhancements
@@ -14,7 +13,7 @@
 - Drag & Drop option to reorder files was added
 - Files can now be grouped. The group colors can be reflected on PCA
 - (DOC) "data.filter" was renamed to "data.filters" to account for changes in multiple simultaneous filters
-- (DOC)  File management is now cleaner, done with objects "FileList", "FileGroup" and "File"
+- (DOC)  File management is now cleaner, done with classes "FileList", "FileGroup" and "File"
 - (DOC) In consequence to file management update, fileData and nameslist are deprecated. You can now access each file through the object named "files". Individual files are stored under files.list
 
 ## Bug fixes
@@ -24,11 +23,12 @@
 
 
 
-# 1.15.3
+# 1.15.7
 ## New features
 - Error mass charts now can display calibrations dots and the residual error lines
 - Added as an experimental feature variable ppm error for attribution
 - The network attribution algorithm now allows for lookup of suspect attribution and logs alternative formulae based on the network.
+- Added a "PCA samples" type of chart, to vizualise the samples data
 
 ## Enhancements 
 - A chart is now drawn for residues on the calib chart
@@ -46,6 +46,15 @@
 - Most inputs in the attribution tab can now be hovered for additionnal details
 - 13C isotopes can now be added simply to calibration
 - Calibration dots now appear on the error mass chart of the attribution menu
+- All stable elements masses have been added
+- Added options for "matrix" type of files to vizualise or edit the variables values
+- Added "median" as an option for intensity in matrix tab
+- Updated the icon
+- Added the advanced option for attribution to explore edges in an undirected/directed/directed reverse only manner
+-  Improved/detailed the help menu
+ - Separated the refresh/notebook/save button from the rest of the tab bar
+ - Changed the names and icons  of the buttons for validating calibration and attribution
+ - Changed the default parameters for matrix fusion and for canvas A data selection 
 
 ## Bug fixes
 - Corrected tooltip errors for attributions
@@ -59,6 +68,21 @@
  - Corrected the missnaming of multi-isotopic peaks
  - "Henry plots" have been renamed because this is a french-only term
  - Fixed 3D charts that would not be displayed
+ - Added a verification step to never allow for negative elements in final chemical formulas
+ - Corrected % of attribution for tooltips on histogram (divisor was 1 unit to big)
+ - Corrected a bug when averaging intensity value in matrix with a missing value superior to 0
+ - Corrected small session loading issues when certain types of chart were active
+ - Corrected the pass paste for custom mass search accessed by tooltip mass search
+ - Fixed a bug for parsing chemical formulae
+ - Fixed a bug to export unsupervized networks
+ - Fixed bugs with tools not working on files where formula was missing on only some peaks
+ - Fixed a bug with data table not displaying median values
+ - Corrected bugs with matrix histogram error bars. They are now displayed and computed correctly
+ - Corrected histogram discrete & histogram of classes selections and filtrations that always missed the first attribution that should be highlighted
+ - Fixed ENFS algorithm that did not order correctly links, previously it worked the same way as BFS
+ - Fixed EEFS in unsupervized network that previously worked the same way as BFS
+ - Fixed a bug with segmentation of polymers
+ - Fixed histogram discrete and histogram of classes that would not autoscale their y axis
 
 # 1.15
 ## New features

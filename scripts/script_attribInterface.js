@@ -2907,7 +2907,6 @@ function popupSinglePeakMassSearch(mass, fileString){
     fileOrigin.setAttribute("name","fileChoice")
     fileOrigin.style.color = "black";
     preText.appendChild(fileOrigin);
-    resetFilesChoices(fileOrigin, true, true, true)
     preText.innerHTML+="<br><br>"
 
     popup_box.appendChild(preText)

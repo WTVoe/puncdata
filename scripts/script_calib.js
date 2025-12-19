@@ -1331,13 +1331,14 @@ function calibrate_multi(rawData, foundList){
     }
     console.log(subGroups)
     //makes a copy of data
-    let dataMin = rawData[1][config.mz]
-    let dataMax = rawData[1][config.mz]
+    let dataMin = parseFloat(rawData[1][config.mz])
+    let dataMax = parseFloat(rawData[1][config.mz])
     let data =[]
-    for(let i=0; i<rawData.length; i++){
+    for(let i=1; i<rawData.length; i++){
         data.push(rawData[i].slice())
-        if(rawData[i][config.mz]>dataMax){dataMax = rawData[i][config.mz]}
-        if(rawData[i][config.mz]<dataMin){dataMin = rawData[i][config.mz]}
+        let mz = parseFloat(rawData[i][config.mz])
+        if(mz>dataMax){dataMax = mz}
+        if(mz<dataMin){dataMin = mz}
     }
     //overextends the first and last calibration curves 
     if(calibData.equationOver){
