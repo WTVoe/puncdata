@@ -954,6 +954,7 @@ class File{
 
         this.update()
         resetDataSelecters()
+        indexFiles()
         /**confirms by display */
         textarea.value = ""
         this.html.classList.add("bckgrndgreen")
@@ -994,6 +995,7 @@ class File{
             setTimeout(() => {this.html.classList.remove("bckgrndgreen")}, 100);
             /**refreshes the name selecters */
             resetDataSelecters()
+            indexFiles()
         }
     }
 
@@ -1234,7 +1236,7 @@ class File{
             }
         }
         this.refreshSlot()
-        this.indexFiles()
+        indexFiles()
     }
     /**switches from the current filestate to the new one */ 
     switchFileState(targetName){
@@ -1245,6 +1247,8 @@ class File{
         this.state = newState.name
         this.data = newState.data
         this.removeFileState(targetName)
+        //Recomputes indexes to allow for interactivity
+        indexFiles()
     }
     /**removes a file state */
     removeFileState(stateName){

@@ -1034,7 +1034,6 @@ class Popup_editHeteroClassses extends Popup {
 function createConfigHTML(cfg){
     //CHART AREA
     if(!cfg || cfg == [] || cfg == {}){cfg = config}
-    console.log(cfg)
     let div = document.createElement("div")
     div.setAttribute("name","configDiv")
     let partTitle1 = menuCreate_label("Chart Area",true,[['fontWeight','bold']])

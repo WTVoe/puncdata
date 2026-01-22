@@ -10,3 +10,4 @@ package-lock.json
 package.json
 renderer.js
 electron-packager.js
+script_spectra.js

@@ -42,6 +42,7 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
       result += "<th>"+"<button name='delCol_"+j+"'>X</button>"
       result += "</th>"
   }
+  result += "<th>"+"<button name='addCol'>+</button>"+"</th>"
   result += "</thead>"
   }
 
@@ -66,10 +67,11 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
   let endLength = startLength+maxLength
   if(editMode){
     //creates the skeleton of the table
-    for(var i=startLength; i<endLength; i++) {
+    for(var i=startLength; i<endLength-1; i++) {
       result += "<tr>";
       result +="<th><button name='delLine_"+i+"'>X</button></th>"
       if(inputArray[i]){
+        console.log(inputArray[i])
           for(var j=0; j<inputArray[i].length; j++){
             result +="<td name='inpt_"+i+"_"+j+"'>";
             result +="</td>"
@@ -77,9 +79,10 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
       }
       result += "</tr>";
     }
+    result += "<th><button name='addLine_"+i+"'>+</button></th>"
     //fills the table with inputs later 
   }else{ //quicker method when not in editMode
-    for(var i=startLength; i<endLength; i++) {
+    for(var i=startLength; i<endLength-1; i++) {
       result += "<tr>";
       if(inputArray[i]){
           for(var j=0; j<inputArray[i].length; j++){
@@ -112,7 +115,9 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
             let input = document.createElement("input")
             input.setAttribute("value", inputArray[i][j])
             input.addEventListener("change", editOneCell)
-            tableplace.querySelector('td[name="inpt_'+i+'_'+j+'"]').appendChild(input)
+            if( tableplace.querySelector('td[name="inpt_'+i+'_'+j+'"]')){
+              tableplace.querySelector('td[name="inpt_'+i+'_'+j+'"]').appendChild(input)
+            }
           }
         }
       }
@@ -147,6 +152,22 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
           buttons[i].addEventListener("click", function(){
             inputArray.splice(slicedName[1], 1)
             arrayToTable(inputArray, maxLength,pageNum,editMode);
+          });
+        }else if(slicedName[0]=="addCol"){
+          buttons[i].addEventListener("click", function(){
+            for(let j=0; j<inputArray.length; j++){
+              inputArray[j].push("")
+            }
+            arrayToTable(inputArray, maxLength,pageNum,editMode);
+          });   
+        }else if(slicedName[0]=="addLine"){
+          buttons[i].addEventListener("click", function(){
+            let newLine = []
+            for(let j=0; j<inputArray[0].length; j++){
+              newLine.push("")
+            }
+            inputArray.push(newLine)
+            arrayToTable(inputArray, maxLength+1,pageNum,editMode);
           });
         }
       }

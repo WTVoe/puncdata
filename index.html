@@ -1,4 +1,4 @@
-<title id="windowName">Punc'data V 1.16.1</title>
+<title id="windowName">Punc'data V 1.16.2</title>
 <link rel="icon" href="icon.ico">
 <link href="style.css" rel="stylesheet">
 <script src="config.js"></script> <!-- default parameters-->
@@ -6,8 +6,6 @@
 <script src="scripts_compute/script_molecule.js" defer>  </script> <!-- Attribution algorithm -->
 <script src="scripts_compute/script_network.js" defer></script> <!-- network tabs js-->
 <script src="scripts_compute/script_attrib.js" defer>  </script> <!-- Attribution algorithm -->
-
-<script src="scripts/script_spectra.js" defer>  </script> <!-- Attribution algorithm -->
 <!--module of puncdata: visualisation and graphs, uses open source modules-->
 <script src="scripts/script.js" defer></script> <!-- main js-->
 <script src="scripts/script_file.js" defer></script> <!-- handle files js-->
@@ -24,6 +22,9 @@
 <script src="scripts/script_networkvisu.js" defer></script> <!-- network tabs js-->
 <script src="scripts/script_table.js" defer></script> <!-- table tab js-->
 <script src="scripts/script_venn.js" defer></script> <!-- venn tab js-->
+
+<script src="scripts/script_spectra.js" defer>  </script> <!-- Attribution algorithm -->
+
 <!--libraries used for the first module-->
 <script src="modules/D3/d3.js" >  </script> <!-- D3.js module-->
 <script src="modules/html2canvas/html2canvas.js" defer>  </script> <!-- html2canvas screenshot module -->
@@ -44,7 +45,7 @@
      <img class="introimg5" src="icons/anim/contour.png">
      <img class="introimg6" src="icons/anim/histoerror.png">
      <img class="introimg7" src="icons/anim/network.png">
-     <div class="introtitle">Punc'data V 1.16.1</div>
+     <div class="introtitle">Punc'data V 1.16.2</div>
      <div id="introinfo" class="introinfo"></div>
      <img class="introladybug" src="icons/anim/ladybugback.png">
      <img class="introwingr" src="icons/anim/wing_r.png">
@@ -55,7 +56,7 @@
 </div>
 <div class="tab">
   <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_data')">Data Manager</button>
-  <button class="tablinks datalink"  onclick="openTab('tab_peaks')">Peaks</button>
+  <button class="tablinks datalink"  onclick="openTab('tab_peaks')">Spectra</button>
   <button class="tablinks datalink"  onclick="openTab('tab_calib')">Calibration</button>
   <button class="tablinks datalink"  onclick="openTab('tab_attrib')">Attribution</button>
   <button class="tablinks datalink"  onclick="openTab('tab_treatment')">Tools</button>
@@ -125,7 +126,21 @@
      <div class="topselecter">
           <div id="menu">
                <table name="mainTableCalib">
-                    <tr><td>Peak picking in file: <select name="fileSelection" style="color:white"></select> </td></tr>
+                    <tr><td>File : <select name="fileSelection" style="color:white"></select> </td></tr>
+                    <tr><td>Type : <select name="fileType" style="color:white" title="Profile for x y continuous data, centroid for peak lists">
+                         <option value="profile">Profile</option>
+                         <option value="centroid">Centroid</option>
+                    </select></td></tr>
+                    <tr><td>Operations to do:</td></tr>
+                    <tr><td><input type="checkbox" name="picking"> Peak picking</td></tr>
+                    <tr><td><input type="checkbox" name="deconvolution"> Deconvolution</td></tr>
+               </table>
+          </div>
+          <div id="menu" style="flex:0.25">
+          </div>
+          <div id="menu" name="menu_picking" style="display:none">
+               <table >
+                    <tr><td>Peak picking</td></tr>
                     <tr><td>Noise threshold: <input type="number" name="noiseThreshold" value="1"></td></tr>
                     <tr><td>Min. Peak points : <input type="number" name="windowSize" value="1"></td></tr>
                     <tr><td></td></tr>
@@ -133,16 +148,16 @@
                     <tr></td></tr>
                </table>
           </div>
-          <div id="menu" style="flex:0.25">
+          <div id="menu" style="flex:0.25" name ="spacer_deconvolution">
           </div>
-          <div id="menu">
-               <table name="secondTableCalib">
-                    <tr><td></td></tr>
-                    <tr><td></td></tr>
-                    <tr><td></td></tr>
-                    <tr><td></td></tr>
-                    <tr><td></td></tr>
-                    <tr><td></td></tr>
+          <div id="menu" name="menu_deconvolution" style="display:none">
+               <table  id="menu">
+                    <tr><td>Deconvolution</td></tr>
+                    <tr><td>Mode : <select name="polarity"><option value="positive">Positive</option><option value="negative">Negative</option></select></td></tr>
+                    <tr><td>Default charge : <input type="number" name="defaultCharge" value="1"></td></tr>
+                    <tr><td>Charge range : <input type="number" name="chargeMin" value="1">-<input type="number" name="chargeMax" value="2"></td></tr>
+                    <tr><td>Tolerance : <input type="number" name="tolerance" value="0.2"> mDa</td></tr>
+                    <tr><td><button name="massDelta">Edit mass deltas</button></td></tr>
                </table>
           </div>
           <div id="menu" style="flex:0.25">
@@ -152,7 +167,7 @@
           <div id="menubuttons" >
                <div id="buttons" class="subtabbuttonmenu">
                     <button id="calculate_peaks" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
-                    <button id="save_peaks" class="iconbutton">Save Peak picking<br><img class="parametersButton" src="icons/validate.png"/></button><br>
+                    <button id="save_peaks" class="iconbutton">Save<br><img class="parametersButton" src="icons/validate.png"/></button><br>
                     <button  class="iconbutton"><center>Import <br> config</center><input  onChange="importPopup(this)" style="opacity:0;height:70px;width:70px;z-index:2;margin-top:-32px;margin-left:-10px" id="uploadParameters" type="file"><img style="margin-top:-35px" class="parametersButton" src="icons/upload_icon.png"/></button>
                </div>
           </div>
@@ -397,6 +412,7 @@
                <option value="addKMD" >Compute and add a KMD column</option>
                <option value="addDBE" >Compute and add a DBE column</option>
                <option value="polymer" >Search polymer chain length and end groups</option>
+               <option value="copolymer" >Decompose a copolymer into monomers</option>
           </select><br>
           </div>
                
@@ -903,7 +919,7 @@
           <img src="icon.ico" width="120" height="120">
           <br>
      </div>  
-     <center>Punc'data V.1.16.1</center>
+     <center>Punc'data V.1.16.2</center>
      <center>Web Version</center>
 </div>
 

@@ -234,7 +234,7 @@ function calculateMatrix(){
             for(let j=baseCol; j<matrix[0].length; j++){
                 //if the peak is present
                 if(matrix[i][j] > noiseValue){ 
-                    totalIntensity += parseInt(matrix[i][j]);
+                    totalIntensity += parseFloat(matrix[i][j]);
                     numberOfFiles = numberOfFiles + 1;
                 }
             }
@@ -253,7 +253,7 @@ function calculateMatrix(){
             for(let j=baseCol; j<matrix[0].length; j++){
                 //if the peak is present
                 if(matrix[i][j] > noiseValue){ 
-                    values.push(parseInt(matrix[i][j]))
+                    values.push(parseFloat(matrix[i][j]))
                     numberOfFiles = numberOfFiles + 1;
                 }
             }
@@ -298,7 +298,10 @@ function calculateMatrix(){
     //looks if there is a need to substract a blank
     var blank = document.getElementById("matrix_substraction").checked
     if(blank){
-        var blankFile = files.list[document.getElementById("matrix_blank_file_choice").value-1].data
+        var blankFileString = document.getElementById("matrix_blank_file_choice").value
+        //find the file from the string list, which is file_index
+        var blankFileIndex = blankFileString.split("_")[1]
+        var blankFile = files.list[blankFileIndex].data
         var deleteMethod = document.getElementById("matrix_blank_delete_choice").value
         var comparaisonMethodBlank = document.getElementById("matrix_blank_comparaison_data").value
         var ppmErrorBlank = document.getElementById("matrix_blank_ppm_tolerance").value
@@ -346,14 +349,14 @@ function addToMatrix(newCol,base,newData,column, masses){
         for(let j=1; j<base.length; j++){
             if(value == base[j][column]){
                 alreadyExists = true;
-                base[j][newCol] = parseInt(newData[i][config.intensity]) //sets the intensity to the right column
+                base[j][newCol] = parseFloat(newData[i][config.intensity]) //sets the intensity to the right column
                 masses[j-1].push(newData[i][config.mz])
             }
         }
         //creates the new peak if it does not already exists
         if(!alreadyExists){
             matrix.push(newData[i].slice());
-            matrix[matrix.length-1][newCol] = parseInt(newData[i][config.intensity]) //sets the intensity to the right column
+            matrix[matrix.length-1][newCol] = parseFloat(newData[i][config.intensity]) //sets the intensity to the right column
             masses.push([newData[i][config.mz]]); 
         }
     }
@@ -380,7 +383,7 @@ function addToMatrix_ppm(newCol,base,newData,column,ppm, masses){
     var delta = 0;
     //loops through the data in the newData
     //starts at 1 to avoid the first line of titles
-    for(let i=1; i<newData.length; i++){
+    for(let i=1; iZ<newData.length; i++){
         alreadyExists = false;
         value = parseFloat(newData[i][column])
         //loops through the base matrix
@@ -391,7 +394,7 @@ function addToMatrix_ppm(newCol,base,newData,column,ppm, masses){
             if(delta <= ppm){
                 //should the masses be averaged out here ?
                 alreadyExists = true;
-                base[j][newCol] = parseInt(newData[i][config.intensity]) //sets the intensity to the right column
+                base[j][newCol] = parseFloat(newData[i][config.intensity]) //sets the intensity to the right column
                 masses[j-1].push(newData[i][config.mz])
                 break; //break because there should only be one peak to merge
             }
@@ -399,7 +402,7 @@ function addToMatrix_ppm(newCol,base,newData,column,ppm, masses){
         //creates the new peak if it does not already exists
         if(!alreadyExists){
             matrix.push(newData[i].slice());
-            matrix[matrix.length-1][newCol] = parseInt(newData[i][config.intensity]) //sets the intensity to the right column
+            matrix[matrix.length-1][newCol] = parseFloat(newData[i][config.intensity]) //sets the intensity to the right column
             masses.push([newData[i][config.mz]]); 
         }
     }
@@ -422,11 +425,11 @@ function substractBlank(matrix, blank, deleteMethod, comparaisonMethod, ppm){
     //loops through the bank
     for(let i=1; i<blank.length; i++){
         value = parseFloat(blank[i][config.mz])
-        intensity = parseInt(blank[i][config.intensity])
+        intensity = parseFloat(blank[i][config.intensity])
         //loops through the matrix
         for(let j=1; j<matrix.length; j++){
             //if the deleted method is not strict, deletes only if the intensity is at least that of half the matrix
-            if(deleteMethod == "half" && intensity < 0.5*parseInt(matrix[j][config.intensity])){continue;}
+            if(deleteMethod == "half" && intensity < 0.5*parseFloat(matrix[j][config.intensity])){continue;}
             //for the mass comparaison, calculates the delta. If it is low enough, splice the matrix point. Else, compares on the formula
             if(comparaisonMethod == "mass"){ 
                 delta = Math.abs(parseFloat(1000000*(value-matrix[j][config.mz])/value))
@@ -553,13 +556,13 @@ function buildMatrixInfo(matrix, filesIndexes, baseCol){
             for(let j=0; j<filesIndexes.length; j++){
                 if(!isNaN(matrixMissingValues)){ //if the missing value is a 0 or the same value everywhere
                     if(matrix[i][baseCol+j]>matrixMissingValues){
-                        sum += parseInt(matrix[i][baseCol+j])
+                        sum += parseFloat(matrix[i][baseCol+j])
                         occurences += 1
                     }
                 }
                 else if(matrixMissingValues[0]){ //if the missing value depends on the sample
                     if(matrix[i][baseCol+j]>matrixMissingValues[j]){
-                        sum += parseInt(matrix[i][baseCol+j])
+                        sum += parseFloat(matrix[i][baseCol+j])
                         occurences += 1
                     }
                 }

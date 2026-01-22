@@ -1748,6 +1748,32 @@ function gammaIncomplete(s, x) {
   return Math.exp(-x + s * Math.log(x) - Math.log(s) + Math.log(value));
 }
 
+/**solves an equation inputted as {a,b,c} to solve when ax+by=c, with x ans y being positive integers */
+function solveLinearEquation(equation){
+  let a = equation.a
+  let b = equation.b
+  let c = equation.c
+  let solutions = []
+  //find the gcd of a and b
+  let gcd_ab = gcd(a,b)
+  //check if a solution exists
+  if(c % gcd_ab !=0){
+    return []
+  }
+  //find all solutions
+  for(let x=0; x<= c/a; x++){
+    let y = (c - a*x)/b
+    if(y % 1 === 0 && y >=0){
+      solutions.push({x:x, y:y})
+    }
+  }
+  return solutions
+}
+
+function gcd(a,b){
+  if(!b){return a;}
+  return gcd(b, a % b);
+}
 
 
 //WARN BEFORE CLOSING !!!REMOVE THIS CODE WHEN MAKING THE DESKTOP VERSION!!!

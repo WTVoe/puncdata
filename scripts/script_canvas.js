@@ -4150,8 +4150,12 @@ class CanvasCell_density extends CanvasCell{
         let axisOptions = {}
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
         this.axesLabels=[];
-        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[this.cfg.xtype],axisOptions, this.cfg.config);
-        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, columnNames[this.cfg.ytype],axisOptions, this.cfg.config);
+        let axisLabel_x = columnNames[this.cfg.xtype]
+        let axisLabel_y = columnNames[this.cfg.ytype]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
         //create brushing or filtration
         // this.createBrushFilter("histogram")
         this.drawAllData()
@@ -4339,6 +4343,7 @@ class CanvasCell_density extends CanvasCell{
         this.colourLegend
         //remove previous
         let dataset = this.canvas.data[index]
+        if(!dataset || !dataset.dataName){return;}  
         this.svgSpace.selectAll("g[id='legend_"+dataset.dataName+"']").remove()
         this.svgSpace.selectAll("g[id='legend_solid_"+dataset.dataName+"']").remove()
         //copies and modifies the data displayed on the legend because this is a special scenario
@@ -4751,7 +4756,7 @@ class CanvasCell_massPCA extends CanvasCell{
         if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
         let axisLabel_x = columnNames[config.mz]
         let axisLabel_y = columnNames[config.intensity]
-        if(this.canvas.data[0].header){ 
+        if(this.canvas.data && this.canvas.data[0] && this.canvas.data[0].header){ 
             axisLabel_y = "Contribution to "+this.canvas.data[0].header[this.cfg.ytype]
         }
         if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
@@ -7899,6 +7904,7 @@ class TopMenuCanvas{
         cellMenuTable.rows[0].cells[2].textContent = "Chart type"
         cellMenuTable.rows[0].cells[3].textContent = "Edit"
         for(let i=0; i<cellNb; i++){
+            if(!cvs.cells[i]){cvs.cells[i] = new CanvasCell_void(this.canvas, i, [])} //if there was a previous crash, rebuild from nothing this cell
             cellMenuTable.rows[i+1].cells[0].textContent = "Cell "+(i+1)
     
             this.cellDataChoices[i] = document.createElement("input")
@@ -7938,7 +7944,7 @@ class TopMenuCanvas{
         dataMenuTable.rows[0].cells[3].textContent = "Edit"
         this.inputs.colors = {squares:[],inputs:[],inputsGradients:[],gradients:[]}
         for(let i=0; i<dataNb; i++){
-            if(!cvs.data || !cvs.data[i]){continue;}
+            if(!cvs.data || !cvs.data[i]){cvs.data[i] = new DataSet(cvs, i)} //rebuilds from a previous crash
             dataMenuTable.rows[i+1].cells[0].textContent = "Data "+(i+1)
             this.dataSourceChoices[i] = menuCreateInput("selectFile","dataPath",cvs.data[i].dataName ||"")
             this.dataSourceChoices[i].style.margin = "1px"
@@ -8021,6 +8027,7 @@ class TopMenuCanvas{
     /** a function to find and return which datasets are active for a cell and write it as a string */
     findValueDataShown(index){
     let cell = this.canvas.cells[index]
+    if(!cell || !cell.cfg){return}
     let activeData = cell.cfg.activeData
     let areAllActive = true;
     let listActive = "";
@@ -8526,6 +8533,7 @@ function copyFromCfgCvs(cvs, cfg){
     //empties the cells and data & refills it
     cvs.cells = []
     cvs.data = []
+    console.log(cvs, cfg)
     for(let i=0; i<cvs.cfg.cellNb; i++){
         cvs.cells.push(cvs.chooseCellType(i, cfg.cells[i].type))
         //resets back references and finds good columns for loading presets and finding name of column
@@ -8537,6 +8545,7 @@ function copyFromCfgCvs(cvs, cfg){
             cfg.cells[i].ytype = lookForColumn(columnNames, cfg.cells[i].ytype)
         }
         cvs.cells[i].cfg.copyCfg(cfg.cells[i])
+        if(cfg.cells[i] && cfg.cells[i].config){cvs.cells[i].cfg.override = true}
         
         if(cfg.cells[i].config){cvs.cells[i].cfg.config = cfg.cells[i].config}
 

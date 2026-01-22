@@ -1,3 +1,5 @@
+/** Configuration object for attribution parameters and settings */
+
 var attribCfg = {
     "ppm":{
         "delta": 0.1, //the mDa error to fuse deltas together as the same
@@ -1186,9 +1188,79 @@ class AttributionPass{
         //if we arrive here, there is no line for electrons. adds one.
         pass.push({"name":"e","count":[-charge,-charge],"mass":0.0005489},)
     }
-
 }
 
+class AttributionPass_molecules extends AttributionPass{
+    constructor(list,index, cfg){
+        super(list,index, cfg)
+        this.molecules = []
+        //prepares the pass as a molecule list
+        for(let i=0; i<this.list.length; i++){
+            let el = this.list[i]
+            el.molecule = new Molecule(el.name)
+            el.mass = el.molecule.mass
+        }
+    } 
+
+    /**re-does the recursive loop to consider formula elements as molecules */
+    recursiveLoop(index, formula){
+        /** formula is an array, the index refers to the number of the element in the pass */
+        let thisEl = this.list[index];
+        let listLength = this.list.length
+        for(let i=thisEl.count[0]; i<=thisEl.count[1]; i++){
+            if(i>thisEl.count[0]){formula[index] = i} //sets this element number 
+            if(index<listLength-1){
+                //continue by going to the next index in the pass
+                this.recursiveLoop(index+1, formula.slice())
+            }else{
+             /** arriving here means all pass elements have been visited. The formula should be computed to see if it is valid */
+             let mass = 0
+             for(let i=0; i<listLength; i++){
+                mass += this.list[i].mass*formula[i]
+             }
+             //check if the molecule is valid
+             if(this.mzMax !=-1 && mass > this.mzMax){continue;}
+             if(this.mzMin !=-1 && mass < this.mzMin){continue;}
+             if(this.mzSet && !this.mzSet.has(Math.floor(mass))){continue;}
+             let formulaList = []
+             //decomposes each formula from the pass into its elements and adds it to the correct formulaList element
+             for(let i=0; i<listLength; i++){
+                let subMolecule = this.list[i].molecule
+                let subFormula = subMolecule.formula
+                for(let j=0; j<subFormula.length; j++){
+                    let found = false
+                    for(let k=0; k<formulaList.length; k++){
+                        if(formulaList[k].name == subFormula[j].name){
+                            formulaList[k].number += subFormula[j].number*formula[i]
+                            found = true
+                            break;
+                        }
+                    }
+                    if(!found){
+                        formulaList.push({name:subFormula[j].name, number: subFormula[j].number*formula[i]})
+                    }
+                }
+            }
+
+             let molecule = Object.create(Molecule.prototype)
+             molecule.formula = formulaList
+             molecule.mass = mass
+             console.log(molecule, this)
+             
+             if(this.checkGoldenRules){
+                molecule.computeDBE()
+                if(!checkGoldenRules(molecule, this.specialGoldenRules)){continue;}
+             }
+             let roundMass = Math.floor(molecule.mass)
+             if(!this.molecules[roundMass]){this.molecules[roundMass] = []}
+             this.molecules[roundMass].push(molecule)
+             continue;               
+            }
+
+        }
+                
+    }
+}
 
 /** a network to tag peaks as isotopes */
 class NetworkIsotopic extends Network{

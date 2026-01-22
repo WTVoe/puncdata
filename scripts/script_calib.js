@@ -781,17 +781,21 @@ function readPolymerAdderPopup(database, preText, choiceNb){
     if(maxRepeat<0){maxRepeat=0}
 
     /*does the remove repeat units part*/
-    database.push({"formula":baseFormula.stringify(),"mass":baseFormula.mass})
+    if(baseFormula.mass >= minMass){
+        database.push({"formula":baseFormula.stringify(),"mass":baseFormula.mass})
+    }
     let reverseFormula = baseFormula.returnDuplicate()
     for(let i=0; i<minRepeat; i++){
         reverseFormula.removeFormula(repeatFormula)
         if(reverseFormula.isThereNegativeValue(true)){break;} //breaks if we remove too much repeat units and got negative elements
+        if(baseFormula.mass < minMass){continue;}
         database.push({"formula":reverseFormula.stringify(),"mass":reverseFormula.mass})
     }
     /*does the add repeat units part*/
     for(let i=0; i<maxRepeat; i++){
         baseFormula.addFormula(repeatFormula)
-        if(baseFormula.isThereNegativeValue(true)){break;} 
+        if(baseFormula.isThereNegativeValue(true)){break;}
+        if(baseFormula.mass < minMass){continue;}
         database.push({"formula":baseFormula.stringify(),"mass":baseFormula.mass})
     }
     readPeakCalibList(preText, database,choiceNb, true)
@@ -1362,7 +1366,7 @@ function calibrate_multi(rawData, foundList){
         //calculates mean mass and standard deviation
         if(calcMasses.length==0){continue}
         let meanMass =  parseFloat(calcMasses.reduce((a, b) => a + b, 0) / calcMasses.length);
-        let variance = parseFloat(calcMasses.reduce((a, b) => a + (b - meanMass) ** 2, 0) / calcMasses.length);
+        let variance = parseFloat(calcMasses.reduce((a, b) => a + (b - meanMass) ** 2, 0) / (calcMasses.length-1));
         let stdDev = Math.sqrt(variance)
         data[i][config.mz] = meanMass
         data[i].stdDev = stdDev
@@ -1384,7 +1388,7 @@ function calibrate_multi(rawData, foundList){
         //calculates mean mass and standard deviation
         if(calcMasses.length==0){continue}
         let meanMass =  parseFloat(calcMasses.reduce((a, b) => a + b, 0) / calcMasses.length);
-        let variance = parseFloat(calcMasses.reduce((a, b) => a + (b - meanMass) ** 2, 0) / calcMasses.length);
+        let variance = parseFloat(calcMasses.reduce((a, b) => a + (b - meanMass) ** 2, 0) / (calcMasses.length-1));
         let stdDev = Math.sqrt(variance)
         let meanError = parseFloat(calcErrors.reduce((a, b) => a + b, 0) / calcErrors.length);
         foundList[i].massExp = meanMass

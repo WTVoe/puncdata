@@ -80,6 +80,15 @@ class ChemFormula {
         return elNumber
     }
 
+    //checks if the formula is empty
+    isEmpty(){
+        if(!this.formula || this.formula.length ==0){return true;}
+        for(let i=0; i<this.formula.length; i++){
+            if(this.formula[i].number !=0){return false;}
+        }
+        return true;
+    }
+
     //lookup an element list in the formula and return the sum of all
     lookupListSum(namesList){
         if(!this.formula || !namesList){return "error"}
@@ -227,12 +236,14 @@ class Molecule extends ChemFormula{
         if(formalName){this.formalName == formalName}
         else{this.formalName = ""}
         this.computeDBE()
+        this.calculateMz()
     }
     /**returns a copy of this molecule */
     returnDuplicate(){
         let copy = new Molecule("empty")
         copy.name = this.name
         copy.mass = this.mass
+        copy.mz = this.mz
         copy.formula = []
         for(let i=0; i<this.formula.length; i++){
             let el = {name: this.formula[i].name, number:this.formula[i].number}
@@ -258,6 +269,15 @@ class Molecule extends ChemFormula{
     //finds the charge of this molecule
     charge(){
         return -this.lookup("e")
+    }
+
+    //calculates the m/z of this molecule. Electron mass is already considered in this.mass
+    calculateMz(){
+        let charge = this.charge()
+        if(charge == 0){return this.mass;}
+        let mz = (this.mass)/Math.abs(charge)
+        this.mz = mz
+        return mz
     }
     
 
@@ -415,5 +435,136 @@ function segmentPolymer(formula, unitFormula){
     endGroups.removeFormula(polymerChain)
 
     return {"endGroups":endGroups, "unitsNb":unitsNb}
+}
 
+/** a function that segments a copolymer formula into two monomers and end groups */
+function segmentCopolymer(formula, monomer1Formula, monomer2Formula, endGroupsList){
+    if(typeof formula == "string"){
+        formula = new ChemFormula(formula)
+    }
+    if(typeof monomer1Formula == "string"){
+        monomer1Formula = new ChemFormula(monomer1Formula)
+    }
+    if(typeof monomer2Formula == "string"){
+        monomer2Formula = new ChemFormula(monomer2Formula)
+    }
+    //for each monomer, creates a list of elements to later make equations
+    let elements = []
+    for(let i=0; i<monomer1Formula.formula.length; i++){
+        let element = {name: monomer1Formula.formula[i].name, monomer1Count: monomer1Formula.formula[i].number, monomer2Count:0}
+        elements.push(element)
+    }
+    for(let i=0; i<monomer2Formula.formula.length; i++){
+        let index = elements.findIndex(el => el.name == monomer2Formula.formula[i].name)
+        if(index == -1){
+            let element = {name: monomer2Formula.formula[i].name, monomer1Count: 0, monomer2Count:monomer2Formula.formula[i].number}
+            elements.push(element)
+        }else{
+            elements[index].monomer2Count = monomer2Formula.formula[i].number
+        }
+    }
+    if(!endGroupsList || endGroupsList.length ==0){
+        endGroupsList = [{name:"noEndGroup", formula: new ChemFormula("")}]
+    }
+    //It will be tried with the fist end group, the the second etc, and quits when one works
+    for(let e=0; e<endGroupsList.length; e++){
+        let testFormula = formula.returnDuplicate()
+        //if there is an end group to test, removes it from the formula
+        if(e<endGroupsList.length){
+            testFormula.removeFormula(endGroupsList[e].formula)
+        }
+        //builds equations
+        let equations = []
+        let solutions = []
+        let uniqueX = -1
+        let uniqueY = -1
+        for(let j=0; j<elements.length; j++){
+            //break if the elements isn't present in the formula
+            let totalCount = testFormula.lookup(elements[j].name)
+            if(totalCount == 0){
+                equations = []
+                break;
+            }
+            let monomer1Count = elements[j].monomer1Count
+            let monomer2Count = elements[j].monomer2Count
+            //skip equations where both monomer counts are equal, because they bring no information
+            if(monomer1Count == monomer2Count){continue;}
+            if(monomer1Count == 0 && totalCount !=0){uniqueY = monomer2Count*totalCount; continue;}
+            if(monomer2Count == 0 && totalCount !=0){uniqueX = monomer1Count*totalCount; continue;}
+            equations.push({a: monomer1Count, b: monomer2Count, c: totalCount, name: elements[j].name, endGroupIndex: e})
+        }
+        //solves immediately if there is only one unique solution
+        if(uniqueX != -1 && uniqueY != -1){
+            let endGroup = endGroupsList[e]
+            return {"monomer1Nb":uniqueX, "monomer2Nb":uniqueY, "endGroup":endGroup}
+        }
+        //solves equations with least squares
+        let firstSolve = true;
+        for(let i=0; i<equations.length; i++){
+            let results = solveLinearEquation(equations[i])
+            //adds the end groups in the results
+            for(let r=0; r<results.length; r++){
+                results[r]["endGroup"] = endGroupsList[e]
+            }
+            //first time, pushes these solutions
+            if(firstSolve){
+                solutions = results
+                firstSolve = false;
+                continue;
+            }
+            //all successive times, intersects the solutions
+            solutions = intersectArrays(solutions, results, "x")
+        }
+        //for all solutions at this point, checks if removing them results correctly in an empty formula
+        var validSolutions = []
+        for(let s=0; s<solutions.length; s++){
+            let testSolution = solutions[s]
+            let testMolecule = formula.returnDuplicate()   
+            //removes the monomers according to this solution
+            let monomer1Nb = testSolution.x
+            let monomer2Nb = testSolution.y
+            for(let m1=0; m1<monomer1Nb; m1++){
+                testMolecule.removeFormula(monomer1Formula)
+            }
+            for(let m2=0; m2<monomer2Nb; m2++){
+                testMolecule.removeFormula(monomer2Formula)
+            }
+            //removes the end group if any
+            if(testSolution.endGroup && testSolution.endGroup.formula){
+                testMolecule.removeFormula(testSolution.endGroup.formula)
+            }
+            //if the testMolecule is now empty, returns this solution only
+            if(testMolecule.isThereNegativeValue(true)){continue;}
+            var isEmpty = testMolecule.isEmpty()
+            if(isEmpty){
+                validSolutions.push(testSolution)
+                break;
+            }
+        }
+        solutions = validSolutions
+        if(solutions.length ==0){continue;}
+        let solution = solutions[0]
+        //if solutions aren't integers, continue
+        if(!Number.isInteger(solution.x) || !Number.isInteger(solution.y)){continue;}
+        //if solution is valid, returns it
+        if(solution.x >=0 && solution.y>=0){
+            let monomer1Nb = Math.round(solution.x)
+            let monomer2Nb = Math.round(solution.y)
+            let endGroup = endGroupsList[e]
+            return {"monomer1Nb":monomer1Nb, "monomer2Nb":monomer2Nb, "endGroup":endGroup}
+        }   
+    }
+}
+
+/** returns an intersection of two arrays, testing with a testKey subproperty */
+function intersectArrays(arr1, arr2, testKey){
+    let intersection = []
+    for(let i=0; i<arr1.length; i++){
+        for(let j=0; j<arr2.length; j++){
+            if(arr1[i][testKey] == arr2[j][testKey]){
+                intersection.push(arr1[i])
+            }
+        }
+    }
+    return intersection
 }
