@@ -1894,8 +1894,15 @@ class NetworkDeltas extends NetworkAttrib{
         for(let i=0; i<keep;i++){
             keptGroups.push(groups[i])
             //add the previous index of the group to the indexes to keep
+            if(!groups[i] || groups[i].length ==0){continue;}
             groupsIndexes.add(groups[i][0].group)
             newEdgesList = newEdgesList.concat(groups[i])
+        }
+        //remove all undefined indexes in keep
+        for(let i=keptGroups.length; i>=0; i--){
+            if(!keptGroups[i]){
+                keptGroups.splice(i,1)
+            }
         }
         this.edges = newEdgesList
         this.updateAdjacencyList()
@@ -1909,6 +1916,7 @@ class NetworkDeltas extends NetworkAttrib{
     attributeGroupsByDB(groups){
         let database = this.cfg.delta.keepList
         for(let i=0; i<groups.length; i++){
+            if(!groups[i]){continue;}
             const mass = groups[i].value
             let candidates = []
             for(let j=0; j<database.length; j++){

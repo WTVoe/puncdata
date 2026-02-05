@@ -86,6 +86,27 @@ class FileList{
         return newFile
     }
 
+    lookForNewID(startID){
+        startID = startID || -1
+        if(startID<0){
+            if(this.list[this.list.length-1] &&  this.list[this.list.length-1].id){
+                startID = this.list[this.list.length-1].id +1
+            }else{
+                startID = this.list.length
+            }
+        }
+        let idExists = false
+        for(let i=0; i<this.list.length; i++){
+            if(this.list[i].id == startID){
+                idExists = true
+                break;
+            }
+        }
+        if(!idExists){return startID}
+        //else, looks again
+        return this.lookForNewID(startID+1)
+    }
+
     createNewGroup(name){
         let trueName = this.findUniqueGroupName(name)
         let group = new FileGroup(trueName)
@@ -1308,7 +1329,7 @@ function createNewFileSlot(){
         defaultGroup = files.createNewGroup("A")
         defaultGroup.color = "#000000"
     }
-    files.createNewFile("",files.list.length, defaultGroup)
+    files.createNewFile("",files.lookForNewID(), defaultGroup)
     files.render()
     resetDataSelecters()
     return files[files.list.length-1]
@@ -1430,7 +1451,7 @@ function resetDataSelecters(){
     createDataOptions(html_tabPca.querySelector("select[name='fileSelection']"),false);
     createDataOptions(html_tabAttrib.querySelector("select[name='fileSelection']"),false);
     createDataOptions(html_tabCalib.querySelector("select[name='fileSelection']"),true);
-    if(html_tabPeaks){
+    if(typeof html_tabPeaks !== 'undefined' && html_tabPeaks !== null){
             createDataOptions(html_tabPeaks.querySelector("select[name='fileSelection']"),true);
     }
     /** for venn and matrix tab */
@@ -1472,7 +1493,7 @@ async function readMultiImportData(input){
         if(extension == "pdata"){
             await importPuncdataFilesOnly(file, newGroup)
         }else{
-            files.createNewFile(name,files.list.length,newGroup)
+            files.createNewFile(name,files.lookForNewID(),newGroup)
             let createdFile = files.list[files.list.length-1]
             await createdFile.readUploadedData(input.files[i])
         }

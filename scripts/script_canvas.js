@@ -6542,8 +6542,10 @@ class DataSet {
         }
         //put data in bins
         let data = specialData || this.data
+        let startIndex = 1
+        if(specialData){startIndex = 0} //for special data there is no header, so the index starts at 0
         //TODO start data from 0 once first line is removed
-        for(let i=1; i<data.length; i++){
+        for(let i=startIndex; i<data.length; i++){
             let x = data[i][cfg.xtype]
             let y = data[i][cfg.ytype]
             let projX = (x - cfg.xmin)/widthX*cfg.resolutionX

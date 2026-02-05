@@ -1498,6 +1498,8 @@ function handleConnexionIntro() {
   var versionLastVisited = localStorage.getItem("versionLastVisited")
   if(versionLastVisited && parseFloat(versionLastVisited) <1.160){
     shouldCreateChangelog = true;
+  }else if(!versionLastVisited && localStorage.getItem("alreadyVisited") == "true"){
+    shouldCreateChangelog = true;
   }
   //sets new storage
   localStorage.setItem("alreadyVisited",true)

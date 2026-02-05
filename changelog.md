@@ -1,7 +1,7 @@
 # 1.16
 ## New features
 - New data manager - you can sort files, group them and reorder them
-- Mass differences and Formula differences charts (by default, deactivated in canvas)
+- Mass differences and Formula differences charts (by default, deactivated in canvas. Go to the canvas manager to allow them)
 
 ## Enhancements
 - Filtering interactivity with multiple histograms is now possible
@@ -20,6 +20,7 @@
 - Fixed an autoscale bug for PCA 
 - Fixed bar height overestimation when selecting on a number of occurences histogram with the option "height of brushed histogram bars are relative to full datasets" disabled.
 - For histograms, "% over bars" now disappear correctly when using the interactive highlighting
+- Density maps used to skip the first point when a selection was active, it is now fixed
 
 
 

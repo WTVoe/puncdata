@@ -1338,6 +1338,7 @@ function calibrate_multi(rawData, foundList){
     let dataMin = parseFloat(rawData[1][config.mz])
     let dataMax = parseFloat(rawData[1][config.mz])
     let data =[]
+    data.push(rawData[0])
     for(let i=1; i<rawData.length; i++){
         data.push(rawData[i].slice())
         let mz = parseFloat(rawData[i][config.mz])

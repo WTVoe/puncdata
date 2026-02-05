@@ -383,7 +383,7 @@ function addToMatrix_ppm(newCol,base,newData,column,ppm, masses){
     var delta = 0;
     //loops through the data in the newData
     //starts at 1 to avoid the first line of titles
-    for(let i=1; iZ<newData.length; i++){
+    for(let i=1; i<newData.length; i++){
         alreadyExists = false;
         value = parseFloat(newData[i][column])
         //loops through the base matrix

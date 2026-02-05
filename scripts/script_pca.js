@@ -67,6 +67,7 @@ function handlePCA(){
         cols = [parseInt(file.matrix.matrixMin), parseInt(file.matrix.matrixMax)+1] //+1 because it should be [[ type of interval
         
     }
+    if(data.length==0){return console.warn("PCA aborted, no data in the matrix")}
     data = doPCA(data, cols)
     if(fileNum>=0 && files.list[fileNum]){files.list[fileNum].logs.push("PCA made on this matrix. Added columns for Components <br>")}
     if(fileChoice == "matrix"){matrixData = data}

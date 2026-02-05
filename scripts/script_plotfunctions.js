@@ -1374,7 +1374,7 @@ function createTooltipFunctions(cfgX){
       drawTooltipPieChart(cfgX.letter, this, mainCfgCanvas.tooltip)
   }
   mainCfgCanvas.functions.mouseleave = function(d) {
-      var cellNum = this.farthestViewportElement.id[4]
+      var cellNum = this.farthestViewportElement?parseInt(this.farthestViewportElement.id.slice(4)):null
       var opacity = cfgX.main.opacity
       if(cfgX.canvas && cfgX.canvas[cellNum]){
           if(cfgX.canvas[cellNum].type == "histogram"|| cfgX.canvas[cellNum].type == "histogramMatrix" ||cfgX.canvas[cellNum].type == "density"||cfgX.canvas[cellNum].type == "histoclass"|| cfgX.canvas[cellNum].type == "histodiscrete"){opacity = 1}

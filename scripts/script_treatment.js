@@ -577,9 +577,13 @@ function addCopolymerColumnsToFile(data, dataNumber, monomer1String, monomer2Str
         }else{
             data[i].push(results.monomer1Nb)
             data[i].push(results.monomer2Nb)
-            data[i].push(results.endGroup.formulaText || "")
+            if(results.endGroup.formulaText){
+                data[i].push(results.endGroup.formulaText || "")
+            }else{
+                data[i].push(results.endGroup.name || "")
+            }
+
         }
-       
     }
     //logs this operation
     loggingText = document.getElementById("data_log").innerHTML
