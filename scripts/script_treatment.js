@@ -54,12 +54,12 @@ function addFilesToTreatmentTable(){
     body.appendChild(newTable);
 
     //appends all the options
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         var table = document.getElementById("treatment_file_table");
         var line= document.createElement("tr");
         line.id = "treatment_table_line_"+i;
         var cell_name = document.createElement("td");
-        cell_name.innerHTML = nameslist[i]
+        cell_name.innerHTML = files.list[i].name
         var cell_button = document.createElement("input")
         cell_button.type = "checkbox"
         cell_button.id = "treatment_table_check_"+i;
@@ -72,7 +72,7 @@ function addFilesToTreatmentTable(){
 //listens to the clicking of the select/unselect all for the file selection checkboxes
 document.getElementById("treatment_check_all").addEventListener("click",function(){
     let value = document.getElementById("treatment_check_all").checked
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         document.getElementById("treatment_table_check_"+i).checked = value
     }
 });
@@ -196,6 +196,27 @@ function createTreatmentOptionMenu(){
         inputHTML.setAttribute("name","polymerUnit")
         inputHTML.style.width = "500px";
         div.appendChild(inputHTML)
+    }else if(value == "copolymer"){
+        div.innerHTML = "Given possible end groups and two monomers, this will try to decompose the formula into number of each monomer and end groups. Three columns will be added<br> Monomer 1 unit : "
+        let inputMonomer1 = document.createElement("input")
+        inputMonomer1.setAttribute("type","text")
+        inputMonomer1.setAttribute("name","monomer1")
+        inputMonomer1.style.width = "500px";
+        div.appendChild(inputMonomer1)
+        let inputMonomer2 = document.createElement("input")
+        inputMonomer2.setAttribute("type","text")
+        inputMonomer2.setAttribute("name","monomer2")       
+        inputMonomer2.style.width = "500px";
+        div.innerHTML += "<br> Monomer 2 unit : "
+        div.appendChild(inputMonomer2)
+        //add a button to open a popup to enter end groups
+        let buttonEndGroups = document.createElement("button")
+        buttonEndGroups.innerHTML = "Define end groups"
+        buttonEndGroups.addEventListener("click", function(){
+            new Popup_editEndGroups(config.endGroups)
+        })
+        div.innerHTML += "<br>"
+        div.appendChild(buttonEndGroups)   
     }else if(value == "removeCol"){
         div.innerHTML = "This will remove a column, chosen by number. A preview title from one of the files will be given<br> Column number: "
         let inputHTML = document.createElement("input")
@@ -234,7 +255,7 @@ function handleDataOperation(){
     var selectedFiles = []; //contains a list of the files number selected
     var j=0 //counts the number of selected files
     //gather which files are selected in a loop
-    for(let i=0; i<fileData.length; i++){
+    for(let i=0; i<files.list.length; i++){
         fileButton = document.getElementById("treatment_table_check_"+i)
         if(fileButton.checked){
             selectedFiles[j] = i;
@@ -247,7 +268,7 @@ function handleDataOperation(){
         conditions.operator = html_tabtreatment.querySelector("select[name='opSelecter']").value;
         conditions.value = html_tabtreatment.querySelector("input[name='valueSelecter']").value
         for(let i=0; i<selectedFiles.length; i++){
-            cutData(fileData[selectedFiles[i]],selectedFiles[i],conditions)
+            cutData(files.list[selectedFiles[i]].data,selectedFiles[i],conditions)
         }
     }else if(operation == "parseFormula"){
         //checks if a value has been entered and should be parsed 
@@ -258,14 +279,14 @@ function handleDataOperation(){
             //automatically finds every elements in the selected files
             var elementsLists = []
             for(let i=0; i<selectedFiles.length; i++){
-                elementsLists[i] = buildElementsList(fileData[selectedFiles[i]])
+                elementsLists[i] = buildElementsList(files.list[selectedFiles[i]].data)
             }
             list = combineStringLists(elementsLists)
         }
         var ratiosString = html_tabtreatment.querySelector("input[name='ratioSelecter']").value
         for(let i=0; i<selectedFiles.length; i++){
             var j = selectedFiles[i]
-            fileParseAddElementsColumns(fileData[j],j, ratiosString, list)
+            fileParseAddElementsColumns(files.list[j].data,j, ratiosString, list)
         }
     }else if(operation == "addKMD"){
         let kmdUnit = html_tabtreatment.querySelector("input[name='treatmentKMDunit']").value
@@ -279,24 +300,32 @@ function handleDataOperation(){
             kmdMass = parseFloat(kmdUnit)
         }
         for(let i=0; i<selectedFiles.length; i++){
-            addKMDColumnToFile(fileData[selectedFiles[i]],selectedFiles[i],config.mz,kmdUnit,kmdMass,divisor,roundingMethod)
+            addKMDColumnToFile(files.list[selectedFiles[i]].data,selectedFiles[i],config.mz,kmdUnit,kmdMass,divisor,roundingMethod)
         }
     }else if(operation =="addDBE"){
         for(let i=0; i<selectedFiles.length; i++){
-            addDBEColumnToFile(fileData[selectedFiles[i]],selectedFiles[i])
+            addDBEColumnToFile(files.list[selectedFiles[i]].data,selectedFiles[i])
         }
     }else if(operation == "polymer"){
         let polymerUnitString = html_tabtreatment.querySelector("input[name='polymerUnit']").value
         if(polymerUnitString == ""){return;}
         for(let i=0; i<selectedFiles.length; i++){
-            addPolymerColumnsToFile(fileData[selectedFiles[i]],selectedFiles[i], polymerUnitString)
+            addPolymerColumnsToFile(files.list[selectedFiles[i]].data,selectedFiles[i], polymerUnitString)
+        }
+    }else if(operation == "copolymer"){
+        let monomer1String = html_tabtreatment.querySelector("input[name='monomer1']").value
+        let monomer2String = html_tabtreatment.querySelector("input[name='monomer2']").value
+        if(monomer1String == "" || monomer2String == ""){return;}
+        for(let i=0; i<selectedFiles.length; i++){
+            addCopolymerColumnsToFile(files.list[selectedFiles[i]].data,selectedFiles[i], monomer1String, monomer2String, config.endGroups)
         }
     }else if(operation == "removeCol"){
         let colNum = html_tabtreatment.querySelector("input[name='columnNumber']").value
         for(let i=0; i<selectedFiles.length; i++){
-            let file = fileData[selectedFiles[i]]
-            for(let j=0; j<file.length; j++){
-                file[j].splice(colNum, 1)
+            let file = files.list[selectedFiles[i]]
+            let data = file.data
+            for(let j=0; j<data.length; j++){
+                data[j].splice(colNum, 1)
             }
         }
         //logs the operation
@@ -305,7 +334,7 @@ function handleDataOperation(){
         }
     }
     //in all cases, refresh the upload tab infos
-    updateFilesInfos();
+    files.render()
 }
 
 
@@ -372,10 +401,11 @@ function cutData(data,dataNumber, conditions) {
         
     }
     //logs this operation
-    if(dataNumber >-1){
-        fileLogs[dataNumber] += "Deleted "+loggingNumberDeleted+" peaks who did match : "+columnNames[conditions.col]+" "+conditions.operator+" "+conditions.value+"<br>"
-
-        loggingText = loggingText + "Filtering done. Deleted "+loggingNumberDeleted+" peaks from file :"+nameslist[dataNumber]+"</br>"
+    if(dataNumber >-1 && files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Deleted "+loggingNumberDeleted+" peaks who did match : "+columnNames[conditions.col]+" "+conditions.operator+" "+conditions.value+"<br>"
+        file.logs.push(text)
+        loggingText = loggingText + "Filtering done. Deleted "+loggingNumberDeleted+" peaks from file :"+files.list[dataNumber].name+"</br>"
         document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
 
     }
@@ -456,14 +486,15 @@ function fileParseAddElementsColumns(fileChosen,fileNum, ratioString, elementsLi
     }
     //logs the operation
     if(document.getElementById("data_log")){
-        document.getElementById("data_log").innerHTML += "Added "+elementsList.length+" columns for elements at the end of file: "+nameslist[fileNum]+"<br>"
+        document.getElementById("data_log").innerHTML += "Added "+elementsList.length+" columns for elements at the end of file: "+files.list[fileNum].name+"<br>"
     }
-    if(!isNaN(fileNum)){
-        fileLogs[fileNum] += "Parsed the formula. Added "+elementsList.length+" columns for elements at the end"
+    if(!isNaN(fileNum) && files.list[fileNum]){
+        let file = files.list[fileNum]
+        let text = "Parsed the formula. Added "+elementsList.length+" columns for elements at the end"
         if(ratioString != ""){
-            fileLogs[fileNum] += " and "+ parsedRatios.length + " columns for ratios"
+            text += " and "+ parsedRatios.length + " columns for ratios"
         }
-        fileLogs[fileNum] += ".<br>"
+        file.logs.push(text)
     }
 }
 
@@ -482,9 +513,14 @@ function addKMDColumnToFile(data,dataNumber,mzCol,unitName,kmdMass,divisor, roun
     }
     //logs this operation
     loggingText = document.getElementById("data_log").innerHTML
-    loggingText = loggingText + "KMD computed, values added to file :"+nameslist[dataNumber]+"</br>"
+    loggingText = loggingText + "KMD computed, values added to file :"+files.list[dataNumber].name+"</br>"
     document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
-
+    //adds the data log
+    if(files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Added a KMD("+unitName+") column"
+        file.logs.push(text)
+    }
 }
 
 /** adds to a data file a column with the computed DBE at the end */
@@ -496,9 +532,14 @@ function addDBEColumnToFile(data, dataNumber){
     }
     //logs this operation
     loggingText = document.getElementById("data_log").innerHTML
-    loggingText = loggingText + "DBE computed, values added to file :"+nameslist[dataNumber]+"</br>"
+    loggingText = loggingText + "DBE computed, values added to file :"+files.list[dataNumber].name+"</br>"
     document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
-
+    //adds the data log
+    if(files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Added a DBE column"
+        file.logs.push(text)
+    }
 }
 
 /** adds to a data file columns for polymer */
@@ -512,45 +553,246 @@ function addPolymerColumnsToFile(data, dataNumber, polymerString){
     }
     //logs this operation
     loggingText = document.getElementById("data_log").innerHTML
-    loggingText = loggingText + "Polymer chain computed, columns added to file :"+nameslist[dataNumber]+"</br>"
+    loggingText = loggingText + "Polymer chain computed, columns added to file :"+files.list[dataNumber].name+"</br>"
     document.getElementById("data_log").innerHTML = loggingText //sets the new logging text
-
+    //adds the data log
+    if(files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Added 2 columns for polymer chain length and end group, unit: "+polymerString
+        file.logs.push(text)
+    }
 }
 
-/**resets the default file choice*/
-function resetDefaultFileChoices(selecter){
-    var oldChoice = selecter.value
-    if(debug){console.log("reseting old file choices, old choice:"+oldChoice)}
-    //delete old options
-    if(selecter.options != null){
-          for(let j=selecter.options.length-1; j>=0; j--) { //backward for to remove all options
-              selecter.remove(j);
-          }
-      }
-    var options = []
-    options[0] = document.createElement("option")
-    options[0].setAttribute("value","none")
-    options[0].innerHTML = "None"
-    options[1] = document.createElement("option")
-    options[1].setAttribute("value","matrix")
-    options[1].innerHTML = "Matrix"
-    options[2] = document.createElement("option")
-    options[2].innerHTML = "--------------------"
-    var l = 3
-    for(let i=0; i<fileData.length; i++){
-        options[3+i] = document.createElement("option")
-        options[3+i].setAttribute("value",+i)
-        options[3+i].innerHTML = "File : "+nameslist[i]
-        l += 1
+/** */
+function addCopolymerColumnsToFile(data, dataNumber, monomer1String, monomer2String, endGroupsList){
+    data[0].push("Monomer 1 Count")
+    data[0].push("Monomer 2 Count")
+    data[0].push("End groups") 
+    for(let i=1; i<data.length; i++){
+        let results = segmentCopolymer(data[i][config.formulatext], monomer1String, monomer2String, endGroupsList)
+        if(results == null){
+            data[i].push("")
+            data[i].push("")
+            data[i].push("")
+        }else{
+            data[i].push(results.monomer1Nb)
+            data[i].push(results.monomer2Nb)
+            if(results.endGroup.formulaText){
+                data[i].push(results.endGroup.formulaText || "")
+            }else{
+                data[i].push(results.endGroup.name || "")
+            }
+
+        }
     }
-    //append all the options
-    var length = 2 
-    for(let i=0; i<options.length; i++){
-        selecter.appendChild(options[i])
-        length +=1
-    }
-    if(oldChoice == undefined || oldChoice == ""){selecter.value = 0;return;}
-    selecter.value = oldChoice
+    //logs this operation
+    loggingText = document.getElementById("data_log").innerHTML
+    loggingText = loggingText + "Copolymer composition computed, columns added to file :"+files.list[dataNumber].name+"</br>"
+    document.getElementById("data_log").innerHTML = loggingText //sets the new logging text     
+    //adds the data log
+    if(files.list[dataNumber]){
+        let file = files.list[dataNumber]
+        let text = "Added 3 columns for copolymer end groups, monomer 1: "+monomer1String+", monomer 2: "+monomer2String
+        file.logs.push(text)
+    }   
 }
 
+// popup to edit end groups for copolymer analysis
+class Popup_editEndGroups extends Popup {
+    constructor(endGroups) {
+        super("heteroClassesEdit","Edit here the list of end groups, if ions with the charge and adduct <br> The name column is optional <br>")
+        this.endGroups = endGroups
+        this.buildSuppContext()
+    }
 
+    buildSuppContext(){
+        var htmlTable = document.createElement("table")
+        htmlTable.setAttribute("class","popuptable")
+        this.elLine = []
+        this.elCells = []
+        this.elInputs = []
+        this.htmlTable = htmlTable
+        //clones the elements
+        this.copy = []
+        if(!this.endGroups){this.endGroups = []}
+        this.endGroups.forEach((item)=>{
+            let newItem = {"name":item.name,"formulaText":item.formulaText,"mass":item.mass,"formula":item.formula}
+            this.copy.push(newItem)
+        })
+        //creates a table
+        this.addFirstLine()
+        for(let i=0; i<this.copy.length; i++){
+            this.addLine()
+        }
+        this.preText.appendChild(htmlTable)
+        //adds the + button
+        this.addButton = document.createElement("button")
+        this.addButton.setAttribute("name","addEndGroupsButton")
+        this.addButton.setAttribute("class","smallpopupbutton")
+        this.addButton.addEventListener("click", ()=>{
+            this.addLine()
+        })
+        //adds the copy/paste buttons
+        this.copyButton = document.createElement("button")
+        this.copyButton.setAttribute("name","copyEndGroupsButton")
+        this.copyButton.setAttribute("class","smallpopupbutton")
+        this.copyButton.style.margin = 1
+        this.copyButton.addEventListener("click", ()=>{
+            this.copyToClipboard()
+        })
+        this.pasteButton = document.createElement("button")
+        this.pasteButton.setAttribute("name","pasteEndGroupsButton")
+        this.pasteButton.setAttribute("class","smallpopupbutton")
+        this.pasteButton.style.margin = 1
+        this.pasteButton.addEventListener("click", ()=>{
+            this.pasteEndGroups()
+        })
+        let divCopyPaste = document.createElement("div")
+        divCopyPaste.appendChild(this.copyButton)
+        divCopyPaste.appendChild(this.pasteButton)
+
+        this.addButton.innerHTML = "Add a new end group"
+        this.copyButton.innerHTML = "Copy end groups"
+        this.pasteButton.innerHTML = "Paste end groups (formula list)"
+        this.preText.appendChild(document.createElement("br"))
+        this.preText.appendChild(this.addButton)
+        this.preText.appendChild(divCopyPaste)
+        let separatorBox =document.createElement("div")
+        this.popup_box.appendChild(separatorBox)
+        this.valButton.addEventListener("click",()=>{config.endGroups = this.copy;})
+    }
+    addFirstLine(){
+        let newLength = this.elLine.length
+        this.elLine[newLength] = document.createElement("tr")
+        this.elCells[newLength] = []
+        for(let j=0; j<4; j++){
+            this.elCells[newLength][j] = document.createElement("td")
+            this.elLine[newLength].appendChild(this.elCells[newLength][j])
+        }
+        this.elCells[newLength][0].innerHTML = "Name"
+        this.elCells[newLength][1].innerHTML = "Formula"
+        this.elCells[newLength][2].innerHTML = "Mass"
+        this.elCells[newLength][3].innerHTML = "X"
+        this.htmlTable.appendChild(this.elLine[newLength])
+    }
+
+    copyToClipboard(){
+        const split = "\t";
+        let endGroups = this.copy
+        var text=""
+        text += "name" + split + "formula"+ split + "mass" + '\n'
+        for(let i=0; i<endGroups.length; i++){
+          text += endGroups[i].name + split + endGroups[i].formulaText + split + endGroups[i].mass + '\n'
+        }
+        navigator.clipboard.writeText(text)
+    }
+
+    pasteEndGroups(){
+        navigator.clipboard.readText()
+        .then(
+            (pastedData) => {
+                let parsedData = []
+                let lbreak = pastedData.split(/\r?\n/);
+                lbreak.forEach(res => {
+                    parsedData.push(res.split("\t"));
+                });
+                let pastedEndGroups = []
+                for(let i=0; i<parsedData.length-1; i++){
+                    let newObject = {name:"",formulaText:"",mass:0}
+                    if(parsedData[i].length >=2){
+                        newObject.name = parsedData[i][0]
+                        newObject.formulaText = parsedData[i][1]
+                        let mol = new Molecule(parsedData[i][0])
+                        newObject.formula = mol
+                        newObject.mass = parseFloat(mol.mass) || 0
+                        if(!isNaN(parsedData[i][2])){
+                            newObject.mass = parsedData[i][2] || 0
+                        }
+                    }else if(parsedData[i].length  == 1){
+                        newObject.formulaText = parsedData[i][0]
+                        newObject.name = ""
+                        let mol = new Molecule(parsedData[i][0])
+                        newObject.formula = mol
+                        newObject.mass = parseFloat(mol.mass) || 0
+                    }
+                    pastedEndGroups.push(newObject)
+                }
+                closePopup(this.valButton);
+                new Popup_editEndGroups(pastedEndGroups)
+            },
+        )
+    }
+
+    addLine(){
+        let newLength = this.elLine.length
+        let endGroups = this.copy
+        this.elLine[newLength] = document.createElement("tr")
+        this.elCells[newLength] = []
+        for(let j=0; j<4; j++){
+                this.elCells[newLength][j] = document.createElement("td")
+                this.elLine[newLength].appendChild(this.elCells[newLength][j])
+        }
+        this.elInputs[newLength]=[]
+        this.elInputs[newLength][0]= document.createElement("input")
+        this.elInputs[newLength][0].setAttribute("type","text")
+        this.elInputs[newLength][0].setAttribute("name","name"+i)
+        this.elInputs[newLength][0].style.width = "170px"
+        this.elInputs[newLength][0].addEventListener("change",(d) =>{this.readChange(d,newLength-1,"name")})
+
+        this.elInputs[newLength][1]= document.createElement("input")
+        this.elInputs[newLength][1].setAttribute("type","text")
+        this.elInputs[newLength][1].setAttribute("name","name"+i)
+        this.elInputs[newLength][1].style.width = "170px"
+        this.elInputs[newLength][1].addEventListener("change",(d) =>{this.readChange(d,newLength-1,"formulaText")})
+
+        //not a true input because mass is just indicative
+        this.elInputs[newLength][2] = document.createElement("div")
+        this.elInputs[newLength][2].style.width = "100px"
+
+        if(endGroups[newLength-1]){
+            this.elInputs[newLength][0].setAttribute("value",endGroups[newLength-1].name ||"")
+            this.elInputs[newLength][1].setAttribute("value",endGroups[newLength-1].formulaText ||"")
+            const mass = parseFloat(endGroups[newLength-1].mass) || 0
+            this.elInputs[newLength][2].innerHTML = mass.toFixed(6)
+        }else{
+            this.copy.push({name:"",formulaText:"",mass:0})
+        }
+
+        this.elInputs[newLength][3]= document.createElement("button")
+        this.elInputs[newLength][3].setAttribute("name","deleteLink_"+newLength)
+        this.elInputs[newLength][3].setAttribute("class","smallerpopupbutton")
+        this.elInputs[newLength][3].addEventListener("click", (d)=>{
+            this.removeLine(d)
+        })
+        this.elInputs[newLength][3].innerHTML = "DEL"
+
+        this.elCells[newLength][0].appendChild(this.elInputs[newLength][0])
+        this.elCells[newLength][1].appendChild(this.elInputs[newLength][1])
+        this.elCells[newLength][2].appendChild(this.elInputs[newLength][2])
+        this.elCells[newLength][3].appendChild(this.elInputs[newLength][3])
+        this.htmlTable.appendChild(this.elLine[newLength])
+    }
+
+    removeLine(d){
+        let index = d.target.parentElement.parentElement.rowIndex
+        this.elInputs.splice(index,1)
+        this.elCells.splice(index,1)
+        this.elLine.splice(index,1)
+        this.copy.splice(index-1,1)
+
+        this.htmlTable.deleteRow(index)
+    }
+    readChange(event, index,property){
+        let input = event.target
+        if(input.type =="text"){
+            this.copy[index][property] = input.value
+        }
+        //log the mass if needed
+        if(property == "formulaText"){
+            let newMol = new Molecule(input.value)
+            this.elInputs[index+1][2].innerHTML = (newMol.mass).toFixed(6)
+            this.copy[index].mass = newMol.mass
+            this.copy[index].formula = newMol   
+        }
+    }
+}

@@ -15,9 +15,14 @@ class CanvasCell_errorMass extends CanvasCell{
       super.draw()
       let axisOptions = {}
       if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-      this.axesLabels=[];
-      this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[config.mz],axisOptions, this.cfg.config);
-      this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, columnNames[config.ppmerror],axisOptions, this.cfg.config);
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = columnNames[config.ppmerror]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
+
       if(!this.cfg.config.noGrid){
           this.grids = [];
           this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
@@ -87,7 +92,9 @@ class CanvasCell_errorMass extends CanvasCell{
     //does not draw anything if there is no file 
     if(!dataName.includes("file") || !dataName){return;}
     const fileNum = dataName.slice(5)
-    const data = fileCalibData[fileNum]
+    const file = files.list[fileNum]
+    if(!file || !file.metadata.calibration){return;}
+    const data = file.metadata.calibration
     if(!data){return;}
     if(!this.drawnDataCalibrants){this.drawnDataCalibrants = []}
     this.drawnDataCalibrants[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"dataCalib"+index)
@@ -230,7 +237,9 @@ class CanvasCell_errorMass extends CanvasCell{
         //does not draw anything if there is no file 
         if(!dataName.includes("file") || !dataName){return;}
         const fileNum = dataName.slice(5)
-        const data = fileCalibData[fileNum]
+        const file = files.list[fileNum]
+        if(!file || !file.metadata.calibration){return;}
+        const data = file.metadata.calibration
         if(!data){return;}
         let firstBound = parseFloat(data.residualError)*parseFloat(this.cfg.calibBoundsMultiplier)
         let lastBound = -firstBound
@@ -276,8 +285,12 @@ class CanvasCell_errorMass extends CanvasCell{
 
   update(content, doNotUpdateDomains){
       super.update(content, doNotUpdateDomains)
-      this.axesLabels[0].text(columnNames[config.mz])
-      this.axesLabels[1].text(columnNames[config.ppmerror])
+        let axisLabel_x = columnNames[config.mz]
+        let axisLabel_y = columnNames[config.ppmerror]
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+      this.axesLabels[0].text(axisLabel_x)
+      this.axesLabels[1].text(axisLabel_y)
       if(!this.cfg.config.noGrid){
           this.grids[0].call(d3.axisBottom(this.scales[0]).ticks(this.cfg.config.axisLines).tickSize(this.cfg.config.height).tickFormat(""))
           this.grids[1].call(d3.axisLeft(this.scales[1]).ticks(this.cfg.config.axisLines).tickSize(-this.cfg.config.width).tickFormat(""))
@@ -427,17 +440,20 @@ class CanvasCell_histoerror extends CanvasCell_histo{
       super.draw()
       let axisOptions = {}
       if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
-      let yText = "%"
-      if(this.cfg.ymethod == "attributions"){
-          yText = "% of attributions"
-      }else if(this.cfg.ymethod == "intensity"){
-          yText= "% of intensity"
-      }else if(this.cfg.ymethod == "count"){
-          yText = "Number of attributions"
-      }
-      this.axesLabels=[];
-      this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[config.ppmerror],axisOptions, this.cfg.config);
-      this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, yText,axisOptions, this.cfg.config);
+      let axisLabel_x = columnNames[config.ppmerror]
+        let axisLabel_y = "Relative %"
+        if(this.cfg.ymethod == "attributions"){
+            axisLabel_y = "% of attributions"
+        }else if(this.cfg.ymethod == "intensity"){
+            axisLabel_y= "% of intensity"
+        }else if(this.cfg.ymethod == "count"){
+            axisLabel_y = "Number of attributions"
+        }
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
       //create brushing or filtration
       this.createBrushFilter("histoerror")
       this.drawAllData()
@@ -465,7 +481,7 @@ class CanvasCell_histoerror extends CanvasCell_histo{
       if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
           //drawing bins for filtering
           theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, config.ppmerror, "filteredCell"+this.index, true, dataset.dataFiltered)
-          this.drawFilterTitle(dataset)
+          this.drawFiltersTitles(dataset)
       }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
           //drawing bins for highlighting
           theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, config.ppmerror, "highlightedCell"+this.index, true, dataset.dataHighlighted)
@@ -532,17 +548,19 @@ class CanvasCell_histoerror extends CanvasCell_histo{
 
   update(content, doNotUpdateDomains){
       super.update(content, doNotUpdateDomains)
-      this.cfg.xtype = config.ppmerror
-      this.axesLabels[0].text(columnNames[this.cfg.xtype])
-      let yText = "%"
-      if(this.cfg.ymethod == "attributions"){
-          yText = "% of attributions"
-      }else if(this.cfg.ymethod == "intensity"){
-          yText= "% of intensity"
-      }else if(this.cfg.ymethod == "count"){
-          yText = "Number of attributions"
-      }
-      this.axesLabels[1].text(yText);
+        let axisLabel_x = columnNames[config.ppmerror]
+        let axisLabel_y = "Relative %"
+        if(this.cfg.ymethod == "attributions"){
+            axisLabel_y = "% of attributions"
+        }else if(this.cfg.ymethod == "intensity"){
+            axisLabel_y= "% of intensity"
+        }else if(this.cfg.ymethod == "count"){
+            axisLabel_y = "Number of attributions"
+        }
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+      this.axesLabels[0].text(axisLabel_x)
+      this.axesLabels[1].text(axisLabel_y);
   }
 
   updateData(content, dataNum){
@@ -554,9 +572,11 @@ class CanvasCell_histoerror extends CanvasCell_histo{
   /** if the filter comes from this histogram, it should not be counted */
   handleFiltering(indexesList){
       if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
+      if(this.canvas.filters.length == 1){
+            if(this.canvas.filters[0] &&this.canvas.filters[0].cellIndex == this.index){return;}
+        }
       for(let i=0; i<this.canvas.data.length; i++){
           let dataset = this.canvas.data[i]
-          if(dataset.filter.cellIndex == this.index){continue;}
           if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
           this.drawData(this.canvas.data[i], i, "filter")
       }
@@ -717,9 +737,13 @@ class CanvasCell_henry extends CanvasCell{
       //creates the labels
       let axisOptions = {}
       if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+      let axisLabel_x = columnNames[config.ppmerror]
+      let axisLabel_y = "t"
+      if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+      if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
       this.axesLabels=[];
-      this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, columnNames[config.ppmerror],axisOptions, this.cfg.config);
-      this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, "t",axisOptions, this.cfg.config);
+      this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+      this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
       if(!this.cfg.config.noGrid){
           this.grids = [];
           this.grids[0] = appendPlotGrid(this.svgSpace, this.scales[0],this.cfg.config.axisLines, "bottom", this.cfg.config);
@@ -944,10 +968,22 @@ class CanvasCell_henry extends CanvasCell{
 
 
 /// Work in progress: Shapiro-Wilk test
+
 //
 function shapiroWilkTest(data){
-
-
+    //computes the mean
+    var mean = 0
+    for(let i=0; i<data.length; i++){
+        if(isNaN(data[i])){continue;}
+        mean += data[i]
+    }
+    mean = mean/data.length
+    //computes the variance (denominator in shapiro wilk)
+    var variance = 0
+        for(let i=0; i<data.length; i++){
+        if(isNaN(data[i])){continue;}
+        variance += (data[i] - mean)^2 
+    }
 }
 //each subarray is for a different n number, in this order: 2,4,6,8,10,15,20,25,30
 var shapiroWilkTable = [

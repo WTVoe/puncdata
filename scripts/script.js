@@ -63,22 +63,18 @@ var obj_csv = {
     name:"",
     dataFile:[]
 };
-/**contains the parsed data of all files */
-var fileData=[{},{},{},{}];
 /** contains the data to delete when treatment is done*/
 var toDeleteData = {};
 /** contains the data set from which data has to be deleted*/
 var wholeData = {};
 /** contains the names of the columns, corresponds to the first array of an array*/
 var columnNames = {};
-/** logs the modification of the data files*/
-var fileLogs=["","","",""];
 /** logs additional info  of the data files*/
 var fileParameters=[{},{},{},{}];
 /** logs if a file has yet been uploaded*/
 var isFileUploaded=false;
-/**logs the calibration data of the files */
-var fileCalibData=[{},{},{},{}];
+//contains the data of the selected zones on Venn diagrams
+var vennData = [];
 
 var html_tabtreatment = document.getElementById("tab_treatment")
 var html_tabTable = document.getElementById("tab_table")
@@ -94,6 +90,9 @@ var html_tabCalib = document.getElementById("tab_calib")
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log('Hello  ! Puncdata ready for use');
+    /** remove the intro animation */
+   var introAnim = document.getElementById("introAnim")
+   deleteDOM(introAnim, 2500)
 
     //adapts for every screen resolution:
   if(document.body.offsetWidth >1500){
@@ -101,6 +100,8 @@ document.addEventListener("DOMContentLoaded", () => {
     updateParametersShownValues()
   }
 
+  /*creates the first file*/
+  document.getElementById("createFile").click()
 
   //custom parameters for coloris
   Coloris({
@@ -121,417 +122,12 @@ document.addEventListener("DOMContentLoaded", () => {
     wrap: false
   });
 
-  resetAllFileChoices();
+  /** displays an intro popup */
+  handleConnexionIntro()
 });
 
 //*********************************************************************//
 //*******************HANDLING OF FILE UPLOADING***********************//
-
- 
-/**Reads data if they are in the textarea */
-function readDataTextArea(input, filenumber) {
-  if(!fileLogs){fileLogs = ["","","","",""]} //to correct a bug with old .pdata saves
-  if(!fileLogs[filenumber-1]){fileLogs[filenumber-1]=""}
-  fileLogs[filenumber-1] += "Data pasted from external source <br>"
-  resetFilesChoices(html_tabTable.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabPca.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabAttrib.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabCalib.querySelector("select[name='fileSelection']"));
-  updateFileChoices();
-  parseData(input.value, splitterTextArea, filenumber);
-  addFilesToMatrixTable() //update the options in the matrix tab
-  addFilesToTreatmentTable();
-  document.getElementById("textareafile"+filenumber).value =""
-
-  //display a temporary box to confirm pasting
-  var popup = document.getElementById("popup_file_pasted")
-  popup.className = "fade_popup_visible"
-  var rect = document.getElementById("textareafile"+filenumber).getBoundingClientRect();
-  var offset = window.pageYOffset || 0
-  var styletop =  rect.y
-  popup.style.top =  rect.y + offset;
-  popup.style.left =  rect.x+rect.width/2;
-  
-  setTimeout(() => { 
-      popup.className = "fade_popup" 
-      popup.style.top= -100
-  }, 100);
-};
-
-/**clears data of the textarea by the pressing of the button */
-var clearTextAreaButton = document.querySelectorAll('#clearTextAreaButton');
-for(let i=0; i<clearTextAreaButton.length; i++){
-  clearTextAreaButton[i].addEventListener("click", function (){
-    var numberofthearea = i+1
-    var nameofthearea = "textareafile"+numberofthearea
-    document.getElementById(nameofthearea).value =""
-    fileData[numberofthearea-1] = {}; //clears the data from fileData
-    fileLogs[numberofthearea-1] = "" //clears the log
-    nameslist[numberofthearea-1] = "" //clears the name
-    fileCalibData[numberofthearea-1] = {} //clears the calib data
-    //clears the input of the name
-    let htmlName = document.getElementById("namefile"+numberofthearea)
-    htmlName.value = ""
-    //clears the upload file section
-    let htmlZone = document.getElementById("file"+numberofthearea)
-    let htmlFile = htmlZone.querySelector("input[type='file']")
-    htmlFile.value = ""
-    updateFilesInfos();
-  });
-}
-
-
-/**
- * The goal of this function is to import the csv file and sends it to the parsing function
- * @param {*} input the inputed data
- * @param {*} filenumber the number of the file input: 1,2,3 or 4
- */
-function readData(input, filenumber) {
-  if(debug){console.log("a file has been uploaded to file n°"+filenumber)}
- if (input.files && input.files[0]) {
- let reader = new FileReader();
-        reader.readAsBinaryString(input.files[0]);
- reader.onload = function (e) {
- obj_csv.name = input.files[0].name;
- obj_csv.size = e.total;
- obj_csv.dataFile = e.target.result
-            //cleans the log
-            document.getElementById("data_log").innerHTML = ""
-            fileLogs[filenumber-1] += "A file called: '"+obj_csv.name+"' has been uploaded. <br>"
-            createTitle(obj_csv.name, filenumber, true);
-            parseData(obj_csv.dataFile, splitter, filenumber) //obj_csv is the object containing the data, splitter is the character used for splitting
-            indexFiles();
-            addFilesToMatrixTable() //update the options in the matrix tab
-            addFilesToTreatmentTable();
-            if(debug){console.log("reseting files choices...")}
-            resetFilesChoices(html_tabTable.querySelector("select[name='fileSelection']"));
-            resetFilesChoices(html_tabPca.querySelector("select[name='fileSelection']"));
-            resetFilesChoices(html_tabAttrib.querySelector("select[name='fileSelection']"));
-            resetFilesChoices(html_tabCalib.querySelector("select[name='fileSelection']"));
-            updateFileChoices();
-            updateVennFileChoice();
- }
- }
-}
-
-/**
- * reads multiple files at once
- * @param {*} input 
- */
-function readMultipleData(input){
-  if(debug){console.log(input.files.length+" files have been uploaded")}
-  var file = ""
-  //loops through each file
-  for(let i=0; i<input.files.length; i++){
-    file = input.files[i]
-    console.log(file)
-    var extension = file.name.split('.').pop();
-    if(extension == "pdata"){
-      importPuncdataDataOnly(file)
-    }else{
-      //finds an empty slot for a file
-      var chosenSlot = -1;
-      for(let j=0; j<fileData.length; j++){
-        if(Object.keys(fileData[j]).length ===0){
-          chosenSlot = j+1;
-          fileData[j]={fill:""};//fills with random input the data slot so that it will not be considered empty by the loop
-          break;
-          }
-      }
-      //if there is no empty slot, create a new slot
-      if(chosenSlot == -1){
-        document.getElementById("addFileChoice").click() //creates a new zone
-        fileData[fileData.length-1]={fill:""} //fills with random input the data slot so that it will not be considered empty by the loop
-        chosenSlot = fileData.length
-      }
-      readData({files:[file]},chosenSlot)
-    }
-
-  }
-}
-
-
-
- /**parse the data and saves it inside the var filedata. If the data corresponds to the chosen data to view (tab treatment) sends it to the treatment directly */
-function parseData(data, splittingCharacter, filenumber){
-  if(debug){console.log("parsing data for new file n°"+filenumber+" with character: "+splittingCharacter)}
-    let csvData = [];
-    let lbreak = data.split(/\r?\n/);
-    lbreak.forEach(res => {
-        csvData.push(res.split(splittingCharacter));
-    });
-    //cleans the data of empty lines
-    for(let i=csvData.length-1;i>0 ;i--){
-      if(csvData[i][0]=="" && csvData[i][1]==""){csvData.splice(i,1) }
-      if(csvData[i] <= 1){csvData.splice(i,1) }
-    }
-    //replaces all remaining commas with dots(french way of placing commas where dots are in the english version)
-    //TODO check with special files if this work
-    for(let i=csvData.length-1;i>0 ;i--){
-      for(let j=csvData[i].length-1;j>0;j--){
-        csvData[i][j] = csvData[i][j].replace(/,/g,'.') //TODO try with replaceAll, to see if it corrects the bug on the desktop version
-      }
-    }
-    fileData[filenumber-1]= csvData; //saves the data of the file
-    fileLogs[filenumber-1]+= "Data parsed. detected "+parseInt(fileData[filenumber-1].length-1)+" peaks with "+parseInt(fileData[filenumber-1][0].length)+" columns. <br>"
-
-    updateFilesInfos()
-    //automatically finds the columns first time a file is uploaded
-    if(!isFileUploaded){
-      autoSetupColumns(csvData[0])
-      //sends the naming of the fields
-      updateName(nameslist[filenumber-1],filenumber, false) //update the names tag
-      //sends the data to the data treatment who will cut the data if asked and draw the plots using other functions
-      datatreatment(csvData, filenumber);
-      //sets up this file as the default in cvs A
-      if(canvasA && canvasA.data && canvasA.data[0]){
-        canvasA.data[0].fillFromName("file_"+(filenumber-1))
-        canvasA.draw()
-        if(canvasA.htmlTopMenu){canvasA.htmlTopMenu.draw()}//refresh
-      }
-    }else{
-      //the other case is if the file replaces another file already displayed.
-      for(let i=0; i<canvasA.data.length; i++){
-        if(!canvasA.data[i]){continue;}
-        if(canvasA.data[i].dataName == "file_"+(filenumber-1)){
-          updateName(nameslist[filenumber-1],filenumber, false); //update the names tag
-          datatreatment(csvData, filenumber);
-        }
-      }
-      for(let i=0; i<canvasB.data.length; i++){
-        if(!canvasB.data[i]){continue;}
-        if(canvasB.data[i].dataName == "file_"+(filenumber-1)){
-          updateName(nameslist[filenumber-1],filenumber, false); //update the names tag
-          datatreatment(csvData, filenumber);
-        }
-      }
-      for(let i=0; i<canvasS.data.length; i++){
-        if(!canvasS.data[i]){continue;}
-        if(canvasS.data[i].dataName == "file_"+(filenumber-1)){
-          updateName(nameslist[filenumber-1],filenumber, false); //update the names tag
-          datatreatment(csvData, filenumber);
-        }
-      }
-    }
-    isFileUploaded = true;
-    indexFiles()
-
-}
-
-
-
-/**creates the title of the file */
-function createTitle(title, filenumber, removeExtension){
-  //old way of displaying the title below uploads
-  // d3.select("#uploadedtitle").remove() //gets rid of the old title if there is one
-  // var htmltitle = "<div id=uploadedtitle>"+title+"</div>"
-  // var titleplace = document.getElementById("tab_upload")
-  // titleplace.insertAdjacentHTML('beforeend', htmltitle);
-
-  //cuts the extension
-  if(removeExtension){
-    title = title.replace(/\.[^/.]+$/, "")
-  }
-  var inputZone = document.getElementById("namefile"+filenumber)
-  inputZone.value = title
-  //updates the name inside every file selecter
-  nameslist[filenumber-1] = title
-  updateFileChoiceName(title, filenumber)
-}
-
-
-//*********************************************************************//
-//*******************HANDLES THE BUTTONS FOR FILES*********************//
-var html_file1  = document.getElementById("file1")
-var html_file2  = document.getElementById("file2")
-var html_file3  = document.getElementById("file3")
-var html_file4  = document.getElementById("file4")
-
-html_file1.querySelector("button[name='saveButton']").addEventListener("click",function(){saveDataFile(0)});
-html_file2.querySelector("button[name='saveButton']").addEventListener("click",function(){saveDataFile(1)});
-html_file3.querySelector("button[name='saveButton']").addEventListener("click",function(){saveDataFile(2)});
-html_file4.querySelector("button[name='saveButton']").addEventListener("click",function(){saveDataFile(3)});
-
-html_file1.querySelector("button[name='copyButton']").addEventListener("click",function(){copyDataFile(0)});
-html_file2.querySelector("button[name='copyButton']").addEventListener("click",function(){copyDataFile(1)});
-html_file3.querySelector("button[name='copyButton']").addEventListener("click",function(){copyDataFile(2)});
-html_file4.querySelector("button[name='copyButton']").addEventListener("click",function(){copyDataFile(3)});
-
-html_file1.querySelector("button[name='logButton']").addEventListener("click",function(){logFileInfo(0)});
-html_file2.querySelector("button[name='logButton']").addEventListener("click",function(){logFileInfo(1)});
-html_file3.querySelector("button[name='logButton']").addEventListener("click",function(){logFileInfo(2)});
-html_file4.querySelector("button[name='logButton']").addEventListener("click",function(){logFileInfo(3)});
-
-/**handling of file type changing and values of intensity columns */
-html_file1.querySelector("select[name='fileTypeSelect']").addEventListener("change",function(){changeFileType(html_file1, 0)});
-html_file2.querySelector("select[name='fileTypeSelect']").addEventListener("change",function(){changeFileType(html_file2, 1)});
-html_file3.querySelector("select[name='fileTypeSelect']").addEventListener("change",function(){changeFileType(html_file3, 2)});
-html_file4.querySelector("select[name='fileTypeSelect']").addEventListener("change",function(){changeFileType(html_file4, 3)});
-
-html_file1.querySelector("button[name='intensityCols']").addEventListener("click",function(){changeFileIntensityCols(html_file1, 0)});
-html_file2.querySelector("button[name='intensityCols']").addEventListener("click",function(){changeFileIntensityCols(html_file2, 1)});
-html_file3.querySelector("button[name='intensityCols']").addEventListener("click",function(){changeFileIntensityCols(html_file3, 2)});
-html_file4.querySelector("button[name='intensityCols']").addEventListener("click",function(){changeFileIntensityCols(html_file4, 3)});
-
-
-/**makes a pop up showing the file info */
-function logFileInfo(fileNum){
-  var buttons = [
-    {"name":"COPY LOG","function": copyDataInfoLog},
-    {"name":"CALIBRATION REPORT","function": logCalibData, arg1: fileNum}
-  ]
-  handlePopup("dataLog",fileLogs[fileNum],buttons,[],[])
-}
-
-
-function logCalibData(fileNum){
-  let calibData = fileCalibData[fileNum]
-  let text = ""
-  if(calibData.residualError){
-    text += "Residual error:"+calibData.residualError+"<br>"
-    if(calibData.equation.length ==2){
-      text += "equation (ax+b): a="+calibData.equation[1]+" , b="+calibData.equation[0]
-    }else if(calibData.equation.length ==3){
-      text += "equation (ax²+bx+c) a="+calibData.equation[2]+" ,b="+calibData.equation[1]+" ,c="+calibData.equation[0]
-    }
-    text +="<br>"
-  }
-  if(calibData.points && calibData.points.length >0){
-    let table = createTable(calibData.points.length+1, 3)
-    table.rows[0].cells[0].textContent = "m/z"
-    table.rows[0].cells[1].textContent = "ppm error"
-    table.rows[0].cells[2].textContent = "formula"
-    console.log(table)
-    for(let i=0; i<calibData.points.length; i++){
-      table.rows[i+1].cells[0].textContent = calibData.points[i][0]
-      table.rows[i+1].cells[1].textContent = calibData.points[i][1]
-      table.rows[i+1].cells[2].textContent = calibData.points[i][2]
-    }
-    text += table.outerHTML
-  }
-  
-  new Popup("calibData",text)
-
-}
-
-/** a function to change the file type between sample and matrix on the upload page */
-function changeFileType(html_file, fileNum){
-  let selecter = html_file.querySelector("select[name='fileTypeSelect']")
-  let divBox =  html_file.querySelector("button[name='intensityCols']")
-  if(selecter.value == "sample"){
-    divBox.style.display = "none"
-    fileParameters[fileNum].fileType = "sample"
-    fileLogs[fileNum] += "File type changed to sample <br>"
-  }else if(selecter.value == "matrix"){
-    divBox.style.display = "block"
-    fileParameters[fileNum].fileType = "matrix"
-    fileLogs[fileNum] += "File type changed to matrix <br>"
-  }
-}
-
-/** handle the popup creation for the changing of file intensity columns */
-function changeFileIntensityCols(parentDiv, fileNum){
-  let columns = fileData[fileNum][0]
-  let parameters = fileParameters[fileNum]
-  let text = "Define min-max columns:<br>"
-  text += "<input type='number' name='min' placeholder='min'>-<input type='number' name='max' placeholder='max'>"
-  text += "<br>"
-  text += "<table ><tbody style='display: block; max-height:40em;overflow-y:auto;width:50em;font-size:10px'>"
-  if(!columns){ return alertPopup("Error, trying to define matrix columns on a non-existing file")}
-  for(let i=0; i<columns.length; i++){
-    text += "<tr><td> ("+ i + ")--"+ columns[i] + "<td></tr>"
-  }
-  text += "</tbody></table><br>"
-
-  let buttonsPopup = [{name:"Visualize/edit PCA variables", function:createPcaVectorsPopup, arg1:fileNum},
-    {"name":"Validate","function":ValidatePopupIntensityColumn}]
-  handlePopup("fileIntensityCols_file_"+fileNum,text, buttonsPopup, [], [])
-
-  var popup = document.querySelector("div[id='main_popup']")
-  var html_min = popup.querySelector("input[name='min']")
-  var html_max = popup.querySelector("input[name='max']")
-  html_min.value = fileParameters[fileNum].matrixMin
-  html_max.value = fileParameters[fileNum].matrixMax
-  updatePopupIntensityColumn()
-  html_min.addEventListener("change",updatePopupIntensityColumn)
-  html_max.addEventListener("change",updatePopupIntensityColumn)
-}
-
-/**a function used inside the popup for defining a file intensity columns */
-function updatePopupIntensityColumn(){
-  var popup = document.querySelector("div[id='main_popup']")
-  var html_min = popup.querySelector("input[name='min']")
-  var html_max = popup.querySelector("input[name='max']")
-  var min =html_min.value
-  var max = html_max.value
-  var table = popup.querySelectorAll("tr")
-  if(min == max){return;}
-  for(let i=0; i<table.length; i++){
-    if(i>=min && i<=max){
-      table[i].style.color = "orange"
-    }else{ table[i].style.color = ""}
-  }
-}
-
-function ValidatePopupIntensityColumn(){
-  var popup = document.querySelector("div[id='main_popup']")
-  var html_min = popup.querySelector("input[name='min']")
-  var html_max = popup.querySelector("input[name='max']")
-  var popupName = popup.querySelector("div[class='popup']").getAttribute("name")
-  var fileNum = popupName.split('_')[3]
-  fileLogs[fileNum] += "Matrix intensity columns were defined to: ["+html_min.value+";"+html_max.value+"] <br>"
-  fileParameters[fileNum].matrixMin = parseInt(html_min.value)
-  fileParameters[fileNum].matrixMax = parseInt(html_max.value)
-}
-
-function createPcaVectorsPopup(fileNum){
-  new  Popup_PCAVariables(fileNum)
-}
-
-/** update the value of an input and  stores it in variable*/
-function updateInputValue(parentDiv, inputName, parentVar, varName){
-  parentVar[varName] = parentDiv.querySelector("input[name='"+inputName+"']").value
-}
-
-function copyDataInfoLog(){
-  var html_popup = document.querySelector('div[name="popup_dataLog"]')
-  var htmlText= html_popup.innerHTML
-  //this is not an optimal way of finding back the file number, should be thought about more
-  let lbreak = htmlText.split('<br>');
-  var text=""
-  for(let i=1; i<lbreak.length-1; i++){
-    text += lbreak[i] + '\n'
-  }
-  navigator.clipboard.writeText(text)
-}
-
-function copyDataFile(fileNum){
-  var splitterA = "\t";
-  if(fileData[fileNum].length <= 0){return;}
-  //sets the text zone to contain the data separated by tab
-  var text = ""
-  for(let i=0; i<fileData[fileNum].length; i++){
-      for(let j=0; j<fileData[fileNum][i].length;j++){
-          //for the last element
-           if(j+1 == fileData[fileNum][0].length){text= text + fileData[fileNum][i][j]}
-           else{text= text + fileData[fileNum][i][j] + splitterA}
-      }
-    text = text+'\n'
-  }
-  navigator.clipboard.writeText(text)
-  //display a temporary box to confirm copying
-  var popup = document.getElementById("popup_filedata_copy")
-  popup.className = "fade_popup_visible"
-  var styletop =  event.pageY-30
-  popup.style.top = event.pageY-30;
-  popup.style.left = event.pageX;
-  
-  setTimeout(() => { 
-      popup.className = "fade_popup" 
-      popup.style.top= -100
-  }, 100);
-
-}
 
 /** copies inputted 2D array to clipboard */
 function copyData(data){
@@ -558,270 +154,8 @@ function duplicateData(data){
 }
 
 
-function saveDataFile(fileNum){
-  var buttons = [
-    {"name":"Save file","function": saveDataFile_export}
-  ]
-  var selecters = [{"name":"fileExtension", "options":[]}]
-  selecters[0].options = [
-      {"value":"csv", "text":"CSV(;)"},
-      {"value":"csvCOMMA", "text":"CSV(,)"},
-      {"value":"txt", "text":"TXT"},
-      {"value":"ascii", "text":"ASCII"},
-  ]
-  var inputs = [
-    {"type":"text"}
-  ]
-  
-  handlePopup("saveDataFile","Choose the name of the file n°"+(fileNum+1),buttons,selecters,inputs)
-
-}
-
-function saveDataFile_export(){
-  var html_popup = document.querySelector('div[name="popup_saveDataFile"]')
-  var htmlText= html_popup.innerHTML
-  //this is not an optimal way of finding back the file number, should be thought about more
-  let lbreak = htmlText.split(/\r?°|</);
-  let fileNum = lbreak[5]-1
-  //gets the file name
-  var fileName = html_popup.querySelector('input[name="popup_input_0"]').value
-  if(fileName == "" || fileName == undefined){fileName = "Puncdata_datafile"}
-
-  //get the file extension
-  var fileExtension = html_popup.querySelector('select[name="popup_selecter_0"]').value
-  var splitterA = ";"
-  if(fileExtension == "csvCOMMA"){splitterA=",";fileExtension="csv"}
-  if(fileExtension == "txt"){splitterA = "\t"}
-  if(fileExtension == "ascii"){splitterA = "  "}
-
-  //sets the text zone to contain the data separated by tab
-  var text = ""
-  for(let i=0; i<fileData[fileNum].length; i++){
-      for(let j=0; j<fileData[fileNum][i].length;j++){
-          //for the last element
-           if(j+1 == fileData[fileNum][0].length){text= text + fileData[fileNum][i][j]}
-           else{text= text + fileData[fileNum][i][j] + splitterA}
-      }
-    text = text+'\n'
-  }
-  var DialogBox = document.getElementById("popupsave")
-  var file = document.createElement('a');
-  mimeType = "text/csv;encoding:utf-8" || 'application/octet-stream';
-  var Blobfile = null
-  Blobfile = new Blob([text], {type: mimeType})
-  file.href = URL.createObjectURL(Blobfile);
-  file.setAttribute('download', fileName+"."+fileExtension);
-  document.body.appendChild(file);
-    file.click();
-    document.body.removeChild(file);
-    DialogBox.style.display = "none"
-    file.href = URL.revokeObjectURL(Blobfile);
-
-}
-
-//updates the number of peaks and columns of each uploaded file
-async function updateFilesInfos(){
-  for(let i=0; i<fileData.length; i++){
-    let htmlFile = document.getElementById("file"+parseInt(i+1))
-    if(isNaN(parseInt(fileData[i].length-1))){
-      htmlFile.querySelector("div[name='peakNum']").innerHTML = "Number of peaks:"
-    }else{
-      htmlFile.querySelector("div[name='peakNum']").innerHTML = "Number of peaks:"+ parseInt(fileData[i].length-1)
-    }
-    if(fileData[i][0]){
-      htmlFile.querySelector("div[name='colNum']").innerHTML = "Number of columns:"+fileData[i][0].length
-    }else{
-      htmlFile.querySelector("div[name='colNum']").innerHTML = "Number of columns:"
-    }
-  }
-}
-
-
 //*********************************************************************//
 //*******************HANDLES THE CREATION OF NEW FILES SLOTS***********//
-
-/**------------------------------------------------------------------------- */
-//adding the zone for inputing new files
-document.getElementById("addFileChoice").addEventListener("click", function(){
-  if(debug){console.log("new file zone added")}
-  var parentZone = document.querySelector(".parentFileArea")
-
-  var newZone = document.createElement("div")
-  var newZoneNumber = fileData.length +1
-  fileData.push({})
-  nameslist.push("file"+newZoneNumber)
-  newZone.setAttribute("class", "filearea");
-  newZone.id = "file"+ newZoneNumber
-
-  var newZone_first = document.createElement("div");
-  newZone_first.setAttribute("class","filearea_first");
-  newZone.appendChild(newZone_first)
-
-  var newZone_second = document.createElement("div");
-  newZone_second.setAttribute("class","filearea_second");
-  newZone.appendChild(newZone_second)
-
-  var newZone_third = document.createElement("div");
-  newZone_third.setAttribute("class","filearea_third");
-  newZone.appendChild(newZone_third)
-
-  var newZone_input = document.createElement("input")
-  newZone_input.type = "text";
-  newZone_input.setAttribute("class","namefileupload");
-  newZone_input.setAttribute("placeholder","Name of file n°"+newZoneNumber);
-  newZone_input.id = "namefile"+newZoneNumber;
-  newZone_second.appendChild(newZone_input)
-
-  var flexZone = document.createElement("div")
-  flexZone.setAttribute("style","display:flex")
-  newZone_first.appendChild(flexZone)
-
-  var uploadButton = document.createElement("div")
-  uploadButton.setAttribute("class", "uploadbutton")
-  flexZone.appendChild(uploadButton)
-
-  var newZone_image = document.createElement("img")
-  newZone_image.setAttribute("class","uploadIcon");
-  newZone_image.setAttribute("src","icons/upload_icon.png");
-  uploadButton.appendChild(newZone_image)
-
-  var fileInput_1 = document.createElement("input")
-  fileInput_1.type = "file"
-  fileInput_1.setAttribute("class", "upload");
-  fileInput_1.setAttribute("onChange","readData(this,"+newZoneNumber+")")
-  uploadButton.appendChild(fileInput_1)
-
-  var fileInput_2 = document.createElement("textarea")
-  fileInput_2.id = "textareafile"+newZoneNumber
-  fileInput_2.setAttribute("class","uploadTextArea")
-  fileInput_2.setAttribute("oninput","readDataTextArea(this,"+newZoneNumber+")")
-  fileInput_2.setAttribute("placeholder","Upload or paste data here")
-  flexZone.appendChild(fileInput_2)
-
-  var delButton = document.createElement("button")
-  delButton.id="clearTextAreaButton"
-  delButton.setAttribute("class","bigiconbutton")
-  delButton.innerHTML = "DELETE <br>"
-  delButton.addEventListener("click", function (){
-    var numberofthearea = newZoneNumber
-    var nameofthearea = "textareafile"+newZoneNumber
-    document.getElementById(nameofthearea).value =""
-    fileData[numberofthearea-1] = {}; //clears the data from fileData
-    fileLogs[numberofthearea-1] = "" //clears the log
-    nameslist[numberofthearea-1] = "" //clears the name
-    //clears the input of the name
-    let htmlName = document.getElementById("namefile"+numberofthearea)
-    htmlName.value = ""
-    //clears the upload file section
-    let htmlZone = document.getElementById("file"+numberofthearea)
-    let htmlFile = htmlZone.querySelector("input[type='file']")
-    htmlFile.value = ""
-    updateFilesInfos();
-  });
-  var deLButton_img = document.createElement("img")
-  deLButton_img.setAttribute("class","parametersButton");
-  deLButton_img.setAttribute("src","icons/remove.png");
-  delButton.appendChild(deLButton_img)
-
-  flexZone.appendChild(delButton)
-  
-
-  var fileInfo_1 = document.createElement("div")
-  fileInfo_1.setAttribute("class","fileInfo")
-  fileInfo_1.setAttribute("name","peakNum"),
-  fileInfo_1.innerHTML = "Number of peaks:"
-  newZone_second.appendChild(fileInfo_1)
-  var fileInfo_2 = document.createElement("div")
-  fileInfo_2.setAttribute("class","fileInfo")
-  fileInfo_2.setAttribute("name","colNum"),
-  fileInfo_2.innerHTML = "Number of columns:"
-  newZone_second.appendChild(fileInfo_2)
-
-  var fileInfo_3 = document.createElement("div")
-  fileInfo_3.setAttribute("class","fileInfo")
-  fileInfo_3.setAttribute("name","fileType")
-  fileInfo_3.style.display = "flex"
-  fileInfo_3.innerHTML = "File type: "
-  var select_fileType = document.createElement("select")
-  select_fileType.setAttribute("name","fileTypeSelect")
-  var select_fileType_o1 = document.createElement("option")
-  select_fileType_o1.setAttribute("value","sample")
-  select_fileType_o1.innerHTML = "Sample"
-  var select_fileType_o2 = document.createElement("option")
-  select_fileType_o2.setAttribute("value","matrix")
-  select_fileType_o2.innerHTML = "Matrix"
-  select_fileType.appendChild(select_fileType_o1)
-  select_fileType.appendChild(select_fileType_o2)
-  fileInfo_3.appendChild(select_fileType)
-  select_fileType.addEventListener("change",function(){changeFileType(newZone, newZoneNumber-1)});
-  var div_intensityCols = document.createElement("button")
-  div_intensityCols.setAttribute("name","intensityCols")
-  div_intensityCols.innerHTML = "Define intensity columns"
-  div_intensityCols.style.display = "none"
-  fileInfo_3.appendChild(div_intensityCols)
-  div_intensityCols.addEventListener("click",function(){changeFileIntensityCols(div_intensityCols, newZoneNumber-1)});
-  fileParameters[newZoneNumber-1] = {};
-  newZone_second.appendChild(fileInfo_3)
-  
-  var flexZone2 = document.createElement("div")
-  flexZone2.setAttribute("style","display:flex")
-  newZone_third.appendChild(flexZone2)
-
-  var saveButton = document.createElement("button")
-  saveButton.setAttribute("class","bigiconbutton")
-  saveButton.setAttribute("name","saveButton")
-  saveButton.innerHTML = "Save <br>"
-  var saveButton_img = document.createElement("img")
-  saveButton_img.setAttribute("class","parametersButton");
-  saveButton_img.setAttribute("src","icons/save_icon.png");
-  saveButton.appendChild(saveButton_img)
-  saveButton.addEventListener("click",function(){saveDataFile(newZoneNumber-1)});
-  flexZone2.appendChild(saveButton)
-
-  var copyButton = document.createElement("button")
-  copyButton.setAttribute("class","bigiconbutton")
-  copyButton.setAttribute("name","copyButton")
-  copyButton.innerHTML = "Copy <br>"
-  var copyButton_img = document.createElement("img")
-  copyButton_img.setAttribute("class","parametersButton");
-  copyButton_img.setAttribute("src","icons/copy.png");
-  copyButton.appendChild(copyButton_img)
-  copyButton.addEventListener("click",function(){copyDataFile(newZoneNumber-1)});
-  flexZone2.appendChild(copyButton)
-
-  var logButton = document.createElement("button")
-  logButton.setAttribute("class","bigiconbutton")
-  logButton.setAttribute("name","logButton")
-  logButton.innerHTML = "Log <br>"
-  var logButton_img = document.createElement("img")
-  logButton_img.setAttribute("class","parametersButton");
-  logButton_img.setAttribute("src","icons/notes_icon.png");
-  logButton.appendChild(logButton_img)
-  logButton.addEventListener("click",function(){logFileInfo(newZoneNumber-1)});
-  flexZone2.appendChild(logButton)
-
-  //add the delete behaviour of the del button
-  delButton.addEventListener("click", function (){
-    var numberofthearea = newZoneNumber
-    var nameofthearea = "textareafile"+numberofthearea
-    document.getElementById(nameofthearea).value =""
-    fileData[numberofthearea-1] = {}; //clears the data from fileData
-  });
-
-
-
-  parentZone.appendChild(newZone)
-  resetFilesChoices(html_tabTable.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabPca.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabAttrib.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabCalib.querySelector("select[name='fileSelection']"));
-  updateFileChoices()
-  updateVennFileChoice();
-
-  //adds the listening to the change of the new title
-  document.getElementById("namefile"+newZoneNumber).addEventListener("change", function(){updateName(this.value,newZoneNumber, false)})
-
-});
 
 
 //adds the option of the names to every file_choice 
@@ -856,7 +190,7 @@ function updateFileChoiceName(newname, number){
   for(let k=0; k<fileChoices.length; k++){
     for(let i=0; i<fileChoices[k].length; i++){
       if(fileChoices[k][i].value == number){
-        fileChoices[k][i].innerHTML = newname
+        fileChoices[k][i].textContent = newname
       }
 
     }
@@ -873,8 +207,8 @@ function linkFileFromDataString(dataString, setColumnNames){
       if(setColumnNames && chosenFile.length >0){columnNames = matrixData[0]}
   }else if(dataString.includes("file")){
       let fileNum = dataString.slice(5);  
-      chosenFile = fileData[fileNum];
-      if(setColumnNames && chosenFile.length >0){columnNames = fileData[fileNum][0]}
+      chosenFile = files.list[fileNum].data;
+      if(setColumnNames && chosenFile.length >0){columnNames = chosenFile[0]}
   }else if(dataString == "A" || dataString == "B" || dataString == "C"){
       chosenFile = vennData[dataString]
   }else if(dataString == "AuB" || dataString == "AuC" || dataString == "BuC" || dataString == "AuBuC"){
@@ -907,611 +241,6 @@ function linkFileParamFromDataString(dataString){
 //*********************************************************************//
 //*******************OTHER CREATION FUNCTIONS**************************//
 
-/** reduce a data group by a selection
- * @data : the data
- * @condition - column number of the condition
- * @min - minimal value to enter the selection
- * @max - maximal value to enter the selection
- */
-function reduceData(data, condition, min, max){
-  let dataSelected = [];
-  for(let i=0; i< data.length; i++){
-    if (data[i][condition]>=min && data[i][condition]<=max){ dataSelected.push(data[i])}
-  }
-  return dataSelected
-} 
-
-/**indicates if there is a name change of a file */
-
-/**contains the names of the files */
-var nameslist =["file1","file2","file3","file4"];
-document.getElementById("namefile1").addEventListener("change", function(){updateName(this.value,1, false)})
-document.getElementById("namefile2").addEventListener("change", function(){updateName(this.value,2, false)})
-document.getElementById("namefile3").addEventListener("change", function(){updateName(this.value,3, false)})
-document.getElementById("namefile4").addEventListener("change", function(){updateName(this.value,4, false)})
-
-/** updates the name of the file if there is a change 
- * @event: the new name given
- * @number: the number of the chosen edited file
- * @tabchange: if the change comes from the upload tab: false; else: true
-*/
-function updateName(newname,number){
-  if(debug){console.log("updating the name of file n°"+number)}
-  fileLogs[number-1] += "Name of the file changed to: '"+newname+"' <br>"
-
-  if(number>-1){ nameslist[number-1] = newname;} //if the newname comes from the upload tab, changes it here
-  resetAllFileChoices();
-  updateFileChoiceName(newname,number) //update all file name selections
-  updateVennFileChoice() //updates the names on the choices of the Venn Tab
-  addFilesToMatrixTable() //update the options in the matrix tab
-  addFilesToTreatmentTable();
-  createDataOptions("data_source",document.getElementById("tab_canvasA")) // update the options for canvas A
-  createDataOptions("data_source",document.getElementById("tab_canvasB")) // update the options for canvas B
-  createDataOptions("data_source",document.getElementById("tab_canvasS")) // update the options for canvas Stat
-
-}
-
-/**resets the file choices for a selecter */
-function resetFilesChoices(selecter, showVennOptions, showClassesOptions, showAttributedOption){
-  var oldChoice = selecter.value
-  //delete old options
-  if(selecter.options != null){
-        for(let j=selecter.options.length-1; j>=0; j--) { //backward for to remove all options
-            selecter.remove(j);
-        }
-    }
-  var options = []
-  options[0] = document.createElement("option")
-  options[0].setAttribute("value","none")
-  options[0].innerHTML = "None"
-  options[1] = document.createElement("option")
-  options[1].setAttribute("value","matrix")
-  options[1].innerHTML = "Matrix"
-  l=2
-  if(showAttributedOption){
-    options[2] = document.createElement("option")
-    options[2].setAttribute("value","attrib")
-    options[2].innerHTML = "Current attribution"
-    l+=1
-  }
-  options[l] = document.createElement("option")
-  options[l].setAttribute("value","none")
-  options[l].innerHTML = "--------------------"
-  l += 1
-  for(let i=0; i<fileData.length; i++){
-      options[l] = document.createElement("option")
-      options[l].setAttribute("value","file_"+i)
-      options[l].innerHTML = "File : "+nameslist[i]
-      l += 1
-  }
-  //only if venn options are to be shown
-  if(vennData && showVennOptions){
-      if(vennData.A){
-          options[l] = document.createElement("option")
-          options[l].setAttribute("value","none")
-          options[l].innerHTML = "--------------------"
-          options[l+1] = document.createElement("option")
-          options[l+1].setAttribute("value","A")
-          options[l+1].innerHTML = "Venn only A"
-          options[l+2] = document.createElement("option")
-          options[l+2].setAttribute("value","AuB")
-          options[l+2].innerHTML = "Venn A&B"
-          options[l+3] = document.createElement("option")
-          options[l+3].setAttribute("value","B")
-          options[l+3].innerHTML = "Venn only B"
-          l+=4
-          if(vennData.C){
-              options[l] = document.createElement("option")
-              options[l].setAttribute("value","C")
-              options[l].innerHTML = "Venn only C"
-              options[l+1] = document.createElement("option")
-              options[l+1].setAttribute("value","AuC")
-              options[l+1].innerHTML = "Venn A&C"
-              options[l+2] = document.createElement("option")
-              options[l+2].setAttribute("value","BuC")
-              options[l+2].innerHTML = "Venn B&C"
-              options[l+3] = document.createElement("option")
-              options[l+3].setAttribute("value","AuBuC")
-              options[l+3].innerHTML = "Venn A&B&C"
-              l+=4
-          }
-      }
-  }
-
-
-  //append all the options
-  var length = 2 
-  for(let i=0; i<options.length; i++){
-      selecter.appendChild(options[i])
-      length +=1
-  }
-  selecter.value =oldChoice || "none"
-
-}
-
-
-
-/** a function to reset all selecters displaying the file choices */
-function resetAllFileChoices(){
-  resetFilesChoices(html_tabTable.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabParameters.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabPca.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabAttrib.querySelector("select[name='fileSelection']"));
-  resetFilesChoices(html_tabCalib.querySelector("select[name='fileSelection']"));
-  addFilesToTreatmentTable();
-  addFilesToMatrixTable();
-  updateFileChoices();
-  updateVennFileChoice();
-  canvasA.htmlTopMenu.draw()
-  canvasB.htmlTopMenu.draw()
-  canvasS.htmlTopMenu.draw()
-  canvasNetwork.draw()
-}
-
-/**initializes textcontent var*/
-var textcontent= ""
-
-  //catches the entered name & listens for the validate button & makes the download
-/** triggered when validate button is pressed for exporting a file */
-function validation(){
-  var DialogBox = document.getElementById("popupsave")
-  var name = document.getElementById("popupinput").value
-  var file = document.createElement('a');
-  mimeType = "text/csv;encoding:utf-8" || 'application/octet-stream';
-  var Blobfile = null
-  Blobfile = new Blob([textcontent], {type: mimeType})
-  file.href = URL.createObjectURL(Blobfile);
-  if(name == ""){file.setAttribute('download', "paramètres.txt");}
-  else{file.setAttribute('download', name+".txt");}
-  document.body.appendChild(file);
-    file.click();
-    document.body.removeChild(file);
-    DialogBox.style.display = "none"
-    file.href = URL.revokeObjectURL(Blobfile);
-    this.removeEventListener("click", validation) //avoids the download of multiple files if multiple parameters are downloaded. If this wasn't done
-    //there would be multiple event listeners listening to the same click and increasing the number of files downloaded at once
-
-};
-
-////////////////////////////////////////////////////////////////////////////
-// functions for importing and exporting the new parameters
-function importPopup(input){
-  let text = document.createElement("div")
-  text.innerHTML = "Check which parts of the parameters to import<br><br>"
-  let names = ["Main config (tab parameters options)","Canvas A tab","Canvas B tab","Canvas stat tab","Config venn","Config PCA","Config network ","Attribution charts","Attribution parameters","Calibration lists"]
-  let htmlNames = ["main","cvsA","cvsB","cvsS","venn","pca","network","attribCharts","attribCfg","calib"]
-  let checkboxes = []
-  let table = document.createElement("table")
-  let tableHeader = document.createElement("tr")
-  let header1 = document.createElement("th")
-  let header2 = document.createElement("th")
-  header2.innerHTML = "Check/Uncheck all"
-  let headerCheck = document.createElement("input")
-  headerCheck.setAttribute("type","checkbox")
-  headerCheck.setAttribute("checked",true)
-  headerCheck.setAttribute("name","checkAllImport")
-
-  header1.appendChild(headerCheck)
-  tableHeader.appendChild(header1)
-  tableHeader.appendChild(header2)
-  table.appendChild(tableHeader)
-
-  for(let i=0; i<names.length; i++){
-    let line = document.createElement("tr")
-    let cell1 = document.createElement("td")
-    let cell2 = document.createElement("td")
-    checkboxes[i] = document.createElement("input")
-    checkboxes[i].setAttribute("type","checkbox")
-    checkboxes[i].setAttribute("name",htmlNames[i])
-    checkboxes[i].setAttribute("checked",true)
-    cell2.innerHTML = names[i] 
-    cell1.appendChild(checkboxes[i])
-    line.appendChild(cell1)
-    line.appendChild(cell2)
-    table.appendChild(line)
-  }
-  text.appendChild(table)
-
-  var buttons = [
-    {"name":"Import","function":importJSON,"arg1":input, "arg2":true},
-  ]
-  handlePopup("importConfig",text.innerHTML,buttons,[],[])
-  //adds the functionnality to the "check all" button
-  let createdPopup = document.getElementsByName("popup_importConfig")[0]
-  let checkAllBox = createdPopup.querySelector("input[name='checkAllImport']")
-  checkAllBox.addEventListener("change",function(){
-    let checkboxes = createdPopup.querySelectorAll("input")
-    for(let i=1; i<checkboxes.length; i++){
-      checkboxes[i].checked = this.checked
-    }
-  })
-}
-
-
-function importJSON(input, importFromPopup){
-  //REMOVE HERE FOR ATTRIBUTION DATA CONFIG
-  let checks = {"main":true,"cvsA":true,"cvsB":true, "cvsS":true,"venn":true,"classes":true,"pca":true,"network":true,"attribCharts":true,"attribCfg":true,"calib":true}
-  //if the input comes from the parameters popup, check which boxes have been checked
-  if(importFromPopup){
-    let popup = document.getElementsByName("popup_importConfig")[0]
-    checks.main = popup.querySelector("input[name='main']").checked
-    checks.cfgA = popup.querySelector("input[name='cvsA']").checked
-    checks.cfgB = popup.querySelector("input[name='cvsB']").checked
-    checks.cfgS = popup.querySelector("input[name='cvsS']").checked
-    checks.venn = popup.querySelector("input[name='venn']").checked
-    checks.pca = popup.querySelector("input[name='pca']").checked
-    checks.network = popup.querySelector("input[name='network']").checked
-    checks.attribCharts = popup.querySelector("input[name='attribCharts']").checked
-    checks.attribCfg = popup.querySelector("input[name='attribCfg']").checked
-    checks.calib = popup.querySelector("input[name='calib']").checked
-  }
-  var reader = new FileReader();
-  reader.onload = onReaderLoad
-  reader.readAsText(input.files[0]);
-  //this will happen when the data has been read and the variable values need now to be set.
-  function onReaderLoad(event){
-    var data = JSON.parse(reader.result);
-    if(debug){console.log(checks,data)}
-    if(checks.main){
-      if(!data.config.selectionTool){data.config.selectionTool = config.selectionTool}
-      if(!data.config.tooltipPie){data.config.tooltipPie = config.tooltipPie}
-      config = data.config
-      splitter = data.splitter
-      splitterTextArea = data.splitterTextArea
-      if(!data.config.margin){config.margin = {top: 10, right: 25, bottom: 100, left: 75}}
-      if(!config.sizeReductor){config.sizeReductor = 2000}
-      if(!config.customTooltipData){config.customTooltipData = []}
-      if(!config.height || !config.width){config.height = data.height; config.width = data.width;}
-      if(data._textLog){_textLog = data._textLog}
-    }
-    if(data.cfgVenn && checks.venn){ cfgVenn = data.cfgVenn}
-    if(data.cfgStat && checks.cfgS){ cfgStat = data.cfgStat}
-    if(data.cfgPCA && checks.pca){ cfgPCA = data.cfgPCA}
-    if(data.cfgNetwork && checks.network){canvasNetwork.prepareCfg(data.cfgNetwork)}
-
-    //for previous compatibility
-    if(!data.version || data.version<1.14){
-      if(checks.cfgA){copyFromOldCvs(canvasA, data.cfgA)}
-      if(checks.cfgB){copyFromOldCvs(canvasB, data.cfgB)}
-    }else{
-      if(checks.cfgA){copyFromCfgCvs(canvasA, data.cfgA)}
-      if(checks.cfgB){copyFromCfgCvs(canvasB, data.cfgB)}
-      if(checks.cfgS){copyFromCfgCvs(canvasS, data.cfgS)}
-    }
-
-    //for ATTRIBUTION TAB
-    if(checks.attribCharts && data.cfgAttribDraw){cfgAttribDraw = data.cfgAttribDraw}
-    if(checks.attribCfg  && data.attribCfg){attribCfg = {...attribCfg, ...data.attribCfg}} //TODO: make object spreads like this for all
-    if(checks.attribCfg  && data.attribPasses){attribPasses = data.attribPasses}
-    if(data.attribCfg && data.version <1.153){prepareCompatibilityCheckboxMenu()}
-    if(checks.calib  && data.calibData){calibData = data.calibData}
-
-    //set the columns data html inputs to the right value
-    updateParametersShownValues()
-    resetAllFileChoices();
-    setVennDataTable();
-    quickStartupInterfaceAttrib(false);
-    updateCustomColorScalesChoice();
-
-    //resets the config
-    html_configDivHolder.querySelector("div[name='configDiv']").remove()
-    html_configDiv = createConfigHTML(config)
-    html_configDivHolder.appendChild(html_configDiv)
-    
-  }
-
-  
-}
-
-/** imports the data only from a pdata file */
-function importPuncdataDataOnly(input){
-  var reader = new FileReader();
-  reader.onload = onReaderLoad
-  reader.readAsText(input);
-  //this will happen when the data has been read and the variable values need now to be set.
-  function onReaderLoad(event){
-    var data = JSON.parse(reader.result);
-    if(debug){console.log(data)}
-    if(debug){console.log("version: "+data.version)}
-    //pre-creates the slots for the number of files needes
-    let emptyDataSets = 0
-    for(let i=0; i<fileData.length; i++){
-      if(!fileData[i] || fileData[i].length ==0 || !fileData[i].length){emptyDataSets+=1}
-    }
-    let slotsToCreate = data.fileData.length - emptyDataSets
-    for(let i=0; i<slotsToCreate; i++){
-      document.getElementById("addFileChoice").click() //creates a new zone
-    }
-    if(debug){console.log("Reading pdata file: assigning variables...")}
-    //fills the data
-    for(let i=0; i<data.fileData.length; i++){
-      let filled =false
-      for(let j=0; j<fileData.length; j++){
-        if((!fileData[j] || fileData[j].length ==0 || !fileData[j].length)&& !filled){
-          filled = true
-          fileData[j] = data.fileData[i]
-          nameslist[j] = data.nameslist[i]
-        }
-      }
-      if(!filled){
-        fileData[fileData.length] = data.fileData[i]
-        nameslist[fileData.length] = data.nameslist[i]
-      }
-    }
-    //updates the names
-    updateFilesInfos()
-    for(let i=0; i<nameslist.length; i++){
-      createTitle(nameslist[i], i+1, false)
-    }
-    indexFiles()
-  }
-}
-
-
-//import a pdata file
-function importPuncdataFile(input){ 
-  var reader = new FileReader();
-  reader.onload = onReaderLoad
-  reader.readAsText(input.files[0]);
-
-  //this will happen when the data has been read and the variable values need now to be set.
-  function onReaderLoad(event){
-    var data = JSON.parse(reader.result);
-    if(debug){console.log(data)}
-    if(debug){console.log("version: "+data.version)}
-    //pre-creates the slots for the number of files needes
-    if(data.nameslist.length > nameslist.length){
-      let createNum = data.nameslist.length - nameslist.length
-      for (let i=0; i<createNum; i++){
-        document.getElementById("addFileChoice").click() //creates a new zone
-      }
-    }
-    if(debug){console.log("Reading pdata file: assigning variables...")}
-    fileData = data.fileData
-
-    nameslist = data.nameslist
-    columnNames = data.columnNames
-    if(!data.config.selectionTool){data.config.selectionTool = config.selectionTool}
-    if(!data.config.tooltipPie){data.config.tooltipPie = config.tooltipPie}
-    config = data.config
-    if(!data.config.margin){config.margin = {top: 10, right: 30, bottom: 90, left: 60}}
-    if(data._textLog){_textLog = data._textLog}
-    if(!config.sizeReductor){config.sizeReductor = 2000}
-    if(!config.customTooltipData){config.customTooltipData = []}
-    if(!config.height || !config.width){config.height = data.height; config.width = data.width;}
-    splitter = data.splitter
-    splitterTextArea = data.splitterTextArea
-    isFileUploaded = data.isFileUploaded
-    matrixFilesColumns = data.matrixFilesColumns || []
-    fileParameters = data.fileParameters || [{},{},{},{}]
-    matrixData = data.matrixData
-    if(data.fileLogs){fileLogs = data.fileLogs}
-    if(data.vennData){vennData = data.vennData}
-    if(data.vennData && !data.cfgVenn){cfgVenn ={circleNb:3,files:[0,1,2,3],colors:["","","",""]}} //to correct a specific bug for one savefile
-    if(data.cfgVenn){ cfgVenn = data.cfgVenn}
-    if(data.cvsPCA){ cvsPCA = data.cvsPCA}
-    if(data.cfgPCA){ cfgPCA = data.cfgPCA}
-    if(data.cfgNetwork){canvasNetwork.prepareCfg(data.cfgNetwork)}
-    if(data.fileCalibData){fileCalibData = data.fileCalibData}
-    if(data.calibData){calibData = data.calibData}
-
-    //sets the upload tab file types as they previously were indicated in fileParameters
-    for(let i=0; i<fileData.length; i++){
-        let html_file = document.getElementById("file"+(i+1))
-        if(!html_file || !fileParameters[i]){continue;}
-        let selecter = html_file.querySelector("select[name='fileTypeSelect']")
-        let fileType = fileParameters[i].fileType
-        selecter.value = fileType || "sample"
-        if(fileType == "matrix"){
-          let button = html_file.querySelector("button[name='intensityCols']")
-          button.style.display = ""
-        }
-    }
-
-    //for previous compatibility
-    if(!data.version || data.version<1.14){
-      copyFromOldCvs(canvasA, data.cfgA)
-      copyFromOldCvs(canvasA, data.cfgA)
-    }else{
-      copyFromCfgCvs(canvasA, data.cfgA)
-      copyFromCfgCvs(canvasB, data.cfgB)
-      copyFromCfgCvs(canvasS, data.cfgS)
-    }
-    canvasS.draw()
-    canvasS.htmlTopMenu.draw()
-
-    //for ATTRIBUTION
-    if(data.cfgAttribDraw){cfgAttribDraw = data.cfgAttribDraw}
-    if(data.attribCfg){attribCfg = {...attribCfg, ...data.attribCfg}} //TODO: make object spreads like this for all
-    if(data.attribCfg && !data.attribCfg.directNetwork){attribCfg.directNetwork = {"list":[],"mDaTol":0.1,"use":false}}
-    if(data.attribCfg && data.version <1.153){prepareCompatibilityCheckboxMenu()}
-    if(data.attribPasses){attribPasses = data.attribPasses}
-    if(data.attribData){attribData = data.attribData}
-    if(data.cvsAttrib){cvsAttrib = data.cvsAttrib}
-
-    indexFiles();
-    if(debug){console.log("Reading pdata file: reseting file choices...")}
-    resetAllFileChoices();
-    addFilesToMatrixTable();
-    addFilesToTreatmentTable();
-    setVennDataTable();
-    
-    if(debug){console.log("Reading pdata file: drawing everything...")}
-    drawEverything()
-
-    //updates the names
-    updateFilesInfos()
-    for(let i=0; i<nameslist.length; i++){
-      createTitle(nameslist[i], i+1, false)
-    }
-
-    //set the columns data html inputs to the right value
-    updateParametersShownValues()
-    quickStartupInterfaceAttrib(false);
-    updateCustomColorScalesChoice();
-
-    //resets the config
-    html_configDivHolder.querySelector("div[name='configDiv']").remove()
-    html_configDiv = createConfigHTML(config)
-    html_configDivHolder.appendChild(html_configDiv)
-
-    //now that it's finished, sets the name of the window/browser tab
-    let fileName = ""
-    if(input.files && input.files[0]&& input.files[0].name){
-      fileName = input.files[0].name
-      fileName = fileName.slice(0, fileName.lastIndexOf('.')) || fileName
-    }
-    document.getElementById("windowName").innerHTML = "Punc'data V "+version.name+" - "+fileName
-  }
-
-}
-
-
-function exportJSON(){
-  var buttons = [
-    {"name":"Export parameters ","function":exportJSONParamFile},
-    {"name":"Export Session (data + parameters)","function":exportJSONPuncdataFile}
-  ]
-  var inputs = [
-    {"type":"text"}
-  ]
-  
-  handlePopup("exportParameters","Every parameter will be saved in a .json file. Please choose its name : ",buttons,[],inputs)
-}
-
-/** this function is used for exports, to avoid some keys from being duplicated */
-function omitKeys(obj, keys)
-{
-    var obj2 = {};
-    for (var key in obj) {
-        if (keys.indexOf(key) == -1) {
-          obj2[key] = obj[key];
-        }
-    }
-    return obj2;
-}
-
-function exportJSONParamFile(){
-  var data = {
-    "version":version.number,
-    "config":config,
-    "splitter":splitter,
-    "splitterTextArea": splitterTextArea,
-    "fileLogs":fileLogs,
-    "_textLog":_textLog,
-    "isFileUploaded":isFileUploaded,
-    "cfgVenn":cfgVenn,
-    "cfgPCA":cfgPCA,
-    "cfgA":canvasA.exportCfg(),
-    "cfgB":canvasB.exportCfg(),
-    "cfgS":canvasS.exportCfg(),
-    "cfgNetwork":canvasNetwork.cfg,
-    //for ATTRIBUTION
-    "cfgAttribDraw":cfgAttribDraw,
-    "attribCfg":attribCfg,
-    "attribPasses":attribPasses,
-    "calibData":calibData
-  }
-
-  var html_popup = document.querySelector('div[name="popup_exportParameters"]')
-  var fileName = html_popup.querySelector('input[name="popup_input_0"]').value
-  if(fileName == "" || fileName == undefined){fileName = "Puncdata_parameters"}
-
-  var json = JSON.stringify(data)
-  var DialogBox = document.getElementById("popupsave")
-  var file = document.createElement('a');
-  mimeType = "text/csv;encoding:utf-8" || 'application/octet-stream';
-  var Blobfile = null
-  Blobfile = new Blob([json], {type: mimeType})
-  file.href = URL.createObjectURL(Blobfile);
-  file.setAttribute('download', fileName+".json");
-  document.body.appendChild(file);
-    file.click();
-    document.body.removeChild(file);
-    DialogBox.style.display = "none"
-    file.href = URL.revokeObjectURL(Blobfile);
-}
-
-function exportJSONParamAsCookie(){
-   var data = {
-    "version":version.number,
-    "config":config,
-    "splitter":splitter,
-    "splitterTextArea": splitterTextArea,
-    "fileLogs":fileLogs,
-    "_textLog":_textLog,
-    "isFileUploaded":isFileUploaded,
-    "cfgVenn":cfgVenn,
-    "cfgPCA":cfgPCA,
-    "cfgA":canvasA.exportCfg(),
-    "cfgB":canvasB.exportCfg(),
-    "cfgS":canvasS.exportCfg(),
-    "cfgNetwork":canvasNetwork.cfg,
-    //for ATTRIBUTION
-    "cfgAttribDraw":cfgAttribDraw,
-    "attribCfg":attribCfg,
-    "attribPasses":attribPasses,
-    "calibData":calibData
-  }
-  var json = JSON.stringify(data)
-  localStorage.setItem("config",json)
-  return json
-}
-
-function exportJSONPuncdataFile(){
-  var data = {
-    "info":"This is a JSON file to load a fully working Punc'data session. It contains parameters AND data",
-    "version":version.number,
-    "_textLog":_textLog,
-    "fileData":fileData,
-    "matrixData":matrixData,
-    "nameslist":nameslist,
-    "columnNames":columnNames,
-    "vennData":vennData,
-    "cfgA":canvasA.exportCfg(),
-    "cfgB":canvasB.exportCfg(),
-    "cfgS":canvasS.exportCfg(),
-    "cfgNetwork":canvasNetwork.cfg,
-    "config":config, 
-    "splitter":splitter,
-    "splitterTextArea": splitterTextArea,
-    "fileLogs":fileLogs,
-    "matrixFilesColumns":matrixFilesColumns,
-    "fileParameters":fileParameters,
-    "cfgVenn":cfgVenn,
-    "cfgPCA":cfgPCA,
-    "cvsPCA":cvsPCA,
-    "fileCalibData":fileCalibData,
-    //for ATTRIBUTION
-    "cfgAttribDraw":cfgAttribDraw,
-    "attribCfg":attribCfg,
-    "attribPasses":attribPasses,
-    "attribData":attribData,
-    "cvsAttrib":cvsAttrib,
-    "calibData":calibData
-  }
-
-  var html_popup = document.querySelector('div[name="popup_exportParameters"]')
-  var fileName = html_popup.querySelector('input[name="popup_input_0"]').value
-  if(fileName == "" || fileName == undefined){fileName = "Puncdata_parameters"}
-
-  var json = JSON.stringify(data)
-  var DialogBox = document.getElementById("popupsave")
-  var file = document.createElement('a');
-  mimeType = "text/csv;encoding:utf-8" || 'application/octet-stream';
-  var Blobfile = null
-  Blobfile = new Blob([json], {type: mimeType})
-  file.href = URL.createObjectURL(Blobfile);
-  file.setAttribute('download', fileName+".pdata");
-  document.body.appendChild(file);
-    file.click();
-    document.body.removeChild(file);
-    DialogBox.style.display = "none"
-    file.href = URL.revokeObjectURL(Blobfile);
-
-
-}
-
 
 //to show parameters tab values on the opening of this script
 updateParametersShownValues()
@@ -1535,15 +264,13 @@ function updateShownColumnNames(cols){
     //if a column is already given, skips this column finding step
     var columns = []
     if(!cols){
-  
       var choice = html_tabParameters.querySelector("select[name='fileSelection']").value
       if(choice == "matrix"){ columns = matrixData[0]}
       else if(choice.includes("file")){
           let fileNum = choice.slice(5);
-            columns = fileData[fileNum][0];
+          columns = files.list[fileNum].data[0];
       }
-  
-      if(columns.length == 0 && fileData[0] && fileData[0][0]){columns = fileData[0][0]}
+      if(columns.length == 0 && files.list[0].data && files.list[0].data[0]){columns = files.list[0].data[0]}
       if(columns.length == 0){return;}
     }else{
       columns = cols
@@ -1554,9 +281,6 @@ function updateShownColumnNames(cols){
   document.getElementById("config_ppmerror_name").innerHTML = columns[config.ppmerror]
   document.getElementById("config_formulatext_name").innerHTML = columns[config.formulatext]
 }
-
-
-
 //function for automatic finding of column based on the title of the columns
 document.getElementById("columnsetup_auto").addEventListener("click",function(){autoSetupColumns()})
 
@@ -1569,7 +293,7 @@ function autoSetupColumns(cols){
     if(choice == "matrix"){ columns = matrixData[0]}
     else if(choice.includes("file")){
         let fileNum = choice.slice(5);
-          columns = fileData[fileNum][0];
+          columns = files.list[fileNum].data[0];
     }
 
     if(columns.length == 0){return alertPopup("Error with automatic column search. \n Please select a file containing data")}
@@ -1578,7 +302,7 @@ function autoSetupColumns(cols){
   }
   //looks for every parameter
   var col_mz = ["m/z","mz","mass"];
-  var col_i = ["intensity","abundance","abund","i"];
+  var col_i = ["intensity","abundance","abund","count","i"];
   var col_dbe = ["dbe","rdb"];
   var col_ppmerror = ["ppm","error"];
   var col_formula = ["formula"];
@@ -1761,10 +485,6 @@ function openUploadParameters(){
   popup_box.innerHTML += "<br>"
   popup_box.appendChild(html_button)
 
-
-
-
-
   popup.appendChild(popup_box)
   main_popup.appendChild(popup)
  //appending the functions
@@ -1848,17 +568,16 @@ document.getElementById("refreshButton").addEventListener("click", function(){
   for(let i=0; i<allTabs.length; i++){
     if(allTabs[i].style.display == "block"){
       var tabName = allTabs[i].id
+      resetDataSelecters()
       indexFiles()
       if(tabName == "tab_venn"){
         drawVennChoices();
         drawVenn();
       }
       else if(tabName == "tab_table"){
-        resetFilesChoices(html_tabTable.querySelector("select[name='fileSelection']"));
         updateTableTab()
       }
       else if(tabName =="tab_parameters"){
-        resetFilesChoices(html_tabParameters.querySelector("select[name='fileSelection']"));
       }
       else if(tabName == "tab_classes"){
         startClassesTab();
@@ -1882,14 +601,10 @@ document.getElementById("refreshButton").addEventListener("click", function(){
         canvasS.htmlTopMenu.draw()
         canvasS.draw()
       }
-      else if(tabName == "tab_upload"){
-        updateFilesInfos();
-        for(let i=0; i<nameslist.length; i++){
-          createTitle(nameslist[i], i+1, false)
-        }
+      else if(tabName == "tab_data"){
+        generalFilesUpdate()
       }
       else if(tabName == "tab_pca"){
-        resetFilesChoices(html_tabPca.querySelector("select[name='fileSelection']"));
         handlePCA();
       }
       else if(tabName == "tab_network"){
@@ -1901,7 +616,6 @@ document.getElementById("refreshButton").addEventListener("click", function(){
         attribCheckboxMenuUpdate()
       }
       else if(tabName == "tab_calib"){
-        resetFilesChoices(html_tabCalib.querySelector("select[name='fileSelection']"));
       }
     }
   }
@@ -1909,27 +623,13 @@ document.getElementById("refreshButton").addEventListener("click", function(){
 
 /**a function that searches for the last uploaded file to base the columns on. */
 function resetColumnNames(){
-  for(let i=fileData.length; i>=0; i--){
-    if(fileData[i] && fileData[i][0]){
-      columnNames = fileData[i][0]
+  for(let i=files.list.length; i>=0; i--){
+    if(files.list[i] && files.list[i].data && files.list[i].data[0]){
+      columnNames = files.list[i].data[0]
       return;
     }
   }
 }
-
-/***------------------------------- */
-//functions for the help button
-
-// document.getElementById("helpButton").addEventListener("click", function(){
-//   let text = "Hover any menu where you would like details to get a helping tooltip explaining the menu. "
-//   var buttons = [{"name":"OK","function":function(){}},]
-//   handlePopup("helpIntro",text,buttons,[],[])
-
-//   helpMode = true
-//   document.body.setAttribute("style","cursor:help !important")
-
-// })
-
 
 /**------------------------------------------------------------------------- */
 //function for editing and creating new color scales
@@ -2601,9 +1301,6 @@ function isLowerCase (input) {
   return input === String(input).toLowerCase()
 }
 
-
-// handlePopup("oui","blabla",[{"name":"TEST BOUTON","function":""}])
-
 /******************************************************* */
 /** a function to handle Popups 
  * "buttons" must be an array containing "name" and "function" and arg1, arg2, arg3
@@ -2790,26 +1487,81 @@ function getRandomAnimTip(){
   animTipDiv.innerHTML = tip
 }
 
-
-
-/***Deletes the intro animation */
-let animDiv = document.getElementById("introAnim")
-
-/** to set back to normal value, put 2500 */
-deleteAnimIntro(2500)
-if(localStorage.getItem("alreadyVisited") == "true"){
-  deleteTooltipIntro(0)}
-else{
-  deleteTooltipIntro(6000)
+/**based on stored browser data, looks if a popup should be created or a changelog */
+function handleConnexionIntro() {
+  //check if a popup should be created
+  var shouldCreate = true;
+  var shouldCreateChangelog = false;
+  if(localStorage.getItem("alreadyVisited") == "true"){
+    shouldCreate = false;
+  }
+  var versionLastVisited = localStorage.getItem("versionLastVisited")
+  if(versionLastVisited && parseFloat(versionLastVisited) <1.160){
+    shouldCreateChangelog = true;
+  }else if(!versionLastVisited && localStorage.getItem("alreadyVisited") == "true"){
+    shouldCreateChangelog = true;
+  }
+  //sets new storage
   localStorage.setItem("alreadyVisited",true)
+  localStorage.setItem("versionLastVisited",version.number)
+  console.log("version last visited : "+versionLastVisited)
+  //show needed popup
+  if(shouldCreate){
+    createPopup_firstConnexion()
+  }
+  if(shouldCreateChangelog){
+    //uncomment this if the changelog popup should appear
+    createPopup_changelog()
+  }
 }
 
-function deleteAnimIntro(delay){
+/** creates the popup to tip to go to the help section */
+function createPopup_firstConnexion(){
+  var wrapper = document.getElementById("tooltipWrapper")
+  var popup = document.createElement("div")
+  popup.setAttribute("class","introtooltip")
+  var popupClose = document.createElement("div")
+  popupClose.setAttribute("class","introtooltipclose")
+  popupClose.textContent = "X"
+  popupClose.addEventListener("click",()=>{
+    popup.remove()
+  })
+  popup.textContent = "First time ? Go to the tab help to learn how to use Punc'data. Video tutorial will soon be added"
+  popup.appendChild(popupClose)
+  wrapper.appendChild(popup)
+  /**automatically deletes after 6 seconds */
+  deleteDOM(popup, 6000)
+}
+
+/** creates a popup to display a changelog. Would it be really useful ? maybe a link ? */
+function createPopup_changelog(){
+  var popup = new Popup("changelog","Punc'data has been updated ! You can review the changelog here")
+  console.log(popup)
+  var wrapper = popup.popup_box.querySelector("div[name='popup_content']")
+  var collapser = document.createElement("div")
+  var link = document.createElement("a")
+  collapser.setAttribute("class","collapseHeader")
+  collapser.style.height="25px"
+  collapser.style.textAlign="center"
+  collapser.style.marginTop = "30px"
+  link.style.color = "black"
+  link.style.textDecoration = "none"
+  link.textContent = "Click here to go to the Changelog on Github"
+  link.setAttribute("href","https://github.com/WTVoe/puncdata/blob/master/changelog.md")
+  collapser.appendChild(link)
+  wrapper.appendChild(document.createElement("br"))
+  wrapper.appendChild(collapser)
+  popup.valButton.remove()
+}
+
+
+/**deletes a dom element with a delay in ms */
+function deleteDOM(DOMelement, delay){
   document.body.style.overflow = "hidden";
   sleep(delay).then(()=> endAnim())
 
   function endAnim(){
-    animDiv.remove()
+    DOMelement.remove()
     document.body.style.overflow = "auto";
   }
 }
@@ -2817,18 +1569,6 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/******************************************************* */
-/** handles the starting tooltip automatic deletion */
-function deleteTooltipIntro(delay){
-  var introTooltip = document.getElementById("introTooltip")
-    sleep(delay).then(()=>{
-      if(introTooltip){introTooltip.remove()}
-  })
-}
-document.getElementById("introTooltipClose").addEventListener("click",()=>{
-  var introTooltip = document.getElementById("introTooltip")
-  if(introTooltip){introTooltip.remove()}
-})
 
 
 /******************************************************************************************************************************************* */
@@ -2932,10 +1672,10 @@ var lastIndex = 0
 // a function to index every file
 function indexFiles(){
   var lastIndex = 0
-  for(let i=0; i<fileData.length; i++){
-    if(fileData[i].length <=0){continue;}
-    for(let j=1; j<fileData[i].length; j++){
-      fileData[i][j].index = lastIndex
+  for(let i=0; i<files.list.length; i++){
+    if(!files.list[i] || !files.list[i].data || files.list[i].data.length <=0){continue;}
+    for(let j=1; j<files.list[i].data.length; j++){
+      files.list[i].data[j].index = lastIndex
       lastIndex +=1
     }
   }
@@ -3010,113 +1750,31 @@ function gammaIncomplete(s, x) {
   return Math.exp(-x + s * Math.log(x) - Math.log(s) + Math.log(value));
 }
 
-//contains the data of the selected zones on Venn diagrams
-var vennData = [];
+/**solves an equation inputted as {a,b,c} to solve when ax+by=c, with x ans y being positive integers */
+function solveLinearEquation(equation){
+  let a = equation.a
+  let b = equation.b
+  let c = equation.c
+  let solutions = []
+  //find the gcd of a and b
+  let gcd_ab = gcd(a,b)
+  //check if a solution exists
+  if(c % gcd_ab !=0){
+    return []
+  }
+  //find all solutions
+  for(let x=0; x<= c/a; x++){
+    let y = (c - a*x)/b
+    if(y % 1 === 0 && y >=0){
+      solutions.push({x:x, y:y})
+    }
+  }
+  return solutions
+}
 
-/** creates the option for the data selection */
-function createDataOptions(selecter, parentDiv){
-  if(typeof selecter != 'object'){
-      selecter = parentDiv.querySelector('select[name="'+selecter+'"]')
-  }
-  if(!selecter){return;}
-  //remove all previous options
-  var oldValue = selecter.value
-  if(selecter.options != null){
-      for(let j=selecter.options.length-1; j>=0; j--) { //backward for to remove all options
-          selecter.remove(j);
-      }
-  }
-  var options = []
-  options[0] = document.createElement("option")
-  options[0].setAttribute("value","none")
-  options[0].innerHTML = "None"
-  options[1] = document.createElement("option")
-  options[1].setAttribute("value","matrix")
-  options[1].innerHTML = "Matrix"
-  options[2] = document.createElement("option")
-  options[2].setAttribute("value","none")
-  options[2].setAttribute("disabled","")
-  options[2].innerHTML = "--------------------"
-  var l = 3
-  for(let i=0; i<fileData.length; i++){
-      options[3+i] = document.createElement("option")
-      options[3+i].setAttribute("value","file_"+i)
-      options[3+i].innerHTML = "File : "+nameslist[i]
-      l += 1
-  }
-  if(vennData){
-      if(vennData.A){
-          options[l] = document.createElement("option")
-          options[l].setAttribute("value","none2")
-          options[l].setAttribute("disabled","")
-          options[l].innerHTML = "--------------------"
-          options[l+1] = document.createElement("option")
-          options[l+1].setAttribute("value","A")
-          options[l+1].innerHTML = "Venn only A"
-          options[l+2] = document.createElement("option")
-          options[l+2].setAttribute("value","AuB")
-          options[l+2].innerHTML = "Venn A∩B"
-          options[l+3] = document.createElement("option")
-          options[l+3].setAttribute("value","B")
-          options[l+3].innerHTML = "Venn only B"
-          l+=4
-          if(vennData.C){
-              options[l] = document.createElement("option")
-              options[l].setAttribute("value","C")
-              options[l].innerHTML = "Venn only C"
-              options[l+1] = document.createElement("option")
-              options[l+1].setAttribute("value","AuC")
-              options[l+1].innerHTML = "Venn A∩C"
-              options[l+2] = document.createElement("option")
-              options[l+2].setAttribute("value","BuC")
-              options[l+2].innerHTML = "Venn B∩C"
-              options[l+3] = document.createElement("option")
-              options[l+3].setAttribute("value","AuBuC")
-              options[l+3].innerHTML = "Venn A∩B∩C"
-              l+=4
-              if(vennData.D){
-                  options[l] = document.createElement("option")
-                  options[l].setAttribute("value","D")
-                  options[l].innerHTML = "Venn only D"
-                  options[l+1] = document.createElement("option")
-                  options[l+1].setAttribute("value","AuD")
-                  options[l+1].innerHTML = "Venn A∩D"
-                  options[l+2] = document.createElement("option")
-                  options[l+2].setAttribute("value","BuD")
-                  options[l+2].innerHTML = "Venn B∩D"
-                  options[l+3] = document.createElement("option")
-                  options[l+3].setAttribute("value","CuD")
-                  options[l+3].innerHTML = "Venn C∩D"
-                  options[l+4] = document.createElement("option")
-                  options[l+4].setAttribute("value","AuBuD")
-                  options[l+4].innerHTML = "Venn A∩B∩D"
-                  options[l+5] = document.createElement("option")
-                  options[l+5].setAttribute("value","AuCuD")
-                  options[l+5].innerHTML = "Venn A∩C∩D"
-                  options[l+6] = document.createElement("option")
-                  options[l+6].setAttribute("value","BuCuD")
-                  options[l+6].innerHTML = "Venn B∩C∩D"
-                  options[l+7] = document.createElement("option")
-                  options[l+7].setAttribute("value","AuBuCuD")
-                  options[l+7].innerHTML = "Venn All (A∩B∩C∩D)"
-                  l+=8
-              }
-          }
-      }
-  }
-  //append all the options
-  var length = 2 
-  for(let i=0; i<options.length; i++){
-      if(options[i]){
-          selecter.appendChild(options[i])
-      }
-      length +=1
-  }
-  
-
-  selecter.value = oldValue
-  return selecter
-
+function gcd(a,b){
+  if(!b){return a;}
+  return gcd(b, a % b);
 }
 
 

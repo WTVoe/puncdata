@@ -58,21 +58,24 @@ function handlePCA(){
     if(fileChoice == "matrix"){ data = matrixData; cols=matrixFilesColumns}
     else if(fileChoice.includes("file")){
         fileNum = fileChoice.slice(5);  
-        data = fileData[fileNum]
+        var file = files.list[fileNum]
+        data = file.data
         //checks if it is a matrix, if not aborts
-        if(!fileParameters[fileNum] || !fileParameters[fileNum].matrixMin || !fileParameters[fileNum].matrixMax){
+        if(file.type != "matrix"){
             return alertPopup("The file selected is not a matrix ! Aborting")
         }
-        cols = [parseInt(fileParameters[fileNum].matrixMin), parseInt(fileParameters[fileNum].matrixMax)+1] //+1 because it should be [[ type of interval
+        cols = [parseInt(file.matrix.matrixMin), parseInt(file.matrix.matrixMax)+1] //+1 because it should be [[ type of interval
         
     }
+    if(data.length==0){return console.warn("PCA aborted, no data in the matrix")}
     data = doPCA(data, cols)
-    if(fileNum>=0){  fileLogs[fileNum] += "PCA made on this matrix. Added columns for Components <br>"}
+    if(fileNum>=0 && files.list[fileNum]){files.list[fileNum].logs.push("PCA made on this matrix. Added columns for Components <br>")}
     if(fileChoice == "matrix"){matrixData = data}
     else{ 
         let fileNum = fileChoice.slice(5);
-        fileData[fileNum] = data;
-        fileParameters[fileNum].variablesPca = cvsPCA.loadings
+        var file = files.list[fileNum]
+        file.data = data;
+        file.matrix.pca_loadings = cvsPCA.loadings
     }
     columnNames = data[0]
     indexFiles();
@@ -303,10 +306,10 @@ class Popup_PCAVariables extends Popup{
 
   buildSuppContext(){
      console.log(this)
-     if(!fileParameters[this.fileNum] || !fileParameters[this.fileNum].variablesPca){return;}
-     let variables = fileParameters[this.fileNum].variablesPca
+     let file = files.list[this.fileNum]
+     if(!file || !file.matrix.pca_loadings){return;}
+     let variables = file.matrix.pca_loadings
      let table = createTable(variables.length, variables[0].length)
-     console.log(variables, table)
      for(let i=0; i<variables.length; i++){
         for(let j=0; j<variables[i].length; j++){
             if(!table.rows[i]|| !table.rows[i].cells[j]){continue;}
@@ -328,6 +331,7 @@ class Popup_PCAVariablesPaste extends Popup{
     constructor(fileNum) {
         super("heteroClassesEdit","Paste here the variables from a spreadsheet<br>1 Column for each component<br> Do not put title lines<br>")
         this.fileNum = fileNum
+        this.file = files.list[fileNum]
         this.buildSuppContext()
         this.valButton.addEventListener("click",()=>{this.replaceOldValues()})
     }
@@ -347,8 +351,7 @@ class Popup_PCAVariablesPaste extends Popup{
         lbreak.forEach(res => {
             finalData.push(res.split("	"));
         });
-        if(!fileParameters[this.fileNum]){fileParameters[this.fileNum]= {}}
-        fileParameters[this.fileNum].variablesPca = finalData
+        this.file.matrix.pca_loadings = finalData
     }
 }
 
@@ -512,7 +515,33 @@ function tabPCA_drawData_Peaks(){
  var cfg= cfgPCA.projections
 
  d3.selectAll("#canvasPCA"+" #cellPeaksData").remove()
+
  
+ cvsPCA.cellPeaks.zeroLine = [{},{}]
+ let xAxis = [[cfgPCA.projections.xmin, 0],[cfgPCA.projections.xmax, 0]]
+ let yAxis = [[0, cfgPCA.projections.ymin],[0, cfgPCA.projections.ymax]]
+ cvsPCA.cellPeaks.zeroLine[0] = cell.self.append("path")
+    .datum(xAxis)
+    .attr('stroke',"red")
+    .attr('stroke-width',1)
+    .attr("fill","none")
+    .attr("clip-path", "url(#tabPCA_ClipPath)")
+    .attr("d", d3.line()
+        .x((d)=>{ return xscale(d[0]); })
+        .y((d)=>{ return yscale(d[1]); })
+    )
+ cvsPCA.cellPeaks.zeroLine[1] = cell.self.append("path")
+    .datum(yAxis)
+    .attr('stroke',"red")
+    .attr('stroke-width',1)
+    .attr("fill","none")
+    .attr("clip-path", "url(#tabPCA_ClipPath)")
+    .attr("d", d3.line()
+        .x((d)=>{ return xscale(d[0]); })
+        .y((d)=>{ return yscale(d[1]); })
+    )
+
+
  cvsPCA.cellPeaks.data = {};
  cvsPCA.cellPeaks.data = cell.self.append('g').attr("id", "cellPeaksData")
     .selectAll("circle")
@@ -554,13 +583,41 @@ function tabPCA_drawData_Loadings(intensityCols){
     .attr("cy", function (d) { return yscale(d[cfg.ytype]); } ) 
     .attr("r", function (d) { return cfg.dotSize})
     .attr("clip-path", "url(#tabPCA_ClipPath2)")
-    .attr('tooltipHTML', function(d, n){return "pca;pca;"+buildTooltipLoadings(n)})
+    .attr('tooltipHTML', function(d, n){return "pca;pca;"+buildTooltipLoadings(n,true)})
     .style("opacity", 1)
-    .style("fill", function(d){return "black"})
+    .style("fill", function(d,n){
+        if(cfg.color){return buildPointGroupColor(cfgPCA.fileChoice,n)}
+        else{return "black"}
+    })
     .on("mouseover", cfgPCA.main.functions.mouseover )
     .on("mousemove", cfgPCA.main.functions.mousemove  )
     .on("mouseleave" , cfgPCA.main.functions.mouseleave  )
     .on("click", cfgPCA.main.functions.mouseclick );
+    //builds the axis
+    cvsPCA.cellLoadings.zeroLine = [{},{}]
+    let xAxis = [[cfgPCA.loadings.xmin, 0],[cfgPCA.loadings.xmax, 0]]
+    let yAxis = [[0, cfgPCA.loadings.ymin],[0, cfgPCA.loadings.ymax]]
+    cvsPCA.cellLoadings.zeroLine[0] = cell.self.append("path")
+        .datum(xAxis)
+        .attr('stroke',"red")
+        .attr('stroke-width',1)
+        .attr("fill","none")
+        .attr("clip-path", "url(#tabPCA_ClipPath2)")
+        .attr("d", d3.line()
+            .x((d)=>{ return xscale(d[0]); })
+            .y((d)=>{ return yscale(d[1]); })
+        )
+    cvsPCA.cellPeaks.zeroLine[1] = cell.self.append("path")
+        .datum(yAxis)
+        .attr('stroke',"red")
+        .attr('stroke-width',1)
+        .attr("fill","none")
+        .attr("clip-path", "url(#tabPCA_ClipPath2)")
+        .attr("d", d3.line()
+            .x((d)=>{ return xscale(d[0]); })
+            .y((d)=>{ return yscale(d[1]); })
+        )
+
 
  //builds text labels if needed
  d3.selectAll("#canvasPCA"+" #cellLoadingsLabels").remove()
@@ -578,7 +635,7 @@ function tabPCA_drawData_Loadings(intensityCols){
             return yscale(d[cfg.ytype])- config.legendFontSizeSmall;
         }} ) 
     .attr("font-size", config.legendFontSizeSmall)
-    .text(function(d, n){return buildTooltipLoadings(n)})
+    .text(function(d, n){return buildTooltipLoadings(n,false)})
     .attr("clip-path", "url(#tabPCA_ClipPath2)")
     .style("opacity", 1)
     .on("mousemove", function(event, d){
@@ -594,14 +651,24 @@ function tabPCA_drawData_Loadings(intensityCols){
  }
  
  //function to build theses specific tooltips
- function buildTooltipLoadings(n){
+ function buildTooltipLoadings(n, addGroupName){
     let name = cvsPCA.data[0][intensityCols[0]+n]
     if(name.startsWith("I_")){
         name = name.slice(2)
     }
+    if(!addGroupName){return name}
+    //add a group name
+    let group = findFileGroup(cfgPCA.fileChoice,n)
+    let groupName = group.name
+    //handles if this is a matrix
+    name += "<br> Group :"+groupName
     return name
  }
-
+}
+/**returns the color of a group based on a filestring(file_index or matrix)*/
+function buildPointGroupColor(fileString, matrixColumn){
+    let group = findFileGroup(fileString, matrixColumn)
+    return group.color
 }
 
 function tabPCA_drawData_histogram(){
@@ -706,12 +773,36 @@ function tabPCA_autoscale(d){
         if(data[i][compo_ytype] > compo_y_max){ compo_y_max = data[i][compo_ytype]}
         if(data[i][compo_ytype] < compo_y_min){ compo_y_min = data[i][compo_ytype]}
     }
-    cvsPCA.cellPeaks.scales[0].domain([ compo_x_min-1, compo_x_max+1 ]);
-    cvsPCA.cellPeaks.scales[1].domain([ compo_y_min-1, compo_y_max+1 ]);
-    cfgProj.xmin = Math.round(compo_x_min)-1
-    cfgProj.ymin = Math.round(compo_y_min)-1
-    cfgProj.xmax = Math.round(compo_x_max)+1
-    cfgProj.ymax = Math.round(compo_y_max)+1
+    if(Math.abs(compo_x_max-compo_x_min)<10){
+        cvsPCA.cellPeaks.scales[0].domain([ compo_x_min-1, compo_x_max+1 ]);
+        cvsPCA.cellPeaks.scales[1].domain([ compo_y_min-1, compo_y_max+1 ]);
+        cfgProj.xmin = Math.round(compo_x_min)-1
+        cfgProj.ymin = Math.round(compo_y_min)-1
+        cfgProj.xmax = Math.round(compo_x_max)+1
+        cfgProj.ymax = Math.round(compo_y_max)+1
+    }else if(Math.abs(compo_x_max-compo_x_min)<100) {
+        cvsPCA.cellPeaks.scales[0].domain([ compo_x_min-10, compo_x_max+10 ]);
+        cvsPCA.cellPeaks.scales[1].domain([ compo_y_min-10, compo_y_max+10 ]);
+        cfgProj.xmin = Math.round(compo_x_min)-10
+        cfgProj.ymin = Math.round(compo_y_min)-10
+        cfgProj.xmax = Math.round(compo_x_max)+10
+        cfgProj.ymax = Math.round(compo_y_max)+10
+    }else if(Math.abs(compo_x_max-compo_x_min)<1000){
+        cvsPCA.cellPeaks.scales[0].domain([ compo_x_min-100, compo_x_max+100 ]);
+        cvsPCA.cellPeaks.scales[1].domain([ compo_y_min-100, compo_y_max+100 ]);
+        cfgProj.xmin = Math.round(compo_x_min)-100
+        cfgProj.ymin = Math.round(compo_y_min)-100
+        cfgProj.xmax = Math.round(compo_x_max)+100
+        cfgProj.ymax = Math.round(compo_y_max)+100
+    }else{
+        cvsPCA.cellPeaks.scales[0].domain([ compo_x_min*1.1, compo_x_max*1.1 ]);
+        cvsPCA.cellPeaks.scales[1].domain([ compo_y_min*1.1, compo_y_max*1.1 ]);
+        cfgProj.xmin = Math.round(compo_x_min)*1.1
+        cfgProj.ymin = Math.round(compo_y_min)*1.1
+        cfgProj.xmax = Math.round(compo_x_max)*1.1
+        cfgProj.ymax = Math.round(compo_y_max)*1.1
+    }
+
 
     //autoscale for the loadings
     var loads = cvsPCA.loadings
@@ -728,12 +819,37 @@ function tabPCA_autoscale(d){
         if(loads[i][loads_ytype] > loads_y_max){ loads_y_max = loads[i][loads_ytype]}
         if(loads[i][loads_ytype] < loads_y_min){ loads_y_min = loads[i][loads_ytype]}
     }
-    cvsPCA.cellLoadings.scales[0].domain([ loads_x_min-5, loads_x_max+5 ]);
-    cvsPCA.cellLoadings.scales[1].domain([ loads_y_min-5, loads_y_max+5 ]);
-    cfgLoad.xmin = Math.round(loads_x_min)-5
-    cfgLoad.ymin = Math.round(loads_y_min)-5
-    cfgLoad.xmax = Math.round(loads_x_max)+5
-    cfgLoad.ymax = Math.round(loads_y_max)+5
+
+    if(loads_x_max-loads_x_min<70){
+        cvsPCA.cellLoadings.scales[0].domain([ loads_x_min-5, loads_x_max+5 ]);
+        cvsPCA.cellLoadings.scales[1].domain([ loads_y_min-5, loads_y_max+5 ]);
+        cfgLoad.xmin = Math.round(loads_x_min)-5
+        cfgLoad.ymin = Math.round(loads_y_min)-5
+        cfgLoad.xmax = Math.round(loads_x_max)+5
+        cfgLoad.ymax = Math.round(loads_y_max)+5
+    }else if(loads_x_max-loads_x_min<500){
+        cvsPCA.cellLoadings.scales[0].domain([ loads_x_min-50, loads_x_max+50 ]);
+        cvsPCA.cellLoadings.scales[1].domain([ loads_y_min-50, loads_y_max+50 ]);
+        cfgLoad.xmin = Math.round(loads_x_min)-50
+        cfgLoad.ymin = Math.round(loads_y_min)-50
+        cfgLoad.xmax = Math.round(loads_x_max)+50
+        cfgLoad.ymax = Math.round(loads_y_max)+50
+    }else if(loads_x_max-loads_x_min<5000){
+        cvsPCA.cellLoadings.scales[0].domain([ loads_x_min-500, loads_x_max+500 ]);
+        cvsPCA.cellLoadings.scales[1].domain([ loads_y_min-500, loads_y_max+500 ]);
+        cfgLoad.xmin = Math.round(loads_x_min)-500
+        cfgLoad.ymin = Math.round(loads_y_min)-500
+        cfgLoad.xmax = Math.round(loads_x_max)+500
+        cfgLoad.ymax = Math.round(loads_y_max)+500
+    }else{//supposed that min values are negative
+        cvsPCA.cellLoadings.scales[0].domain([ loads_x_min-500, loads_x_max+500 ]);
+        cvsPCA.cellLoadings.scales[1].domain([ loads_y_min*1.1, loads_y_max*1.1 ]);
+        cfgLoad.xmin = Math.round(loads_x_min)*1.1
+        cfgLoad.ymin = Math.round(loads_y_min)*1.1
+        cfgLoad.xmax = Math.round(loads_x_max)*1.1
+        cfgLoad.ymax = Math.round(loads_y_max)*1.1
+    }
+
     //update the table values
     var table = document.getElementById("PCA_table")
     table.querySelector("input[name='loadings_component_xmin']").value = cfgLoad.xmin
@@ -766,6 +882,7 @@ function updatePCAtable(){
     cfgLoad.ytype = table.querySelector("select[id='loadings_component_y']").value
     cfgLoad.dotSize = table.querySelector("input[name='loadings_dotSize']").value
     cfgLoad.showLabels = table.querySelector("input[name='loadings_showLabels']").checked
+    cfgLoad.color = table.querySelector("input[name='loadings_color']").checked
 
     cfgProj.xmin = table.querySelector("input[name='projection_component_xmin']").value
     cfgProj.xmax = table.querySelector("input[name='projection_component_xmax']").value

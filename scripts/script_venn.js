@@ -17,7 +17,7 @@ createBlendMixOptions();
 
 /**creates or updates the names of the files proposed to the selection */
 function updateVennFileChoice(){
-    for(let i=0; i<nameslist.length+1; i++){
+    for(let i=0; i<files.list.length+1; i++){
         var numberVenn = i
         var nameVenn = "VennFile_"+ numberVenn
         var selectedVennChoice = document.getElementById(nameVenn)
@@ -27,10 +27,10 @@ function updateVennFileChoice(){
                 selectedVennChoice.remove(j);
             }
             //Create and append the options
-            for (var j = 0; j < nameslist.length; j++) {
+            for (var j = 0; j < files.list.length; j++) {
                 var option = document.createElement("option");
                 option.value = j+1;
-                option.text = nameslist[j];
+                option.text = files.list[j].name;
                 selectedVennChoice.appendChild(option);
                 selectedVennChoice.value = i //select the option number by default
             }
@@ -65,10 +65,14 @@ document.getElementById("vennGraphicsTable").addEventListener("change", readVenn
 
 /** function triggered  when there is an update of the graphical options for the venn diagram*/
 function readVennDataTable(){
-    cfgVenn.files[0] = document.getElementById("VennFile_1").value-1
-    cfgVenn.files[1] = document.getElementById("VennFile_2").value-1
-    cfgVenn.files[2] = document.getElementById("VennFile_3").value-1
-    cfgVenn.files[3] = document.getElementById("VennFile_4").value-1
+    var choice1 = document.getElementById("VennFile_1").value
+    var choice2 = document.getElementById("VennFile_2").value
+    var choice3 = document.getElementById("VennFile_3").value
+    var choice4 = document.getElementById("VennFile_4").value
+    if(choice1.includes("file_")){cfgVenn.files[0] = choice1.slice(5)}
+    if(choice2.includes("file_")){cfgVenn.files[1] = choice2.slice(5)}
+    if(choice3.includes("file_")){cfgVenn.files[2] = choice3.slice(5)}
+    if(choice4.includes("file_")){cfgVenn.files[3] = choice4.slice(5)}
     cfgVenn.colors[0] = document.getElementById("VennColor_1").value
     cfgVenn.colors[1] = document.getElementById("VennColor_2").value
     cfgVenn.colors[2] = document.getElementById("VennColor_3").value
@@ -230,9 +234,9 @@ function drawVenn(){
   //drawing of the venn diagram if only two data sets are to be represented
   if(numberOfCircles == 2){
       //calculates the common points of the two sets
-      var newData = datasetComparaison_2(fileData[cfgVenn.files[0]],fileData[cfgVenn.files[1]],columnComparaison, ppmTolerance)
-      newData.AuB[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-      newData.AuB[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
+      var newData = datasetComparaison_2(files.list[cfgVenn.files[0]],files.list[cfgVenn.files[1]],columnComparaison, ppmTolerance)
+      newData.AuB[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+      newData.AuB[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
       if(debug){console.log(newData)}
 
       var circle_1 = vennPlot.append("circle")
@@ -251,8 +255,8 @@ function drawVenn(){
         .style("opacity", cfgVenn.opacity)
         .style("fill", cfgVenn.colors[1])
 
-      var circle_1_name = vennPlot.append("text").attr("x",-50).attr("y",50).attr("text-anchor","middle").text(nameslist[cfgVenn.files[0]])
-      var circle_2_name = vennPlot.append("text").attr("x",350).attr("y",50).attr("text-anchor","middle").text(nameslist[cfgVenn.files[1]])
+      var circle_1_name = vennPlot.append("text").attr("x",-50).attr("y",50).attr("text-anchor","middle").text(files.list[cfgVenn.files[0]].name)
+      var circle_2_name = vennPlot.append("text").attr("x",350).attr("y",50).attr("text-anchor","middle").text(files.list[cfgVenn.files[1]].name)
 
       if(cfgVenn.outline){
         circle_1.attr("stroke","black").attr("stroke-width","2")
@@ -278,16 +282,16 @@ function drawVenn(){
   }
   if(numberOfCircles == 3){
         //calculates the common points of the two sets
-        var newData = datasetComparaison_3(fileData[cfgVenn.files[0]],fileData[cfgVenn.files[1]], fileData[cfgVenn.files[2]], columnComparaison, ppmTolerance)
-        newData.AuB[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuB[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.AuC[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuC[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.BuC[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.BuC[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.AuBuC[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuBuC[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.AuBuC[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
+        var newData = datasetComparaison_3(files.list[cfgVenn.files[0]],files.list[cfgVenn.files[1]], files.list[cfgVenn.files[2]], columnComparaison, ppmTolerance)
+        newData.AuB[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuB[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.AuC[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuC[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.BuC[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.BuC[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.AuBuC[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuBuC[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.AuBuC[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
 
         var circle_1 = vennPlot.append("circle")
         .attr("cx", 100 ) 
@@ -318,10 +322,9 @@ function drawVenn(){
             circle_2.attr("stroke","black").attr("stroke-width","2")
             circle_3.attr("stroke","black").attr("stroke-width","2")
         }
-
-        var circle_1_name = vennPlot.append("text").attr("x",-50).attr("y",50).attr("text-anchor","middle").text(nameslist[cfgVenn.files[0]])
-        var circle_2_name = vennPlot.append("text").attr("x",350).attr("y",50).attr("text-anchor","middle").text(nameslist[cfgVenn.files[1]])
-        var circle_3_name = vennPlot.append("text").attr("x",150).attr("y",320).attr("text-anchor","middle").text(nameslist[cfgVenn.files[2]])
+        var circle_1_name = vennPlot.append("text").attr("x",-50).attr("y",50).attr("text-anchor","middle").text(files.list[cfgVenn.files[0]].name)
+        var circle_2_name = vennPlot.append("text").attr("x",350).attr("y",50).attr("text-anchor","middle").text(files.list[cfgVenn.files[1]].name)
+        var circle_3_name = vennPlot.append("text").attr("x",150).attr("y",320).attr("text-anchor","middle").text(files.list[cfgVenn.files[2]].name)
 
         
         //handles the text creation for the tooltips
@@ -354,35 +357,35 @@ function drawVenn(){
     }
     if(numberOfCircles == 4){
        // calculates the common points of the two sets
-        var newData = datasetComparaison_4(fileData[cfgVenn.files[0]],fileData[cfgVenn.files[1]], fileData[cfgVenn.files[2]],fileData[cfgVenn.files[3]], columnComparaison, ppmTolerance)
-        newData.AuB[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuB[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.AuC[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuC[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.BuC[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.BuC[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.AuD[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuD[0].push("Intensity_"+nameslist[cfgVenn.files[3]])
-        newData.BuD[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.BuD[0].push("Intensity_"+nameslist[cfgVenn.files[3]])
-        newData.CuD[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.CuD[0].push("Intensity_"+nameslist[cfgVenn.files[3]])
-        newData.AuBuC[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuBuC[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.AuBuC[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.AuBuD[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuBuD[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.AuBuD[0].push("Intensity_"+nameslist[cfgVenn.files[3]])
-        newData.AuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.AuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[3]])
-        newData.BuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.BuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.BuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[3]])
-        newData.AuBuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[0]])
-        newData.AuBuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[1]])
-        newData.AuBuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[2]])
-        newData.AuBuCuD[0].push("Intensity_"+nameslist[cfgVenn.files[3]])
+        var newData = datasetComparaison_4(files.list[cfgVenn.files[0]],files.list[cfgVenn.files[1]], files.list[cfgVenn.files[2]],files.list[cfgVenn.files[3]], columnComparaison, ppmTolerance)
+        newData.AuB[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuB[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.AuC[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuC[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.BuC[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.BuC[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.AuD[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuD[0].push("Intensity_"+files.list[cfgVenn.files[3]].name)
+        newData.BuD[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.BuD[0].push("Intensity_"+files.list[cfgVenn.files[3]].name)
+        newData.CuD[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.CuD[0].push("Intensity_"+files.list[cfgVenn.files[3]].name)
+        newData.AuBuC[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuBuC[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.AuBuC[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.AuBuD[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuBuD[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.AuBuD[0].push("Intensity_"+files.list[cfgVenn.files[3]].name)
+        newData.AuCuD[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuCuD[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.AuCuD[0].push("Intensity_"+files.list[cfgVenn.files[3]].name)
+        newData.BuCuD[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.BuCuD[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.BuCuD[0].push("Intensity_"+files.list[cfgVenn.files[3]].name)
+        newData.AuBuCuD[0].push("Intensity_"+files.list[cfgVenn.files[0]].name)
+        newData.AuBuCuD[0].push("Intensity_"+files.list[cfgVenn.files[1]].name)
+        newData.AuBuCuD[0].push("Intensity_"+files.list[cfgVenn.files[2]].name)
+        newData.AuBuCuD[0].push("Intensity_"+files.list[cfgVenn.files[3]].name)
         
         var ellipse_1 = vennPlot.append("ellipse")
         .attr("cx", 0 ) 
@@ -433,10 +436,10 @@ function drawVenn(){
             ellipse_4.attr("stroke","black").attr("stroke-width","2")
           }
 
-        var circle_1_name = vennPlot.append("text").attr("x",120-60).attr("y",30).attr("text-anchor","middle").text(nameslist[cfgVenn.files[0]])
-        var circle_2_name = vennPlot.append("text").attr("x",120+60).attr("y",30).attr("text-anchor","middle").text(nameslist[cfgVenn.files[1]])
-        var circle_3_name = vennPlot.append("text").attr("x",120-100).attr("y",320).attr("text-anchor","middle").text(nameslist[cfgVenn.files[2]])
-        var circle_4_name = vennPlot.append("text").attr("x",120+100).attr("y",320).attr("text-anchor","middle").text(nameslist[cfgVenn.files[3]])
+        var circle_1_name = vennPlot.append("text").attr("x",120-60).attr("y",30).attr("text-anchor","middle").text(files.list[cfgVenn.files[0]].name)
+        var circle_2_name = vennPlot.append("text").attr("x",120+60).attr("y",30).attr("text-anchor","middle").text(files.list[cfgVenn.files[1]].name)
+        var circle_3_name = vennPlot.append("text").attr("x",120-100).attr("y",320).attr("text-anchor","middle").text(files.list[cfgVenn.files[2]].name)
+        var circle_4_name = vennPlot.append("text").attr("x",120+100).attr("y",320).attr("text-anchor","middle").text(files.list[cfgVenn.files[3]].name)
 
         //handles the text creation for the tooltips
         toolText= {};
@@ -501,12 +504,18 @@ function drawVenn(){
 
 /**
  * this function is used to compare two datasets 
- * @param {*} data1 first dataset
- * @param {*} data2 second dataset
+ * @param {*} file1 first dataset
+ * @param {*} file2 second dataset
  * @param {*} compCol the column number on which the comparaison is made
  * @param {*} ppmTolerance the tolerance in ppm under which the 2 points are considered the same
  */
-function datasetComparaison_2(data1, data2, compCol, ppmTolerance){
+function datasetComparaison_2(file1, file2, compCol, ppmTolerance){
+    var data1 = []
+    var data2 = []
+    if(file1 && file2){
+        data1 = file1.data
+        data2 = file2.data
+    }
     var newData = {"A":[],"B":[],"AuB":[]} //the datasets that will be returned
 
     //finds the configuration of what to do with the intensity
@@ -547,8 +556,16 @@ function datasetComparaison_2(data1, data2, compCol, ppmTolerance){
  * @param {*} ppmTolerance the tolerance in ppm under which the 2 points are considered the same
  * @returns 
  */
-function datasetComparaison_3(data1, data2, data3, compCol, ppmTolerance){
-    var newData_2D = datasetComparaison_2(data1, data2, compCol, ppmTolerance)
+function datasetComparaison_3(file1, file2, file3, compCol, ppmTolerance){
+    var data1 = []
+    var data2 = []
+    var data3 = []
+    if(file1 && file2 && file3){
+        data1 = file1.data
+        data2 = file2.data
+        data3 = file3.data
+    }else{return;}
+    var newData_2D = datasetComparaison_2(file1, file2, compCol, ppmTolerance)
         //checks if the files have the same number of columns
         if(data1[0] && data2[0] && data3[0]){
             if(data1[0].length != data2[0].length || data1[0].length != data3[0].length){
@@ -556,7 +573,7 @@ function datasetComparaison_3(data1, data2, data3, compCol, ppmTolerance){
             }
         }
     var newData = {"A":[],"B":[],"C":[],"AuB":[],"AuC":[],"BuC":[],"AuBuC":[]} //the datasets that will be returned
-
+    
     //finds the configuration of what to do with the intensity
     var intensityconfig = document.getElementById("Venn_intensity").value
     var intensityconfigAuC = intensityconfig
@@ -606,8 +623,18 @@ function datasetComparaison_3(data1, data2, data3, compCol, ppmTolerance){
 }
 
 
-function datasetComparaison_4(data1, data2, data3, data4, compCol, ppmTolerance){
-    var newData_3D = datasetComparaison_3(data1, data2,data3, compCol, ppmTolerance)
+function datasetComparaison_4(file1, file2, file3, file4, compCol, ppmTolerance){
+    var data1 = []
+    var data2 = []
+    var data3 = []
+    var data4 = []
+    if(file1 && file2 && file3 && file4){
+        data1 = file1.data
+        data2 = file2.data
+        data3 = file3.data
+        data4 = file4.data
+    }
+    var newData_3D = datasetComparaison_3(file1, file2,file3, compCol, ppmTolerance)
     //checks if the files have the same number of columns
     if(data1[0] && data2[0] && data3[0]&& data4[0]){
         if(data1[0].length != data2[0].length || data1[0].length != data3[0].length || data1[0].length != data4[0].length){
@@ -786,7 +813,7 @@ function clickOnData(dataset,dataName, dataNameID){
  * @returns 
  */
  function tooltipTextFraction_1set(dataFrac, fileNumber){
-    var dataWhole = fileData[fileNumber]
+    var dataWhole = files.list[fileNumber].data
     var numberFrac = Math.round(1000*(dataFrac.length-1) / (dataWhole.length-1))/10
     //calculates the intensity
     var intensityWhole= 0
@@ -800,16 +827,16 @@ function clickOnData(dataset,dataName, dataNameID){
     var intensityPercent = 0
     if(intensityWhole != 0 ){intensityPercent = Math.round(1000*parseFloat(intensityFrac/intensityWhole))/10}
     //creates the text
-    var text=numberFrac+"% of attributions from "+nameslist[fileNumber]+" </br>"; //the text content that will be outputed
-    text = text+intensityPercent+"% of the intensity from "+nameslist[fileNumber]
+    var text=numberFrac+"% of attributions from "+files.list[fileNumber].name+" </br>"; //the text content that will be outputed
+    text = text+intensityPercent+"% of the intensity from "+files.list[fileNumber].name
     return text
 }
 
 
 /**creates the tooltip text for a dataset in common between two datasets */
 function tooltipTextFraction_2sets(dataFrac, fileNumber1, fileNumber2){
-    var dataWhole1 = fileData[fileNumber1]
-    var dataWhole2 = fileData[fileNumber2]
+    var dataWhole1 = files.list[fileNumber1].data
+    var dataWhole2 = files.list[fileNumber2].data
     var numberFrac1 = Math.round(1000*(dataFrac.length-1) / (dataWhole1.length-1))/10
     var numberFrac2 = Math.round(1000*(dataFrac.length-1) / (dataWhole2.length-1))/10
 
@@ -828,8 +855,8 @@ function tooltipTextFraction_2sets(dataFrac, fileNumber1, fileNumber2){
     var col_I2 = 0
     //searches for the right column for the intensity 
     for(let i=0; i<dataFrac[0].length; i++){
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber1]){col_I1 = i}
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber2]){col_I2 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber1].name){col_I1 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber2].name){col_I2 = i}
     }
 
     //calculates the intensity of the partial sets
@@ -848,19 +875,19 @@ function tooltipTextFraction_2sets(dataFrac, fileNumber1, fileNumber2){
     if(intensityWhole2 != 0 ){intensityPercent2 = Math.round(1000*intensityFrac2/intensityWhole2)/10}
 
     //creates the text
-    var text=numberFrac1+"% of attributions from "+nameslist[fileNumber1]+" </br>"; //the text content that will be outputed
-    text = text+intensityPercent1+"% of intensity from "+nameslist[fileNumber1]+" </br>";
-    text = text+ numberFrac2+"% of attributions from "+nameslist[fileNumber2]+" </br>"; 
-    text = text+intensityPercent2+"% of intensity from "+nameslist[fileNumber2]
+    var text=numberFrac1+"% of attributions from "+files.list[fileNumber1].name+" </br>"; //the text content that will be outputed
+    text = text+intensityPercent1+"% of intensity from "+files.list[fileNumber1].name+" </br>";
+    text = text+ numberFrac2+"% of attributions from "+files.list[fileNumber2].name+" </br>"; 
+    text = text+intensityPercent2+"% of intensity from "+files.list[fileNumber2].name
     return text
 
 }
 
 /**creates the tooltip text for a dataset in common between three datasets */
 function tooltipTextFraction_3sets(dataFrac, fileNumber1, fileNumber2, fileNumber3){
-    var dataWhole1 = fileData[fileNumber1]
-    var dataWhole2 = fileData[fileNumber2]
-    var dataWhole3 = fileData[fileNumber3]
+    var dataWhole1 = files.list[fileNumber1].data
+    var dataWhole2 = files.list[fileNumber2].data
+    var dataWhole3 = files.list[fileNumber3].data
     var numberFrac1 = Math.round(1000*(dataFrac.length-1) / (dataWhole1.length-1))/10
     var numberFrac2 = Math.round(1000*(dataFrac.length-1) / (dataWhole2.length-1))/10
     var numberFrac3 = Math.round(1000*(dataFrac.length-1) / (dataWhole3.length-1))/10
@@ -885,9 +912,9 @@ function tooltipTextFraction_3sets(dataFrac, fileNumber1, fileNumber2, fileNumbe
     var col_I3 = 0
     //searches for the right column for the intensity 
     for(let i=0; i<dataFrac[0].length; i++){
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber1]){col_I1 = i}
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber2]){col_I2 = i}
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber3]){col_I3 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber1].name){col_I1 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber2].name){col_I2 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber3].name){col_I3 = i}
     }
 
     //calculates the intensity of the partial sets
@@ -910,22 +937,22 @@ function tooltipTextFraction_3sets(dataFrac, fileNumber1, fileNumber2, fileNumbe
     if(intensityWhole3 != 0 ){intensityPercent3 = Math.round(1000*intensityFrac3/intensityWhole3)/10}
 
     //creates the text
-    var text=numberFrac1+"% of attributions from "+nameslist[fileNumber1]+" </br>"; //the text content that will be outputed
-    text = text+intensityPercent1+"% of intensity from "+nameslist[fileNumber1]+" </br>";
-    text = text+ numberFrac2+"% of attributions from "+nameslist[fileNumber2]+" </br>"; 
-    text = text+intensityPercent2+"% of intensity from "+nameslist[fileNumber2]+" </br>"; 
-    text = text+ numberFrac3+"% of attributions from "+nameslist[fileNumber3]+" </br>"; 
-    text = text+intensityPercent3+"% of intensity from "+nameslist[fileNumber3]
+    var text=numberFrac1+"% of attributions from "+files.list[fileNumber1].name+" </br>"; //the text content that will be outputed
+    text = text+intensityPercent1+"% of intensity from "+files.list[fileNumber1].name+" </br>";
+    text = text+ numberFrac2+"% of attributions from "+files.list[fileNumber2].name+" </br>"; 
+    text = text+intensityPercent2+"% of intensity from "+files.list[fileNumber2].name+" </br>"; 
+    text = text+ numberFrac3+"% of attributions from "+files.list[fileNumber3].name+" </br>"; 
+    text = text+intensityPercent3+"% of intensity from "+files.list[fileNumber3].name
     return text
 
 }
 
 /**creates the tooltip text for a dataset in common between three datasets */
 function tooltipTextFraction_4sets(dataFrac, fileNumber1, fileNumber2, fileNumber3, fileNumber4){
-    var dataWhole1 = fileData[fileNumber1]
-    var dataWhole2 = fileData[fileNumber2]
-    var dataWhole3 = fileData[fileNumber3]
-    var dataWhole4 = fileData[fileNumber4]
+    var dataWhole1 = files.list[fileNumber1].data
+    var dataWhole2 = files.list[fileNumber2].data
+    var dataWhole3 = files.list[fileNumber3].data
+    var dataWhole4 = files.list[fileNumber4].data
     var numberFrac1 = Math.round(1000*(dataFrac.length-1) / (dataWhole1.length-1))/10
     var numberFrac2 = Math.round(1000*(dataFrac.length-1) / (dataWhole2.length-1))/10
     var numberFrac3 = Math.round(1000*(dataFrac.length-1) / (dataWhole3.length-1))/10
@@ -956,14 +983,11 @@ function tooltipTextFraction_4sets(dataFrac, fileNumber1, fileNumber2, fileNumbe
     var col_I4 = 0
     //searches for the right column for the intensity 
     for(let i=0; i<dataFrac[0].length; i++){
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber1]){col_I1 = i}
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber2]){col_I2 = i}
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber3]){col_I3 = i}
-        if(dataFrac[0][i]== "Intensity_"+nameslist[fileNumber4]){col_I4 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber1].name){col_I1 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber2].name){col_I2 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber3].name){col_I3 = i}
+        if(dataFrac[0][i]== "Intensity_"+files.list[fileNumber4].name){col_I4 = i}
     }
-    console.log(dataFrac, dataWhole4)
-    console.log(intensityWhole1,intensityWhole4)
-    console.log(col_I1,col_I2,col_I3,col_I4)
 
     //calculates the intensity of the partial sets
     var intensityFrac1 = 0
@@ -977,9 +1001,6 @@ function tooltipTextFraction_4sets(dataFrac, fileNumber1, fileNumber2, fileNumbe
         if (!isNaN(dataFrac[i][col_I4])){ intensityFrac4 = intensityFrac4 + parseFloat(dataFrac[i][col_I4])}
     }
 
-    console.log(intensityFrac1,intensityFrac4)
-
-
     //calculates the percents
     var intensityPercent1 = 0
     var intensityPercent2 = 0
@@ -991,14 +1012,14 @@ function tooltipTextFraction_4sets(dataFrac, fileNumber1, fileNumber2, fileNumbe
     if(intensityWhole4 != 0 ){intensityPercent4 = Math.round(1000*intensityFrac4/intensityWhole4)/10}
 
     //creates the text
-    var text=numberFrac1+"% of attributions from "+nameslist[fileNumber1]+" </br>"; //the text content that will be outputed
-    text = text+intensityPercent1+"% of intensity from "+nameslist[fileNumber1]+" </br>";
-    text = text+ numberFrac2+"% of attributions from "+nameslist[fileNumber2]+" </br>"; 
-    text = text+intensityPercent2+"% of intensity from "+nameslist[fileNumber2]+" </br>"; 
-    text = text+ numberFrac3+"% of attributions from "+nameslist[fileNumber3]+" </br>"; 
-    text = text+intensityPercent3+"% of intensity from "+nameslist[fileNumber3]+" </br>"; 
-    text = text+ numberFrac4+"% of attributions from "+nameslist[fileNumber4]+" </br>"; 
-    text = text+intensityPercent4+"% of intensity from "+nameslist[fileNumber4]
+    var text=numberFrac1+"% of attributions from "+files.list[fileNumber1].name+" </br>"; //the text content that will be outputed
+    text = text+intensityPercent1+"% of intensity from "+files.list[fileNumber1].name+" </br>";
+    text = text+ numberFrac2+"% of attributions from "+files.list[fileNumber2].name+" </br>"; 
+    text = text+intensityPercent2+"% of intensity from "+files.list[fileNumber2].name+" </br>"; 
+    text = text+ numberFrac3+"% of attributions from "+files.list[fileNumber3].name+" </br>"; 
+    text = text+intensityPercent3+"% of intensity from "+files.list[fileNumber3].name+" </br>"; 
+    text = text+ numberFrac4+"% of attributions from "+files.list[fileNumber4].name+" </br>"; 
+    text = text+intensityPercent4+"% of intensity from "+files.list[fileNumber4].name
     return text
 
 }

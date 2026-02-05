@@ -304,7 +304,35 @@ class MovableWindowCellConfig extends MovableWindow{
         resetButton.style.width = "50%"
         div3.appendChild(resetButton)
         div3.appendChild(document.createElement('br'))
+        if(!this.cfg.overrideAxis_x){this.cfg.overrideAxis_x = ""}
+        if(!this.cfg.overrideAxis_y){this.cfg.overrideAxis_y = ""}
+        let overaxis_x = menuCreate_inputText(null, "override_axis_x",this.cfg.overrideAxis_x)
+        let title_overaxis_x = document.createTextNode("Override x axis text:")
+        overaxis_x.placeholder = "Leave empty to keep default"
+        overaxis_x.style.margin = "2px"
+        overaxis_x.style.width = "auto"
+        div3.appendChild(title_overaxis_x)
+        div3.appendChild(overaxis_x)
+        div3.appendChild(document.createElement("br"))
 
+        let overaxis_y = menuCreate_inputText(null, "override_axis_y",this.cfg.overrideAxis_y)
+        let title_overaxis_y = document.createTextNode("Override y axis text:")
+        overaxis_y.placeholder = "Leave empty to keep default"
+        overaxis_y.style.margin = "2px"
+        overaxis_y.style.width = "auto"
+        div3.appendChild(title_overaxis_y)
+        div3.appendChild(overaxis_y)
+
+        overaxis_x.addEventListener("change",(d)=>{
+            let value = d.target.value
+            this.cfg.overrideAxis_x = value
+        })
+        overaxis_y.addEventListener("change",(d)=>{
+            let value = d.target.value
+            this.cfg.overrideAxis_y = value
+        })
+
+        div3.appendChild(menuCreateSeparator("largest"))
         let checkboxOverride = menuCreate_checkbox(null, "overrideConfig",this.cfg.override)
         let checkboxText = document.createTextNode("Override default configuration")
         div3.appendChild(checkboxOverride)
@@ -480,7 +508,7 @@ class MovableWindowDataConfig extends MovableWindow{
     findData(d){
         let fileName = d.target.value
         let fileNum = -1
-        let file = []
+        let data = []
         let updateThisWindow = true
         if(fileName.includes("file")){
             //do not redraw the whole window if we change file
@@ -488,14 +516,15 @@ class MovableWindowDataConfig extends MovableWindow{
             //to allow for scrolling through file options with the mouse
             if(this.data.dataName.includes("file")){updateThisWindow = false}
             fileNum = fileName.slice(5)
-            file = fileData[fileNum]
-            this.data.fill(file,fileName)
+            let file = files.list[fileNum]
+            data = file.data
+            this.data.fill(data,fileName, file)
             this.data.canvas.resetFilters()
             this.data.canvas.drawDataset(this.data.index)
         }else if(fileName == "matrix"){
-            file = matrixData
+            data = matrixData
             fileNum = -100
-            this.data.fill(file,fileName)
+            this.data.fill(data,fileName)
             this.data.canvas.resetFilters()
             this.data.canvas.drawDataset(this.data.index)
         }else{//venn sector
@@ -523,7 +552,7 @@ class MovableWindowDataConfig extends MovableWindow{
         this.data.canvas.resetFilters()
         this.data.canvas.drawDataset(this.data.index)
         this.data.canvas.redrawAllColourLegends()
-        
+        this.data.canvas.htmlTopMenu.updateColors()
     }
 
     callCellWindow(cellIndex){
@@ -683,6 +712,8 @@ class MovableWindowDataCellMatrix extends MovableWindow{
         check_stats.addEventListener("change",(d)=>{cellTypes.stats = check_stats.checked})
         let check_comp = menuCreate_checkbox(null, "cellTypes_comp", cellTypes.comp)
         check_comp.addEventListener("change",(d)=>{cellTypes.comp = check_comp.checked})
+        let check_diff = menuCreate_checkbox(null, "cellTypes_diff", cellTypes.diff)
+        check_diff.addEventListener("change",(d)=>{cellTypes.diff = check_diff.checked})
 
         col3.appendChild(check_common)
         col3.appendChild(document.createTextNode("Common types (scatter plots...)"))
@@ -695,6 +726,9 @@ class MovableWindowDataCellMatrix extends MovableWindow{
         col3.appendChild(document.createElement("br"))
         col3.appendChild(check_comp)
         col3.appendChild(document.createTextNode("Comparison types"))
+        col3.appendChild(document.createElement("br"))
+        col3.appendChild(check_diff)
+        col3.appendChild(document.createTextNode("Mass differences"))
         col3.appendChild(document.createElement("br"))
 
         col3.addEventListener("change",(d)=>{this.canvas.htmlTopMenu.draw()})
@@ -805,6 +839,7 @@ class Popup {
         this.popup_box.appendChild(this.popup_close)
         
         this.preText = document.createElement("div")
+        this.preText.setAttribute("name","popup_content")
         this.preText.innerHTML = this.textContent
         this.popup_box.appendChild(this.preText)
         //adds the validate button
@@ -865,7 +900,12 @@ class Popup {
             html_buttons[i].setAttribute("class","popupclose")
             html_buttons[i].setAttribute("name","popup_button_"+i)
             html_buttons[i].innerHTML = buttons[i].name
-            html_buttons[i].addEventListener("click",(d)=>{buttons[i].function()})
+            html_buttons[i].addEventListener("click",(d)=>{
+                console.log("here", this);
+                buttons[i].function(buttons[i].arg1)
+                let close = this.popup.querySelector("button[class='popuptrueclose']")
+                close.click()
+            })
             this.popup_box.appendChild(document.createElement("br"))
             this.popup_box.appendChild(html_buttons[i])
         }
@@ -994,7 +1034,6 @@ class Popup_editHeteroClassses extends Popup {
 function createConfigHTML(cfg){
     //CHART AREA
     if(!cfg || cfg == [] || cfg == {}){cfg = config}
-    console.log(cfg)
     let div = document.createElement("div")
     div.setAttribute("name","configDiv")
     let partTitle1 = menuCreate_label("Chart Area",true,[['fontWeight','bold']])

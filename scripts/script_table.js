@@ -15,7 +15,6 @@ document.getElementById("tablePageNext").addEventListener("click",function(){
 
 function updateTableTab(){
   var choice = html_tabTable.querySelector("select[name='fileSelection']").value
-  console.log("displaying on the table: "+choice)
   //finds the table values
   let maxLength = document.getElementById("tableLinesMax").value
   let currentPage = document.getElementById("tablePageNum").value
@@ -24,7 +23,7 @@ function updateTableTab(){
       else if(choice =="none"){ d3.select("#rawDataTable").remove()}
       else if(choice.includes("file")){
           let fileNum = choice.slice(5);
-            arrayToTable(fileData[fileNum], maxLength, currentPage, editMode);
+            arrayToTable(files.list[fileNum].data, maxLength, currentPage, editMode);
       }
 }
 
@@ -43,6 +42,7 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
       result += "<th>"+"<button name='delCol_"+j+"'>X</button>"
       result += "</th>"
   }
+  result += "<th>"+"<button name='addCol'>+</button>"+"</th>"
   result += "</thead>"
   }
 
@@ -67,10 +67,11 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
   let endLength = startLength+maxLength
   if(editMode){
     //creates the skeleton of the table
-    for(var i=startLength; i<endLength; i++) {
+    for(var i=startLength; i<endLength-1; i++) {
       result += "<tr>";
       result +="<th><button name='delLine_"+i+"'>X</button></th>"
       if(inputArray[i]){
+        console.log(inputArray[i])
           for(var j=0; j<inputArray[i].length; j++){
             result +="<td name='inpt_"+i+"_"+j+"'>";
             result +="</td>"
@@ -78,9 +79,10 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
       }
       result += "</tr>";
     }
+    result += "<th><button name='addLine_"+i+"'>+</button></th>"
     //fills the table with inputs later 
   }else{ //quicker method when not in editMode
-    for(var i=startLength; i<endLength; i++) {
+    for(var i=startLength; i<endLength-1; i++) {
       result += "<tr>";
       if(inputArray[i]){
           for(var j=0; j<inputArray[i].length; j++){
@@ -113,7 +115,9 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
             let input = document.createElement("input")
             input.setAttribute("value", inputArray[i][j])
             input.addEventListener("change", editOneCell)
-            tableplace.querySelector('td[name="inpt_'+i+'_'+j+'"]').appendChild(input)
+            if( tableplace.querySelector('td[name="inpt_'+i+'_'+j+'"]')){
+              tableplace.querySelector('td[name="inpt_'+i+'_'+j+'"]').appendChild(input)
+            }
           }
         }
       }
@@ -149,6 +153,22 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
             inputArray.splice(slicedName[1], 1)
             arrayToTable(inputArray, maxLength,pageNum,editMode);
           });
+        }else if(slicedName[0]=="addCol"){
+          buttons[i].addEventListener("click", function(){
+            for(let j=0; j<inputArray.length; j++){
+              inputArray[j].push("")
+            }
+            arrayToTable(inputArray, maxLength,pageNum,editMode);
+          });   
+        }else if(slicedName[0]=="addLine"){
+          buttons[i].addEventListener("click", function(){
+            let newLine = []
+            for(let j=0; j<inputArray[0].length; j++){
+              newLine.push("")
+            }
+            inputArray.push(newLine)
+            arrayToTable(inputArray, maxLength+1,pageNum,editMode);
+          });
         }
       }
     }
@@ -182,14 +202,14 @@ function arrayToTable(inputArray, maxLength,pageNum, editMode, specialParam){
         if(choice == "matrix"){ matrixData = inputArray}
         else if(choice.includes("file")){
           let fileNum = choice.slice(5);
-          fileData[fileNum] = inputArray
+          files.list[fileNum].data = inputArray
         }
         //redraws everything 
         let special = {"col":i,"order":sortType}
         drawEverything_noData()
         arrayToTable(inputArray, maxLength,pageNum,editMode, special);
 
-        fileData[choice] = inputArray
+        files.list[choice].data = inputArray
       });
     }
     // sets the good sorting to the special place

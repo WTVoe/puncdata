@@ -1,3 +1,5 @@
+/** Configuration object for attribution parameters and settings */
+
 var attribCfg = {
     "ppm":{
         "delta": 0.1, //the mDa error to fuse deltas together as the same
@@ -256,46 +258,6 @@ function checkGoldenRules(molecule, rules){
     return true
 }
 
-/** checks the 13C rule for a peak */
-// function checkIsotopicRule(molecule, peakIndex, data, tolBounds, returnPercent){
-//     //constructs a list of potential 13C peaks
-
-//     //This is a quick&dirty fix: if not return percent, means that it is a classical attributions, and that we should get real raw data
-//     if(!returnPercent){
-//         let dataID = parseInt(attribCfg.main.fileString.slice(5))
-//         if(!(dataID>=0)){logText("attribLog","error of file selection. Please select a valid file.");return;}
-//         data = fileData[dataID]
-//     }
-//     // end of quick&dirty fix: TODO remove & rethink isotopic rule checking
-
-//     let candidates = []
-//     for(let i=peakIndex; i<data.length; i++){
-//         if(!data[i]){return "no13C"}
-//         if(data[i].isFound){continue;}
-//         let mass = molecule.mass
-//         let delta = data[i][config.mz] - mass - 1.003355
-//         if(delta > attribCfg.ppm.daFilter){break;} // the list is sorted, no need to go further
-//         if(Math.abs(delta)< attribCfg.ppm.daFilter){
-//             let mDa = 1e3*delta
-//             if(Math.abs(mDa)< attribCfg.isotope.mDaTol){ 
-//                 candidates.push(data[i].slice())
-//                 candidates[candidates.length-1].mDa = mDa
-//             }
-//         }
-//     }
-//     if(candidates.length == 0){return "no13C"}
-//     //sorts the list of candidates
-//     candidates = sortList(candidates, "mDa")
-//     //looks for the intensity of the best candidate
-//     let intensity = parseFloat(candidates[0][config.intensity])
-//     let numberC =molecule.lookup("C")
-//     let expectedI = parseFloat(data[peakIndex][config.intensity])*numberC*0.010816
-//     let ratio = expectedI/intensity
-//     if(returnPercent){return ratio*100}
-//     if(ratio>tolBounds[0] && ratio<tolBounds[1]){return true}
-//     else{ return false }
-// }   
-
 //helper function. Sets the charge of a chosen pass depending on the parameter
 function setPassCharge(pass, charge){
     //looks if there is already a electron line in the pass
@@ -354,9 +316,10 @@ class AttribInstance{
     fillFromName(fileName){
         if(fileName.includes("file")){
             let fileNum = fileName.slice(5)
-            let file = fileData[fileNum]
-            if(!file || !file.length ||file.length == 0){file = []}
-            this.fill(file,fileName)
+            let file = files.list[fileNum]
+            let data = []
+            if(file && file.data){data = file.data}
+            this.fill(data,fileName)
         }else if(fileName =="none"){
             this.fill([],"")
         }else if(fileName == "matrix"){
@@ -528,6 +491,8 @@ class AttribInstance{
         const timeStep = []
         timeStep.push(start)
         this.attributedIndex = 0 //resets the index
+        this.log = {} //saves information about assignment
+        this.log.peakLength_raw = this.data.length
         this.reIndexData()
         //isotopy
         let isotopyData = []
@@ -537,6 +502,7 @@ class AttribInstance{
             this.reIndexData()
             await new Promise(resolve => setTimeout(resolve, 1));
             logText("attribLog","Isotope search finished. Found "+isotopyData.isotopes.length)
+            this.log.peakLength_iso = isotopyData.isotopes.length
         }
 
         //remove suspect peaks
@@ -546,6 +512,7 @@ class AttribInstance{
             this.reIndexData()
             await new Promise(resolve => setTimeout(resolve, 1));
             logText("attribLog","Suspect peaks search finished. Found "+suspectPeaks.length)
+            this.log.peakLength_rem = suspectPeaks.length
         }
         let attributions = []
         //seeds
@@ -683,14 +650,15 @@ class AttribInstance{
             if(!this.data[i].attrib){unattributed.push(this.data[i])}
         }
         attributions.sort((a,b)=>a[config.mz]-b[config.mz])
-
+        this.log.peakLength_att = attributions.length
         let results = {
             attributed:attributions,
             isotopes: isotopyData.isotopes ||[],
             unattributed : unattributed||[],
             suspects: suspectPeaks||[],
             matrix : this.writeDataMatrix(attributions, unattributed),
-            network : this.network
+            network : this.network,
+            log: this.log
         }
         /** verifies network logic */
         if(this.network && this.network.edges){
@@ -720,8 +688,10 @@ class AttribInstance{
                 if(attributions[i].attrib && attributions[i].attrib.type == "network"){attribByNetwork +=1}
             }
             logText("attribLog", (100*attribByNetwork/attributions.length).toFixed(2)+"% found by network")
+            this.log.attribByNetwork = attribByNetwork
         }
         logText("attribLog",`Execution time: ${end - start} ms`)
+        this.log.time = end - start
 
         return results
     }
@@ -1218,9 +1188,79 @@ class AttributionPass{
         //if we arrive here, there is no line for electrons. adds one.
         pass.push({"name":"e","count":[-charge,-charge],"mass":0.0005489},)
     }
-
 }
 
+class AttributionPass_molecules extends AttributionPass{
+    constructor(list,index, cfg){
+        super(list,index, cfg)
+        this.molecules = []
+        //prepares the pass as a molecule list
+        for(let i=0; i<this.list.length; i++){
+            let el = this.list[i]
+            el.molecule = new Molecule(el.name)
+            el.mass = el.molecule.mass
+        }
+    } 
+
+    /**re-does the recursive loop to consider formula elements as molecules */
+    recursiveLoop(index, formula){
+        /** formula is an array, the index refers to the number of the element in the pass */
+        let thisEl = this.list[index];
+        let listLength = this.list.length
+        for(let i=thisEl.count[0]; i<=thisEl.count[1]; i++){
+            if(i>thisEl.count[0]){formula[index] = i} //sets this element number 
+            if(index<listLength-1){
+                //continue by going to the next index in the pass
+                this.recursiveLoop(index+1, formula.slice())
+            }else{
+             /** arriving here means all pass elements have been visited. The formula should be computed to see if it is valid */
+             let mass = 0
+             for(let i=0; i<listLength; i++){
+                mass += this.list[i].mass*formula[i]
+             }
+             //check if the molecule is valid
+             if(this.mzMax !=-1 && mass > this.mzMax){continue;}
+             if(this.mzMin !=-1 && mass < this.mzMin){continue;}
+             if(this.mzSet && !this.mzSet.has(Math.floor(mass))){continue;}
+             let formulaList = []
+             //decomposes each formula from the pass into its elements and adds it to the correct formulaList element
+             for(let i=0; i<listLength; i++){
+                let subMolecule = this.list[i].molecule
+                let subFormula = subMolecule.formula
+                for(let j=0; j<subFormula.length; j++){
+                    let found = false
+                    for(let k=0; k<formulaList.length; k++){
+                        if(formulaList[k].name == subFormula[j].name){
+                            formulaList[k].number += subFormula[j].number*formula[i]
+                            found = true
+                            break;
+                        }
+                    }
+                    if(!found){
+                        formulaList.push({name:subFormula[j].name, number: subFormula[j].number*formula[i]})
+                    }
+                }
+            }
+
+             let molecule = Object.create(Molecule.prototype)
+             molecule.formula = formulaList
+             molecule.mass = mass
+             console.log(molecule, this)
+             
+             if(this.checkGoldenRules){
+                molecule.computeDBE()
+                if(!checkGoldenRules(molecule, this.specialGoldenRules)){continue;}
+             }
+             let roundMass = Math.floor(molecule.mass)
+             if(!this.molecules[roundMass]){this.molecules[roundMass] = []}
+             this.molecules[roundMass].push(molecule)
+             continue;               
+            }
+
+        }
+                
+    }
+}
 
 /** a network to tag peaks as isotopes */
 class NetworkIsotopic extends Network{
@@ -1854,8 +1894,15 @@ class NetworkDeltas extends NetworkAttrib{
         for(let i=0; i<keep;i++){
             keptGroups.push(groups[i])
             //add the previous index of the group to the indexes to keep
+            if(!groups[i] || groups[i].length ==0){continue;}
             groupsIndexes.add(groups[i][0].group)
             newEdgesList = newEdgesList.concat(groups[i])
+        }
+        //remove all undefined indexes in keep
+        for(let i=keptGroups.length; i>=0; i--){
+            if(!keptGroups[i]){
+                keptGroups.splice(i,1)
+            }
         }
         this.edges = newEdgesList
         this.updateAdjacencyList()
@@ -1869,6 +1916,7 @@ class NetworkDeltas extends NetworkAttrib{
     attributeGroupsByDB(groups){
         let database = this.cfg.delta.keepList
         for(let i=0; i<groups.length; i++){
+            if(!groups[i]){continue;}
             const mass = groups[i].value
             let candidates = []
             for(let j=0; j<database.length; j++){
