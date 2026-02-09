@@ -623,12 +623,13 @@ class File{
             var info_c1 = document.createElement("div")
             info_c1.textContent = "Calibration: "+calibData.method
             var info_c2 = document.createElement("div")
-            info_c2.textContent = "residuals: "+calibData.residualError.toFixed(3)+" ppm"
+            var disp_error = calibData.residualError || 0
+            info_c2.textContent = "residuals: "+disp_error.toFixed(3)+" ppm"
             div.appendChild(info_c1)
             div.appendChild(info_c2)
         }else if(this.state == "attributed"){
             var attData = this.metadata.attribution
-            var percent = 100*attData.peakLength_att / attData.peakLength_raw
+            var percent = 100*attData.peakLength_att / attData.peakLength_raw ||0
             var info_a1 = document.createElement("div")
             info_a1.textContent = "attributed peaks: "+percent.toFixed(1)+"%"
             div.appendChild(info_a1)
