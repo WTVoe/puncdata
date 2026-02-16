@@ -618,7 +618,6 @@ class File{
         info_2.textContent = "#columns: "+lineLength
         div.appendChild(info_1)
         div.appendChild(info_2)
-        
         if(this.state == "calibrated"){
             var calibData = this.metadata.calibration
             var info_c1 = document.createElement("div")
