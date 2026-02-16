@@ -23,8 +23,6 @@
 <script src="scripts/script_table.js" defer></script> <!-- table tab js-->
 <script src="scripts/script_venn.js" defer></script> <!-- venn tab js-->
 
-<script src="scripts/script_spectra.js" defer>  </script> <!-- Attribution algorithm -->
-
 <!--libraries used for the first module-->
 <script src="modules/D3/d3.js" >  </script> <!-- D3.js module-->
 <script src="modules/html2canvas/html2canvas.js" defer>  </script> <!-- html2canvas screenshot module -->
@@ -56,7 +54,6 @@
 </div>
 <div class="tab">
   <button class="tablinks otherlink" id="tab_button_upload" onclick="openTab('tab_data')">Data Manager</button>
-  <button class="tablinks datalink"  onclick="openTab('tab_peaks')">Spectra</button>
   <button class="tablinks datalink"  onclick="openTab('tab_calib')">Calibration</button>
   <button class="tablinks datalink"  onclick="openTab('tab_attrib')">Attribution</button>
   <button class="tablinks datalink"  onclick="openTab('tab_treatment')">Tools</button>
@@ -121,60 +118,7 @@
      </div>
      <button id="createFile" style="width:100%;height:50px;">Add a new file</button>
  </div>
- <!-- TAB Spectra-->
-<div id="tab_peaks" class="tabcontent">
-     <div class="topselecter">
-          <div id="menu">
-               <table name="mainTableCalib">
-                    <tr><td>File : <select name="fileSelection" style="color:white"></select> </td></tr>
-                    <tr><td>Type : <select name="fileType" style="color:white" title="Profile for x y continuous data, centroid for peak lists">
-                         <option value="profile">Profile</option>
-                         <option value="centroid">Centroid</option>
-                    </select></td></tr>
-                    <tr><td>Operations to do:</td></tr>
-                    <tr><td><input type="checkbox" name="picking"> Peak picking</td></tr>
-                    <tr><td><input type="checkbox" name="deconvolution"> Deconvolution</td></tr>
-               </table>
-          </div>
-          <div id="menu" style="flex:0.25">
-          </div>
-          <div id="menu" name="menu_picking" style="display:none">
-               <table >
-                    <tr><td>Peak picking</td></tr>
-                    <tr><td>Noise threshold: <input type="number" name="noiseThreshold" value="1"></td></tr>
-                    <tr><td>Min. Peak points : <input type="number" name="windowSize" value="1"></td></tr>
-                    <tr><td></td></tr>
-                    <tr><td></td></tr>
-                    <tr></td></tr>
-               </table>
-          </div>
-          <div id="menu" style="flex:0.25" name ="spacer_deconvolution">
-          </div>
-          <div id="menu" name="menu_deconvolution" style="display:none">
-               <table  id="menu">
-                    <tr><td>Deconvolution</td></tr>
-                    <tr><td>Mode : <select name="polarity"><option value="positive">Positive</option><option value="negative">Negative</option></select></td></tr>
-                    <tr><td>Default charge : <input type="number" name="defaultCharge" value="1"></td></tr>
-                    <tr><td>Charge range : <input type="number" name="chargeMin" value="1">-<input type="number" name="chargeMax" value="2"></td></tr>
-                    <tr><td>Tolerance : <input type="number" name="tolerance" value="0.2"> mDa</td></tr>
-                    <tr><td>Adduct mass : <input type="number" name="adductmass"> Da</td></tr>
-                    <tr><td><button name="massDelta">Edit mass deltas</button></td></tr>
-               </table>
-          </div>
-          <div id="menu" style="flex:0.25">
-          </div>
-          <div id="menu">
-          </div>
-          <div id="menubuttons" >
-               <div id="buttons" class="subtabbuttonmenu">
-                    <button id="calculate_peaks" class="iconbutton">Compute<img class="parametersButton" src="icons/calculator.png"/></button>
-                    <button id="save_peaks" class="iconbutton">Save<br><img class="parametersButton" src="icons/validate.png"/></button><br>
-                    <button  class="iconbutton"><center>Import <br> config</center><input  onChange="importPopup(this)" style="opacity:0;height:70px;width:70px;z-index:2;margin-top:-32px;margin-left:-10px" id="uploadParameters" type="file"><img style="margin-top:-35px" class="parametersButton" src="icons/upload_icon.png"/></button>
-               </div>
-          </div>
-     </div>
-     <div id="calibPeaks"></div>
-</div>
+
 <!-- TAB Calibration-->
 <div id="tab_calib" class="tabcontent">
      <div class="topselecter">
@@ -185,8 +129,6 @@
                          <select name="calibAlgo">
                               <option value="linear">Linear</option>
                               <option value="quad">Quadratic</option>
-                              <option value="mobile">Mobile Mean</option>
-                              <option value="multi">Multi(WIP!)</option>
                          </select>
                     </td></tr>
                     <tr><td><select name="calibListChoice"></select><button name="newCalibList">ADD</button> <button name="removeCalibList">REMOVE</button></td></tr>
