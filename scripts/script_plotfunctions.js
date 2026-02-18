@@ -465,6 +465,8 @@ function drawSolidColorLegend(cell, cellNum, dataNum, LegendText, cfgData){
 
   let minColor = dataCfg.minColor
   let maxColor = dataCfg.maxColor
+  let minColorTxt = minColor
+  let maxColorTxt = maxColor
   let suppText = ""
   if(dataCfg.colorRelative){
     suppText = "(%)"
@@ -472,7 +474,13 @@ function drawSolidColorLegend(cell, cellNum, dataNum, LegendText, cfgData){
     minColor = dataCfg.relativeMin + dataCfg.minColor*space
     maxColor = dataCfg.relativeMin + dataCfg.maxColor*space
   }
-
+  //scientific format
+  if(Math.abs(minColorTxt)>=1e5){
+    minColorTxt = parseFloat(minColorTxt).toExponential(2)
+  }
+  if(Math.abs(maxColorTxt)>=1e5){
+    maxColorTxt = parseFloat(maxColorTxt).toExponential(2)
+  }
   let halfWidth = cellCfg.config.width/2
   let legend = svgSpace.append('g').attr("id","legend_"+name).attr("name","colorLegend")
   var scale = {}
@@ -497,7 +505,7 @@ function drawSolidColorLegend(cell, cellNum, dataNum, LegendText, cfgData){
   .style("fill","black")
   .style("font-family",cellCfg.config.legendFont)
   .style("font-size",cellCfg.config.legendFontSizeSmall)
-  .text(name+","+variableName+suppText+": "+dataCfg.minColor);
+  .text(name+","+variableName+suppText+": "+minColorTxt);
 
   legend.append("text")
   .attr("id","legend_"+name+"_title2")
@@ -507,7 +515,7 @@ function drawSolidColorLegend(cell, cellNum, dataNum, LegendText, cfgData){
   .style("fill","black")
   .style("font-family",cellCfg.config.legendFont)
   .style("font-size",cellCfg.config.legendFontSizeSmall)
-  .text(dataCfg.maxColor);
+  .text(maxColorTxt);
 
   return legend
  }

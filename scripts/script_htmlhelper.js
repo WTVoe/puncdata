@@ -901,7 +901,6 @@ class Popup {
             html_buttons[i].setAttribute("name","popup_button_"+i)
             html_buttons[i].innerHTML = buttons[i].name
             html_buttons[i].addEventListener("click",(d)=>{
-                console.log("here", this);
                 buttons[i].function(buttons[i].arg1)
                 let close = this.popup.querySelector("button[class='popuptrueclose']")
                 close.click()
@@ -1112,8 +1111,8 @@ function createConfigHTML(cfg){
     let partTitle3 = menuCreate_label("Text elements",true,[['fontWeight','bold']])
     div.appendChild(partTitle3)
 
-    let scaleMoveName = document.createTextNode("Move legends at the extremity")
-    let titleName = document.createTextNode("Show a Title")
+    let scaleMoveName = document.createTextNode("Show titles at the end of axes")
+    let titleName = document.createTextNode("Show data source on charts")
     let scaleMoveCheckbox =  menuCreate_checkbox(null, "endAxis", cfg.endAxis)
     scaleMoveCheckbox.addEventListener("change",(d)=>{cfg.endAxis = d.target.checked})
     let titleCheckbox = menuCreate_checkbox(null, "showTitle", cfg.showTitle)

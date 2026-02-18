@@ -3284,7 +3284,7 @@ function saveAttribution_replaceDataFile(){
         }
     }
     //adds the new file state
-    file.addFileState("attributed",newDataClean, true)
+    file.addFileState("attributed",newDataClean, true, true)
     saveAttribMetadata(file)
     //updates the log
     file.logs.push("Attribution made with Punc'data")
@@ -3409,7 +3409,7 @@ function saveAttribMetadata(file){
     meta.peakLength_att = savedMeta.peakLength_att
     meta.peakLength_rem = savedMeta.peakLength_rem
     file.metadata.attribution = meta
-    console.log(file.metadata.attribution)
+    if(debug){console.log("metadata added",file.metadata.attribution)}
 }
 
 

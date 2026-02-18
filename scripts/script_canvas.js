@@ -3070,9 +3070,12 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
                 else if(this.cfg.ymethod == "count"){return this.scales[1](d.length)}
             })
             .attr("height",(d,n)=>{
-                if(this.cfg.ymethod == "intensity"){return this.cfg.config.height - this.scales[1](100*d.intensity/theseBins.totalHeight)}
-                else if(this.cfg.ymethod =="attributions"){return this.cfg.config.height - this.scales[1](100*d.length/(theseBins.totalNumber - 1))}
-                else if(this.cfg.ymethod == "count"){return this.cfg.config.height - this.scales[1](d.length)}
+                let height = 0
+                if(this.cfg.ymethod == "intensity"){height = this.cfg.config.height - this.scales[1](100*d.intensity/theseBins.totalHeight)}
+                else if(this.cfg.ymethod =="attributions"){height = this.cfg.config.height - this.scales[1](100*d.length/(theseBins.totalNumber - 1))}
+                else if(this.cfg.ymethod == "count"){height = this.cfg.config.height - this.scales[1](d.length)}
+                if(height <0 || isNaN(height)){height = 0}
+                return height
             })
             .style("fill", color)
             .attr("fillColor", color)
@@ -3154,9 +3157,12 @@ class CanvasCell_histodiscrete extends CanvasCell_histo{
                 else if(this.cfg.ymethod == "count"){return this.scales[1](d.matrixMeanCountAbsolute)}
             })
             .attr("height",(d,n)=>{
-                if(this.cfg.ymethod == "intensity"){return this.cfg.config.height - this.scales[1](100*d.matrixMeanI)}
-                else if(this.cfg.ymethod =="attributions"){return this.cfg.config.height - this.scales[1](100*d.matrixMeanCount)}
-                else if(this.cfg.ymethod == "count"){return this.cfg.config.height - this.scales[1](d.matrixMeanCountAbsolute)}
+                let height = 0
+                if(this.cfg.ymethod == "intensity"){height = this.cfg.config.height - this.scales[1](100*d.matrixMeanI)}
+                else if(this.cfg.ymethod =="attributions"){height = this.cfg.config.height - this.scales[1](100*d.matrixMeanCount)}
+                else if(this.cfg.ymethod == "count"){height = this.cfg.config.height - this.scales[1](d.matrixMeanCountAbsolute)}
+                if(height <0 || isNaN(height)){height = 0}
+                return height
             })
             .style("fill", color)
             .attr("fillColor", color)
@@ -3625,9 +3631,12 @@ class CanvasCell_histoclass extends CanvasCell_histo{
                 else if(this.cfg.ymethod == "count"){return this.scales[1](d.length)}
             })
             .attr("height",(d,n)=>{
-                if(this.cfg.ymethod == "intensity"){return this.cfg.config.height - this.scales[1](100*d.intensity/theseBins.totalHeight)}
-                else if(this.cfg.ymethod =="attributions"){return this.cfg.config.height - this.scales[1](100*d.length/(theseBins.totalNumber - 1))}
-                else if(this.cfg.ymethod == "count"){return this.cfg.config.height - this.scales[1](d.length)}
+                let height = 0
+                if(this.cfg.ymethod == "intensity"){height = this.cfg.config.height - this.scales[1](100*d.intensity/theseBins.totalHeight)}
+                else if(this.cfg.ymethod =="attributions"){height = this.cfg.config.height - this.scales[1](100*d.length/(theseBins.totalNumber - 1))}
+                else if(this.cfg.ymethod == "count"){height = this.cfg.config.height - this.scales[1](d.length)}
+                if(height <0 || isNaN(height)){height = 0}
+                return height
             })
             .style("fill", color)
             .attr("fillColor", color)
@@ -3711,9 +3720,12 @@ class CanvasCell_histoclass extends CanvasCell_histo{
                 else if(this.cfg.ymethod == "count"){return this.scales[1](d.matrixMeanCountAbsolute)}
             })
             .attr("height",(d,n)=>{
-                if(this.cfg.ymethod == "intensity"){return this.cfg.config.height - this.scales[1](100*d.matrixMeanI)}
-                else if(this.cfg.ymethod =="attributions"){return this.cfg.config.height - this.scales[1](100*d.matrixMeanCount)}
-                else if(this.cfg.ymethod == "count"){return this.cfg.config.height - this.scales[1](d.matrixMeanCountAbsolute)}
+                let height = 0
+                if(this.cfg.ymethod == "intensity"){height =this.cfg.config.height - this.scales[1](100*d.matrixMeanI)}
+                else if(this.cfg.ymethod =="attributions"){height =this.cfg.config.height - this.scales[1](100*d.matrixMeanCount)}
+                else if(this.cfg.ymethod == "count"){height =this.cfg.config.height - this.scales[1](d.matrixMeanCountAbsolute)}
+                if(height <0 || isNaN(height)){height = 0}
+                return height
             })
             .style("fill", color)
             .attr("fillColor", color)
@@ -4649,7 +4661,7 @@ class CanvasCell_scatterPCA extends CanvasCell{
             {key:"ytype",type:"number",default:0},
             {key:"dotSize",type:"number",default:1},
             {key:"relativeSize",type:"checkbox",default:false},
-            {key:"selectedCols",type:"text",default:"Component,PCA,Variable"},
+            {key:"selectedCols",type:"text",default:"Component,PCA,Variable,PC-"},
             {key:"showAxes",type:"checkbox",default:false},
             {key:"axesColor",type:"color",default:"#000000"}
         ]
@@ -4685,7 +4697,27 @@ class CanvasCell_scatterPCA extends CanvasCell{
                 {key:"axesColor",type:"color",value:this.cfg.axesColor,title: "Color of axes",update:(d)=>{this.cfg.update(d)}},
             ]
         })
+        varsArray.push({"name":"",
+            "inputs":[
+                {key:"autoNorm",type:"button",options:{fct: ()=>{this.autoNormalize()}},value:"Autoscale and Normalize axes",title: "Autoscale and give the same range to x and y axis",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
         return varsArray
+    }
+
+    autoNormalize(){
+        this.autoscale()
+        //normalizes by computing the biggest range between x and y axis
+        let xRange = parseFloat(this.cfg.xmax) - parseFloat(this.cfg.xmin)
+        let yRange = parseFloat(this.cfg.ymax) - parseFloat(this.cfg.ymin)
+        let maxRange = Math.max(xRange, yRange)
+        let xCenter = (this.cfg.xmax + this.cfg.xmin)/2
+        let yCenter = (this.cfg.ymax + this.cfg.ymin)/2
+        this.cfg.xmin = xCenter - maxRange/2
+        this.cfg.xmax = xCenter + maxRange/2
+        this.cfg.ymin = yCenter - maxRange/2
+        this.cfg.ymax = yCenter + maxRange/2
+        this.draw()
     }
 
     prepareAxisChoices_allFiles(){
@@ -4709,6 +4741,8 @@ class CanvasCell_scatterPCA extends CanvasCell{
         if(!columns){return []}
         let choices = []
         let words = this.cfg.selectedCols.split(",")
+        //adds to words the default punc'data method : "PC-"
+        words.push("PC-")
         for(let i=0; i<columns.length; i++){
             let isValid = false;
             for(let j=0; j<words.length; j++){
@@ -4805,6 +4839,7 @@ class CanvasCell_massPCA extends CanvasCell{
         .attr("height", (d) => {
             let height = this.scales[1](d[this.cfg.ytype]) - this.scales[1](0)
             if(d[this.cfg.ytype]>0){height =this.scales[1](0) - this.scales[1](d[this.cfg.ytype]) }
+            if(height<0 || isNaN(height)){height=0}
             return height; 
         })
         .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
@@ -4874,6 +4909,7 @@ class CanvasCell_massPCA extends CanvasCell{
             thisData.attr("height",  (d) =>{
                 let height = this.scales[1](d[this.cfg.ytype]) - this.scales[1](0)
                 if(d[this.cfg.ytype]>0){height =this.scales[1](0) - this.scales[1](d[this.cfg.ytype]) }
+                if(height<0 || isNaN(height)){height=0}
                 return height; 
             } ) 
             if(this.line){
@@ -4996,6 +5032,8 @@ class CanvasCell_massPCA extends CanvasCell{
         if(!columns){return []}
         let choices = []
         let words = this.cfg.selectedCols.split(",")
+        //adds to words the default punc'data method : "PC-"
+        words.push("PC-")
         for(let i=0; i<columns.length; i++){
             let isValid = false;
             for(let j=0; j<words.length; j++){
@@ -5251,7 +5289,7 @@ class CanvasCell_samplesPCA extends CanvasCell{
             {key:"threshold",type:"number",default:0},
             {key:"showAxes",type:"checkbox",default:false},
             {key:"axesColor",type:"color",default:"#000000"},
-            {key:"selectedCols",type:"text",default:"Component,PCA,Variable"},
+            {key:"selectedCols",type:"text",default:"Component,PCA,Variable,PC-"},
             {key:"colorGroup",type:"checkbox",default:true}
         ]
         return properties
@@ -5290,14 +5328,33 @@ class CanvasCell_samplesPCA extends CanvasCell{
                 {key:"threshold",type:"number",value:this.cfg.threshold,title: "The intensity threshold under which peaks are considered absent from the file selected by interactivity ",update:(d)=>{this.cfg.update(d)}},
             ]
         })
-         varsArray.push({"name":"Color by group",
+        varsArray.push({"name":"Color by group",
             "inputs":[
                 {key:"colorGroup",type:"checkbox",value:this.cfg.colorGroup,title: 'Check this to color by the groups defined in "group manager"',update:(d)=>{this.cfg.update(d)}},
             ]
         })
-        
+        varsArray.push({"name":"",
+            "inputs":[
+                {key:"autoNorm",type:"button",options:{fct: ()=>{this.autoNormalize()}},value:"Autoscale and Normalize axes",title: "Autoscale and give the same range to x and y axis",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
         
         return varsArray
+    }
+
+    autoNormalize(){
+        this.autoscale()
+        //normalizes by computing the biggest range between x and y axis
+        let xRange = parseFloat(this.cfg.xmax) - parseFloat(this.cfg.xmin)
+        let yRange = parseFloat(this.cfg.ymax) - parseFloat(this.cfg.ymin)
+        let maxRange = Math.max(xRange, yRange)
+        let xCenter = (this.cfg.xmax + this.cfg.xmin)/2
+        let yCenter = (this.cfg.ymax + this.cfg.ymin)/2
+        this.cfg.xmin = xCenter - maxRange/2
+        this.cfg.xmax = xCenter + maxRange/2
+        this.cfg.ymin = yCenter - maxRange/2
+        this.cfg.ymax = yCenter + maxRange/2
+        this.draw()
     }
 
     prepareAxisChoices_allFiles(){
@@ -5321,6 +5378,8 @@ class CanvasCell_samplesPCA extends CanvasCell{
         if(!columns){return []}
         let choices = []
         let words = this.cfg.selectedCols.split(",")
+        //adds to words the default punc'data method : "PC-"
+        words.push("PC-")
         //count how many variables have been found
         let countValid = 0
         for(let i=0; i<columns.length; i++){
@@ -5354,7 +5413,9 @@ class CanvasCell_samplesPCA extends CanvasCell{
                 if(!file || !file.matrix){return;}
                 data = file.matrix.pca_loadings || []
             }else{return;}
-            data.unshift(["header"])
+            if(data[0] && data[0][0] && data[0][0] != "header"){
+                data.unshift(["header"])
+            }
             allSamples.push(data)
         })
         let x= [this.cfg.xmin, this.cfg.xmax]
@@ -8154,7 +8215,6 @@ class TopMenuCanvas{
             let newGradient = this.buildGradientOverlay(i)
             let oldGrad = this.html.querySelector("div[name='topGradient_"+i+"']")
             let parent =  oldGrad.parentNode
-            console.log(parent)
             oldGrad.remove()
             parent.appendChild(newGradient)
         }

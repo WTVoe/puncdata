@@ -529,6 +529,13 @@ class File{
             stateSelecter.style.color = "black"
             stateTable.rows[1].cells[1].appendChild(stateSelecter)
         }
+        //add a button to display actions over file states
+        var stateActionButton = document.createElement("button")
+        stateActionButton.style.height = "17px"
+        stateActionButton.innerHTML = "Manage states"
+        stateActionButton.style.fontSize = "10px"
+        stateActionButton.addEventListener("click",()=>{this.showStatesPopup()})
+        stateTable.rows[1].cells[2].appendChild(stateActionButton)
        
         defGroup.appendChild(input_name)
         defGroup.appendChild(stateTable)
@@ -1236,7 +1243,7 @@ class File{
     }
 
     /**add a new file state. If setAsActive, replaces the current data */
-    addFileState(stateName, data, setAsActive){
+    addFileState(stateName, data, setAsActive, copyMetadata){
         if(this.data_derived=={})[this.data_derived = []]
         let stateSlot = this.searchFileState(stateName)
         //handle edge case when there is already this file state and it's active
@@ -1244,17 +1251,30 @@ class File{
             this.data = data
             return;
         }
+        let metadata = {}
+        if(copyMetadata){
+            metadata = JSON.parse(JSON.stringify(this.metadata))
+        }else{
+            metadata = {
+                calibration:{},
+                attribution:{},
+                special:[]//{key,value} pairs
+            }
+        }
         if(setAsActive){
-            let oldState = {name:this.state, data:this.data}
+            let oldState = {name:this.state, data:this.data, metadata : this.metadata}
             this.data_derived.push(oldState)
             this.data = data
             this.state = stateName
+            this.metadata = metadata
+            //removes the state slot if it exists, as it's now the active state
+            if(stateSlot){this.removeFileState(stateName)}
         }else{
             //searches if this state already exists
             if(stateSlot){
                 stateSlot.data = data
             }else{
-                let state = {name:stateName, data:data}
+                let state = {name:stateName, data:data, metadata : metadata}
                 this.data_derived.push(state)
             }
         }
@@ -1265,10 +1285,11 @@ class File{
     switchFileState(targetName){
         let newState = this.searchFileState(targetName)
         if(!newState){return;}
-        let oldState = {name:this.state, data:this.data}
+        let oldState = {name:this.state, data:this.data, metadata:this.metadata}
         this.data_derived.push(oldState)
         this.state = newState.name
         this.data = newState.data
+        if(newState.metadata){this.metadata = newState.metadata}
         this.removeFileState(targetName)
         //Recomputes indexes to allow for interactivity
         indexFiles()
@@ -1285,6 +1306,96 @@ class File{
         if(stateIndex>=0){
             this.data_derived.splice(stateIndex,1)
         }
+    }
+
+    /**shows a popup to manage file states */
+    showStatesPopup(){
+        let popup = new Popup("file_states","")
+        popup.valButton.remove()
+        let wrapper = popup.popup.querySelector("div[name='popup_content']")
+        let containerDiv = document.createElement("div")
+        wrapper.appendChild(containerDiv)
+        //removes empty states
+        for(let i=this.data_derived.length-1; i>=0; i--){
+            console.log(this.data_derived[i].data, this.data_derived[i].name)
+            if(!this.data_derived[i].data || !this.data_derived[i].name){
+                this.data_derived.splice(i,1)
+            }
+        }
+        //table with columns : name(input), #lines, #columns, duplicate,copy, remove
+        let table = createTable(this.data_derived.length+2, 6)
+        containerDiv.appendChild(table)
+        //add headers
+        table.rows[0].cells[0].textContent = "State name"
+        table.rows[0].cells[1].textContent = "#Peaks"
+        table.rows[0].cells[2].textContent = "#Columns"
+        table.rows[0].cells[3].textContent = "Duplicate state"
+        table.rows[0].cells[4].textContent = "Copy state"
+        table.rows[0].cells[5].textContent = "Delete  state"
+        //first line : current state
+        let firstNameInput = menuCreateInput("text","stateName_current", this.state)
+        firstNameInput.style.width = "90%"
+        firstNameInput.style.color = "#000000"
+        firstNameInput.addEventListener("change",()=>{
+            this.state = firstNameInput.value
+            this.refreshSlot()
+        })
+        table.rows[1].cells[0].appendChild(firstNameInput)
+        table.rows[1].cells[1].textContent = this.data.length
+        if(this.data[0]){table.rows[1].cells[2].textContent = this.data[0].length}
+        let dupButton = document.createElement("button")
+            dupButton.textContent = "Duplicate"
+            dupButton.addEventListener("click",()=>{
+                this.addFileState(this.state+"_copy", this.data, false, true)
+                this.refreshSlot()
+                popup.popup_close.click()
+                this.showStatesPopup()
+         })
+        table.rows[1].cells[3].appendChild(dupButton)
+        let copyButton = document.createElement("button")
+        copyButton.textContent = "Copy"
+        copyButton.addEventListener("click",()=>{
+            this.copyToClipboard()
+        })
+        table.rows[1].cells[4].appendChild(copyButton)
+        //other lines : derived states
+        for(let i=0; i<this.data_derived.length; i++){
+            let nameInput = menuCreateInput("text","stateName_"+i, this.data_derived[i].name)
+            nameInput.style.width = "90%"
+            nameInput.style.color = "#000000"
+            nameInput.addEventListener("change",()=>{
+                this.data_derived[i].name = nameInput.value
+                this.refreshSlot()
+            })
+            table.rows[i+2].cells[0].appendChild(nameInput)
+            table.rows[i+2].cells[1].textContent = this.data_derived[i].data.length
+            if(this.data_derived[i].data[0]){table.rows[i+2].cells[2].textContent = this.data_derived[i].data[0].length}
+            let dupButton = document.createElement("button")
+            dupButton.textContent = "Duplicate"
+            dupButton.addEventListener("click",()=>{
+                this.addFileState(this.data_derived[i].name+"_copy", this.data_derived[i].data, false, true)
+                this.refreshSlot()
+                popup.popup_close.click()
+                this.showStatesPopup()
+            })
+            table.rows[i+2].cells[3].appendChild(dupButton)
+            let copyButton = document.createElement("button")
+            copyButton.textContent = "Copy"
+            copyButton.addEventListener("click",()=>{
+                copyData(this.data_derived[i].data)
+            })
+            table.rows[i+2].cells[4].appendChild(copyButton)
+            let delButton = document.createElement("button")
+            delButton.textContent = "X"
+            delButton.addEventListener("click",()=>{
+                this.removeFileState(this.data_derived[i].name)
+                this.refreshSlot()
+                popup.popup_close.click()
+                this.showStatesPopup()
+            })
+            table.rows[i+2].cells[5].appendChild(delButton)
+        }
+    
     }
 
     /** export to save in a savefile */

@@ -302,7 +302,7 @@ function autoSetupColumns(cols){
   }
   //looks for every parameter
   var col_mz = ["m/z","mz","mass"];
-  var col_i = ["intensity","abundance","abund","count","i"];
+  var col_i = ["intensity","abundance","abund","count","z-axis","i"];
   var col_dbe = ["dbe","rdb"];
   var col_ppmerror = ["ppm","error"];
   var col_formula = ["formula"];

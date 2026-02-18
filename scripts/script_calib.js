@@ -384,8 +384,9 @@ function saveCalibration_replace(){
     let fileNb = tableCalib.querySelector("select[name='fileSelection']").value
     if(fileNb.includes("file")){
         fileNum = fileNb.slice(5);
-        saveCalibState(fileNum);
         files.list[fileNum].addFileState("calibrated",tempDataCalib, true)
+        saveCalibState(fileNum);
+        files.list[fileNum].refreshSlot()
         //logs
         var calibTypeSelect = document.querySelector("select[name='calibAlgo']")
         var calibListSelect = document.querySelector("select[name='calibListChoice']")
@@ -799,6 +800,53 @@ function readPolymerAdderPopup(database, preText, choiceNb){
         database.push({"formula":baseFormula.stringify(),"mass":baseFormula.mass})
     }
     readPeakCalibList(preText, database,choiceNb, true)
+}
+
+
+/**creates all possible copolymer formulas in a given mz range, but does not remove monomers from the ru contrary to simple polymer list creation */
+function createCopolymerMolList(baseFormula, monomer1, monomer2, minMass, maxMass){
+    let molList = []
+    let baseMol = new Molecule(baseFormula)
+    let ru1 = new Molecule(monomer1)
+    let ru2 = new Molecule(monomer2)
+    let baseMass = baseMol.mass
+    let ru1Mass = ru1.mass
+    let ru2Mass = ru2.mass
+    //estimates the number of repeat units to add
+    let minRepeat = 0
+    let maxRepeat = 0
+    if(ru1Mass !=0 && ru2Mass !=0){
+        minRepeat = (baseMass - minMass)/Math.min(ru1Mass, ru2Mass)
+        maxRepeat = (maxMass - baseMass)/Math.min(ru1Mass, ru2Mass)
+        minRepeat = Math.ceil(minRepeat)
+        maxRepeat = Math.floor(maxRepeat)
+    }
+    if(minRepeat<0){minRepeat=0}
+    if(maxRepeat<0){maxRepeat=0}
+    for(let i=0; i<maxRepeat; i++){
+        for(let j=0; j<maxRepeat; j++){
+            let newMol = baseMol.returnDuplicate()
+            for(let newi=0; newi<=i; newi++){
+                newMol.addFormula(ru1)
+            }
+            for(let newj=0; newj<=j; newj++){
+                newMol.addFormula(ru2)
+            }
+            if(newMol.mass >= minMass && newMol.mass <= maxMass){
+                molList.push({"formula":newMol.stringify(),"mass":newMol.mass})
+            }
+        }
+    }
+    //optional - to remove maybe for futur use - copy to clipboard a list of all formulas
+    let dataLine = "formula\tmass\n "
+    for(let i=0; i<molList.length; i++){
+        dataLine += molList[i].formula + '\t' + molList[i].mass
+        dataLine += '\n'
+    }
+    console.log(dataLine)
+    navigator.clipboard.writeText(dataLine)
+
+    return molList
 }
 
 /** a function to add a peak to a calibration list */

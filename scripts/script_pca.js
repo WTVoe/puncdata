@@ -11,6 +11,8 @@ var cvsPCA = {
     "intensityCols":[]
 }
 
+//there has been a confusion when naming variables here. Loadings is the sample projections, and projections is the loadings.
+//TODO: update this to avoid confusion in the future
 var cfgPCA = {
     "normalize":true,
     "xtype":0,
@@ -150,9 +152,9 @@ function doPCA(originalMatrix, cols){
     cvsPCA.components = []
     for(let j=cols[1]; j<cols[1]+nbOfCols-1; j++){
         let percentEx = 0.1*Math.round(1000*PCA.computePercentageExplained(eigen,eigen[cpntNb-1]))
-        originalMatrix[0][j] = "Component_"+cpntNb+"("+percentEx.toFixed(1)+"%)"
+        originalMatrix[0][j] = "PC-"+cpntNb+"("+percentEx.toFixed(1)+"%)"
         cvsPCA.components[cpntNb-1]={}
-        cvsPCA.components[cpntNb-1].name = "Component "+cpntNb
+        cvsPCA.components[cpntNb-1].name = "PC-"+cpntNb
         cvsPCA.components[cpntNb-1].percent = PCA.computePercentageExplained(eigen,eigen[cpntNb-1])
         cpntNb +=1
     }
@@ -409,8 +411,10 @@ function tabPCA_createCellPeaks(){
     cell.scales[0] = d3.scaleLinear().domain([cfg.xmin, cfg.xmax]).range([0, config.width]);
     cell.scales[1]= d3.scaleLinear().domain([cfg.ymin, cfg.ymax]).range([config.height, 0]);
     cell.axes=[];
-    cell.axes[0]= appendAxis_x(cell.self, cell.scales[0], config.height, 1)
-    cell.axes[1]= appendAxis_y(cell.self, cell.scales[1], 3)
+    let axisWidthX = parseFloat(cfgPCA.projections.xmax) - parseFloat(cfgPCA.projections.xmin)
+    let axisWidthY = parseFloat(cfgPCA.projections.ymax) - parseFloat(cfgPCA.projections.ymin)
+    cell.axes[0]= appendAxis_x(cell.self, cell.scales[0], config.height, axisWidthX)
+    cell.axes[1]= appendAxis_y(cell.self, cell.scales[1], axisWidthY)
     if(!config.nogrid){
         cell.grids = [];
         cell.grids[0] = appendPlotGrid(cell.self, cell.scales[0],config.axisLines, "bottom");
@@ -446,8 +450,10 @@ function tabPCA_createCellLoadings(){
     cell.scales[0] = d3.scaleLinear().domain([cfg.xmin, cfg.xmax]).range([0, config.width]);
     cell.scales[1]= d3.scaleLinear().domain([cfg.ymin, cfg.ymax]).range([config.height, 0]);
     cell.axes=[];
-    cell.axes[0]= appendAxis_x(cell.self, cell.scales[0], config.height, 1)
-    cell.axes[1]= appendAxis_y(cell.self, cell.scales[1], 3)
+    let maxWidthX = Math.abs(cfg.xmax) + Math.abs(cfg.xmin)
+    let maxWidthY = Math.abs(cfg.ymax) + Math.abs(cfg.ymin)
+    cell.axes[0]= appendAxis_x(cell.self, cell.scales[0], config.height, maxWidthX)
+    cell.axes[1]= appendAxis_y(cell.self, cell.scales[1], maxWidthY)
     if(!config.nogrid){
         cell.grids = [];
         cell.grids[0] = appendPlotGrid(cell.self, cell.scales[0],config.axisLines, "bottom");
@@ -693,7 +699,11 @@ function tabPCA_drawData_histogram(){
         .style("fill", "#000000")
         .attr("fillColor", "#000000")
         .attr("clip-path", "url(#tabPCA_ClipPath3)")
-        .attr('tooltipHTML', function(d ,i){ return "pca;pca;"+d.name+"<br>"+100*d.percent+" %"})
+        .attr('tooltipHTML', function(d ,i){
+            text = "pca;pca;"+d.name+"<br>"+100*d.percent.toFixed(3)+" %"
+            text += "<br>Eigen value:"+cvsPCA.eigen[i].eigenvalue.toFixed(1)
+             return text
+            })
          .on("mouseover", cfgPCA.main.functions.mouseover )
          .on("mousemove", cfgPCA.main.functions.mousemove  )
          .on("mouseleave" , cfgPCA.main.functions.mouseleave  )
@@ -802,7 +812,21 @@ function tabPCA_autoscale(d){
         cfgProj.xmax = Math.round(compo_x_max)*1.1
         cfgProj.ymax = Math.round(compo_y_max)*1.1
     }
-
+    //normalizes the axes
+    //finds out which axe has the widest range and extends the other one to have the same range
+    let rangeX = Math.abs(cfgProj.xmax) + Math.abs(cfgProj.xmin)
+    let rangeY = Math.abs(cfgProj.ymax) + Math.abs(cfgProj.ymin)
+    if(rangeX>rangeY){
+        let centerY = (cfgProj.ymax + cfgProj.ymin)/2
+        cfgProj.ymin = centerY - rangeX/2
+        cfgProj.ymax = centerY + rangeX/2
+        cvsPCA.cellPeaks.scales[1].domain([ cfgProj.ymin, cfgProj.ymax ]);
+    }else if(rangeY>rangeX){
+        let centerX = (cfgProj.xmax + cfgProj.xmin)/2
+        cfgProj.xmin = centerX - rangeY/2
+        cfgProj.xmax = centerX + rangeY/2
+        cvsPCA.cellPeaks.scales[0].domain([ cfgProj.xmin, cfgProj.xmax ]);
+    }
 
     //autoscale for the loadings
     var loads = cvsPCA.loadings
@@ -849,6 +873,24 @@ function tabPCA_autoscale(d){
         cfgLoad.xmax = Math.round(loads_x_max)*1.1
         cfgLoad.ymax = Math.round(loads_y_max)*1.1
     }
+
+    //normalizes the axes
+    //finds out which axe has the widest range and extends the other one to have the same range
+    rangeX = Math.abs(cfgLoad.xmax) + Math.abs(cfgLoad.xmin)
+    rangeY = Math.abs(cfgLoad.ymax) + Math.abs(cfgLoad.ymin)
+    if(rangeX>rangeY){
+        let centerY = (cfgLoad.ymax + cfgLoad.ymin)/2
+        cfgLoad.ymin = centerY - rangeX/2
+        cfgLoad.ymax = centerY + rangeX/2
+        cvsPCA.cellLoadings.scales[1].domain([ cfgLoad.ymin, cfgLoad.ymax ]);
+    }
+    else if(rangeY>rangeX){
+        let centerX = (cfgLoad.xmax + cfgLoad.xmin)/2
+        cfgLoad.xmin = centerX - rangeY/2
+        cfgLoad.xmax = centerX + rangeY/2
+        cvsPCA.cellLoadings.scales[0].domain([ cfgLoad.xmin, cfgLoad.xmax ]);
+    }
+
 
     //update the table values
     var table = document.getElementById("PCA_table")
@@ -933,6 +975,8 @@ function setPCATableValues(){
     table.querySelector("input[name='histogram_showLine']").checked = cfgPCA.other.showHistogramLine
     table.querySelector("input[name='pca_showPercents']").checked = cfgPCA.other.showPercents 
 
+    var html_normalize = html_tabPca.querySelector("input[name='normalizeData']")
+    html_normalize.checked = cfgPCA.normalize
 }
 
 
@@ -980,9 +1024,9 @@ class Popup_PCAScreenshot extends Popup{
         ]
         var selecter = [{"name":"selecter", "options":[]}]
         selecter[0].options = [
-            {"value":"Peaks", "text":"Projections chart"},
-            {"value":"Loadings", "text":"Loadings chart"},
-            {"value":"Histogram", "text":"Variability Histogram"},
+            {"value":"Peaks", "text":"Loadings plot"},
+            {"value":"Loadings", "text":"Sample Projections plot"},
+            {"value":"Histogram", "text":"Scree plot"},
             {"value":"-1", "text":"Whole Canvas"},
         ]
         this.buildInputs(selecter, [], buttons)
@@ -1032,7 +1076,7 @@ class Popup_PCAScreenshot extends Popup{
             screenshot = this.popup_box.appendChild(canvas)
             screenshot.id = "screenshot_image"
         });
-        var fileName = "puncdata_"+downloadTarget;
+        var fileName = "puncdata_pcaChart";
         var file = document.getElementById("screenshot_image")
         downloadFile(fileName, screenshot, "png")
         if(cellName != -1){
@@ -1183,6 +1227,32 @@ function cellBrushingPCA(){
         cell.data.classed(selectedName, function(d){ return isBrushed(selection, cell.scales[0](d[xcolumn]), cell.scales[1](d[ycolumn]) ) } )
     }
 
+}
+
+
+function printEigenValues(){
+    //print vector and eigen values in the console
+    var text = "PCA eigen values:"
+    for(let i=0; i<cvsPCA.eigen.length; i++){
+        text += "\t Component "+i+" : "
+    }
+    text +="\n Eigen values : "
+    var eigen = cvsPCA.eigen
+    for(let i=0; i<eigen.length; i++){
+        text += "\t"+eigen[i].eigenvalue.toFixed(2)
+    }
+    //vectors : 
+    text +="\n Eigen vectors : "
+    var vectorLength = cvsPCA.eigen[0].vector.length
+    console.log(cvsPCA.eigen[0].vector, vectorLength)
+    for(let i=0; i<vectorLength; i++){
+        text +="\n Vector "+i+" : "
+        for(let j=0; j<eigen.length; j++){
+            text += "\t"+cvsPCA.eigen[j].vector[i].toFixed(2)
+        }
+    }
+        
+    return console.log(text)
 }
 
   //covarience code that was in the normalizMatrix function
