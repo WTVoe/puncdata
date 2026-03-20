@@ -224,7 +224,8 @@ class FileList{
     import(save){
         for(let i=0; i<save.list.length; i++){
             const saveFile = save.list[i]
-            let file = new File(saveFile.name, saveFile.index, saveFile.id, this)
+            console.log(saveFile.name, saveFile.index, saveFile.id)
+            let file = new File(saveFile.name, saveFile.id, saveFile.index, this)
             file.import(saveFile)
             this.list.push(file)
         }

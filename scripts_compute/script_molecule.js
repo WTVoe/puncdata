@@ -556,6 +556,24 @@ function segmentCopolymer(formula, monomer1Formula, monomer2Formula, endGroupsLi
     }
 }
 
+/**computes Mn from a list of given peaks with mass and intensity  */
+function computePolymerMn(peaksList){
+    let totalMass = 0
+    let totalIntensity = 0
+    for(let i=0; i<peaksList.length; i++){
+        totalMass += peaksList[i][config.mz]*peaksList[i][config.intensity]
+        totalIntensity += peaksList[i][config.intensity]
+    }
+    let Mn = totalMass/totalIntensity
+    return Mn
+}
+
+function computePolymerMnFromHighlightedPeaks(canvas, dataNum){
+    let highlightedPeaks = canvas.data[dataNum].dataHighlighted
+    let Mn = computePolymerMn(highlightedPeaks)
+    return Mn
+}
+
 /** returns an intersection of two arrays, testing with a testKey subproperty */
 function intersectArrays(arr1, arr2, testKey){
     let intersection = []

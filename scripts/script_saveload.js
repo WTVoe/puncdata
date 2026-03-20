@@ -185,6 +185,10 @@ function importPuncdataFilesOnly(input, group) {
 function importPuncdataFile(input){ 
   var reader = new FileReader();
   reader.onload = onReaderLoad
+  if(!input.files || !input.files[0]){
+    alert("No file selected for import. Please select a .pdata file to import.")
+    return;
+  }
   reader.readAsText(input.files[0]);
 
   //this will happen when the data has been read and the variable values need now to be set.
@@ -283,7 +287,9 @@ function loadFilesOldVersion(savefile){
         if(savefile.fileData[i].length){
             file.fill(savefile.fileData[i])
         }
-        file.logs.push(savefile.fileLogs[i])
+        if(savefile.fileLogs && savefile.fileLogs[i]){
+          file.logs.push(savefile.fileLogs[i])
+        }
         startID += 1
     }
     //looks for fileCalibData metadata

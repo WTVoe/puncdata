@@ -1514,7 +1514,7 @@ function editPassGoldenRules(chosenRules, showOverride){
         override.setAttribute("name","override")
         override.setAttribute("type","checkbox")
         preText.appendChild(override)
-        preText.innerHTML += "Toggle on overriding of golden rules for this pass only<br><br>"
+        preText.innerHTML += "Toggle on overriding of golden rules for this pass only<br>This will override every filtering rule with the ones below<br>"
     }
     preText.innerHTML += "Ion type allowed :"
     var ionTypeAllowed = document.createElement("select")
@@ -1542,7 +1542,7 @@ function editPassGoldenRules(chosenRules, showOverride){
             elCells[i][j] = document.createElement("td")
             elLine[i].appendChild(elCells[i][j])
         }
-        elCells[0][0].innerHTML= "Toggle"
+        elCells[0][0].innerHTML= "Use filter"
         elCells[0][1].innerHTML= "Name"
         elCells[0][2].innerHTML= "Bounds"
         htmlTable.appendChild(elLine[i])
@@ -3044,7 +3044,7 @@ function readSearchTableAndSearch(popup, pass, rules){
     }
     possible13C.sort((a,b)=> Math.abs(a.ppm) - Math.abs(b.ppm))
     let isotoPeak = possible13C[0]
-    if(isotoPeak){
+    if(isotoPeak && data[index] && data[index].length >= config.intensity){
         let ratio = 100*isotoPeak.data[config.intensity]/data[index][config.intensity]
         isotoPeak.ratio = ratio
         let expectedC = 100*ratio*abundance13C

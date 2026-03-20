@@ -823,24 +823,24 @@ function createCopolymerMolList(baseFormula, monomer1, monomer2, minMass, maxMas
     }
     if(minRepeat<0){minRepeat=0}
     if(maxRepeat<0){maxRepeat=0}
-    for(let i=0; i<maxRepeat; i++){
-        for(let j=0; j<maxRepeat; j++){
+    for(let i=0; i<=maxRepeat; i++){
+        for(let j=0; j<=maxRepeat; j++){
             let newMol = baseMol.returnDuplicate()
-            for(let newi=0; newi<=i; newi++){
+            for(let newi=0; newi<i; newi++){
                 newMol.addFormula(ru1)
             }
-            for(let newj=0; newj<=j; newj++){
+            for(let newj=0; newj<j; newj++){
                 newMol.addFormula(ru2)
             }
             if(newMol.mass >= minMass && newMol.mass <= maxMass){
-                molList.push({"formula":newMol.stringify(),"mass":newMol.mass})
+                molList.push({"formula":newMol.stringify(),"mass":newMol.mass,"monomer1":i,"monomer2":j})
             }
         }
     }
     //optional - to remove maybe for futur use - copy to clipboard a list of all formulas
-    let dataLine = "formula\tmass\n "
+    let dataLine = "formula\tmass\tmonomer1\tmonomer2\n"
     for(let i=0; i<molList.length; i++){
-        dataLine += molList[i].formula + '\t' + molList[i].mass
+        dataLine += molList[i].formula + '\t' + molList[i].mass + '\t' + molList[i].monomer1 + '\t' + molList[i].monomer2
         dataLine += '\n'
     }
     console.log(dataLine)
