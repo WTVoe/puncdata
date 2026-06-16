@@ -243,9 +243,8 @@ class Canvas{
 
     /**a function to reset all the filters applied on datasets */
     resetFilters(){
-        console.log("reset all filters - canvas level")
+        if(debug){console.log("reset all filters - canvas level")}
         this.filters = []
-        console.log(this, this.filters)
         this.data.forEach((item)=>{
             item.dataFiltered = []
             item.filters = []
@@ -1275,6 +1274,7 @@ class CanvasCell_kendrick extends CanvasCell{
         let axisLabel_y = "KMD("+this.cfg.kendrickFormula+")"
         if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
         else if(this.cfg && this.cfg.xtype =="nkm"){axisLabel_x = "NKM"}
+        else if(this.cfg && this.cfg.xtype =="kmr"){axisLabel_x = "KMR"}
         if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
         else if(this.cfg.textKFM){axisLabel_y = "KFM("+this.cfg.kendrickFormula+")"}
         this.axesLabels=[];
@@ -1314,6 +1314,9 @@ class CanvasCell_kendrick extends CanvasCell{
         .attr("cx", (d,n) => {
             if(this.cfg.xtype == "nkm"){
                 this.scales[0](Math.round(kendrick.masses[n]));
+            }else if(this.cfg.xtype == "kmr"){
+                //kmr is the remainder of the NKM divided by the nominal kendrick mass 
+                return this.scales[0](Math.round(kendrick.masses[n]) % Math.floor(this.cfg.kendrickMass));
             }else{
                 return this.scales[0](d[config.mz]);
             }} ) 
@@ -1347,6 +1350,7 @@ class CanvasCell_kendrick extends CanvasCell{
         let axisLabel_y = "KMD("+this.cfg.kendrickFormula+")"
         if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
         else if(this.cfg && this.cfg.xtype =="nkm"){axisLabel_x = "NKM"}
+        else if(this.cfg && this.cfg.xtype =="kmr"){axisLabel_x = "KMR"}
         if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
         else if(this.cfg.textKFM){axisLabel_y = "KFM("+this.cfg.kendrickFormula+")"}
         this.axesLabels[0].text(axisLabel_x)
@@ -1376,15 +1380,33 @@ class CanvasCell_kendrick extends CanvasCell{
         super.updateData(content, dataNum)
         let thisData = this.drawnData[dataNum]
         if(!thisData){return;}
+        //find the right kendrick data
+        console.log(content)
+        let kendrick = {}
+        if(this.canvas.data[dataNum].kendrick){
+            for(let i = 0; i< this.canvas.data[dataNum].kendrick.length;i++){
+                //check if the unit is the same as the one currently used
+                if(this.canvas.data[dataNum].kendrick[i].unit == this.cfg.kendrickFormula && this.canvas.data[dataNum].kendrick[i].mass == this.cfg.kendrickMass){
+                    kendrick = this.canvas.data[dataNum].kendrick[i]
+                    break;
+                }
+            }
+        }
+        if(content == "kendrickFormula_" || content=="kendrickMethod_" || content=="kendrickChoice_" || content=="kendrickMass_"){
+            kendrick = this.canvas.data[dataNum].calculateKM(this.cfg.kendrickFormula, this.cfg.kendrickMass, this.cfg.yround, this.cfg.kendrickDivisor)
+        }
+
         if(content.includes("xtype_") || content.includes("xmin_") || content.includes("xmax_")|| content.includes("all")){
             if(this.cfg.xtype =="nkm"){
-                let kendrick = this.canvas.data[dataNum].calculateKM(this.cfg.kendrickFormula, this.cfg.kendrickMass, this.cfg.yround, this.cfg.kendrickDivisor)
+                if(!kendrick || !kendrick.masses || !kendrick.defects){console.warn("Could not find kendrick data for chart n°"+this.index+" and dataset n°"+dataNum);return;}
                 thisData.attr("cx", (d,n) => { return this.scales[0](Math.round(kendrick.masses[n]));} ) 
+            }else if(this.cfg.xtype =="kmr"){
+                if(!kendrick || !kendrick.masses || !kendrick.defects){console.warn("Could not find kendrick data for chart n°"+this.index+" and dataset n°"+dataNum);return;}
+                thisData.attr("cx", (d,n) => { return this.scales[0](Math.round(kendrick.masses[n]) % Math.floor(this.cfg.kendrickMass));} )
             }else{
                 thisData.attr("cx", (d) => { return this.scales[0](d[config.mz]);} ) 
             }
         }if(content.includes("kendrick") || content.includes("yround_")|| content.includes("ymax_")|| content.includes("ymin_")|| content.includes("all")){
-            let kendrick = this.canvas.data[dataNum].calculateKM(this.cfg.kendrickFormula, this.cfg.kendrickMass, this.cfg.yround, this.cfg.kendrickDivisor)
             thisData.attr("cy", (d,n) => { return this.scales[1](kendrick.defects[n]); } ) 
         }if(content.includes("dotSize_")||content.includes("relativeSize_")|| content.includes("all")){
             thisData.attr("r", (d) => {
@@ -1417,6 +1439,10 @@ class CanvasCell_kendrick extends CanvasCell{
         })
         let x= [this.cfg.xmin, this.cfg.xmax]
         x = autoAxis(this.scales[0], dataX, config.mz)
+        if(this.cfg.xtype =="kmr"){
+                x[0] = 0
+                x[1] = Math.ceil(this.cfg.kendrickMass)
+        }
         this.cfg.xmin = x[0]
         this.cfg.xmax = x[1]
         let genMin = 0
@@ -1455,11 +1481,11 @@ class CanvasCell_kendrick extends CanvasCell{
 
     preparePopupCfg(){
         let varsArray = []
-        let optionsX = [{"name":"m/z","value":"m/z"},{"name":"NKM","value":"nkm"}]
+        let optionsX = [{"name":"m/z","value":"m/z"},{"name":"NKM","value":"nkm"},{"name":"KMR","value":"kmr"}]
         let optionsY = [{"name":"Round","value":"round"},{"name":"Round up(ceiling)","value":"ceiling"},{"name":"Round down(floor)","value":"floor"}]
         varsArray.push({"name":"x",
             "inputs":[
-                {key:"xtype",type:"select",value:this.cfg.xtype,title:"Choose whether the x axis is m/z or Nominal Kendrick Mass (NKM)",options:optionsX,update:(d)=>{this.cfg.update(d)}},
+                {key:"xtype",type:"select",value:this.cfg.xtype,title:"Choose whether the x axis is m/z, the Nominal Kendrick Mass (NKM) or the KMR (Kendrick Mass Remainder), see work from Sato H. and Fouquet T. ",options:optionsX,update:(d)=>{this.cfg.update(d)}},
                 {key:"xmin",type:"number",value:this.cfg.xmin,title: "Minimum axis value",update:(d)=>{this.cfg.update(d)}},
                 {key:"xmax",type:"number",value:this.cfg.xmax,title: "Maximum axis value",update:(d)=>{this.cfg.update(d)}},
             ]
@@ -1503,7 +1529,7 @@ class CanvasCell_kendrick extends CanvasCell{
         })
         varsArray.push({"name":"Divisor",
             "inputs":[
-                {key:"kendrickDivisor",type:"number",value:this.cfg.kendrickDivisor,title: "The divisor applied to the kendrick mass",update:(d)=>{this.cfg.update(d)}},
+                {key:"kendrickDivisor",type:"number",value:this.cfg.kendrickDivisor,title: "The divisor applied to the kendrick mass, see works from Fouquet T. and Sato. H",update:(d)=>{this.cfg.update(d)}},
             ]
         })
         varsArray.push({"name":"------------","inputs":[]})
@@ -1640,13 +1666,13 @@ class CanvasCell_kendrick2D extends CanvasCell{
         if(content.includes("kendrick") || content.includes("xmin_") || content.includes("xmax_")|| content.includes("all")){
             let formulas = [this.cfg.kendrickFormula, this.cfg.kendrickFormula2]
             let masses = [this.cfg.kendrickMass, this.cfg.kendrickMass2]
-            let kendrick2D = this.canvas.data[dataNum].calculateKM2D(formulas, masses, this.cfg.yround, this.cfg.kendrickDivisor)
+            let kendrick2D = this.canvas.data[dataNum].kendrick2D[this.index]
             thisData.attr("cx", (d,n) => { return this.scales[0](kendrick2D.defects1[n]); } ) 
             thisData.attr("cy", (d,n) => { return this.scales[1](kendrick2D.defects2[n]); } ) 
         }if(content.includes("kendrick") || content.includes("yround_")|| content.includes("ymax_")|| content.includes("ymin_")|| content.includes("all")){
             let formulas = [this.cfg.kendrickFormula, this.cfg.kendrickFormula2]
             let masses = [this.cfg.kendrickMass, this.cfg.kendrickMass2]
-            let kendrick2D = this.canvas.data[dataNum].calculateKM2D(formulas, masses, this.cfg.yround, this.cfg.kendrickDivisor)
+            let kendrick2D = this.canvas.data[dataNum].kendrick2D[this.index]
             thisData.attr("cx", (d,n) => { return this.scales[0](kendrick2D.defects1[n]); } ) 
             thisData.attr("cy", (d,n) => { return this.scales[1](kendrick2D.defects2[n]); } ) 
         }if(content.includes("dotSize_")||content.includes("relativeSize_")|| content.includes("all")){
@@ -5996,6 +6022,7 @@ class DataSet {
 
     /**activates filling and drawing from a fileName format ("file_"+*number*, "matrix", or venn set Name */
     fillFromName(fileName){
+        this.canvas.resetFilters()
         if(fileName.includes("file")){
             let fileNum = fileName.slice(5)
             let file = files.list[fileNum]
@@ -6156,7 +6183,6 @@ class DataSet {
                 }
             }
         }
-
         for(let i=0; i<data.length; i++){
             let calcMass = parseFloat(data[i][config.mz])*newBase
             let massDefect = 0
@@ -7463,9 +7489,17 @@ class BrushCanvas{
                 if(!kendrick || !kendrick.defects){continue;}
                 cell.drawnData[i].each(function(d, n){
                     if(this.style.display == "none"){return}
-                    if(isBrushed(selection, cell.scales[0](d[config.mz]), cell.scales[1](kendrick.defects[n]))){
-                        map.set(d.index, true)
-                    } 
+                    //checks if kmr is used or not for the brushing
+                    if(cfg.xtype == "kmr"){
+                        let kmr = Math.round(d[config.mz]) % Math.floor(kendrick.mass)
+                        if(isBrushed(selection, cell.scales[0](kmr), cell.scales[1](kendrick.defects[n]))){
+                            map.set(d.index, true)
+                        } 
+                    }else{
+                        if(isBrushed(selection, cell.scales[0](d[config.mz]), cell.scales[1](kendrick.defects[n]))){
+                            map.set(d.index, true)
+                        } 
+                    }
                 } )
             }else if(cellType == "kendrick2D"){
                 //find the kendrick dataset

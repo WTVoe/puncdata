@@ -108,15 +108,19 @@ function createTreatmentOptionMenu(){
         let optionOp_1 = document.createElement("option")
         let optionOp_2 = document.createElement("option")
         let optionOp_3 = document.createElement("option")
+        let optionOp_4 = document.createElement("option")
         optionOp_1.setAttribute("value",">")
         optionOp_2.setAttribute("value","<")
         optionOp_3.setAttribute("value","=")
+        optionOp_4.setAttribute("value","!=")
         optionOp_1.innerHTML = ">"
         optionOp_2.innerHTML = "<"
         optionOp_3.innerHTML = "="
+        optionOp_4.innerHTML = "!="
         html_opSelecter.appendChild(optionOp_1)
         html_opSelecter.appendChild(optionOp_2)
         html_opSelecter.appendChild(optionOp_3)
+        html_opSelecter.appendChild(optionOp_4)
         div.appendChild(html_colSelecter)
         div.appendChild(html_opSelecter)
         div.appendChild(html_valueSelecter)
@@ -399,6 +403,19 @@ function cutData(data,dataNumber, conditions) {
             }
         }
         
+    }
+    if (selecterOperation == "!="){
+        //for every data line
+        for(let i=data.length-1; i>=1; i--){ //>=1 to not delete the first line which contains the titles
+            if(data[i][selectedSelecter] != [] && data[i][selectedSelecter] != selecterValue){ //deletes if inferior
+                deletedData.push(data[i])
+                deletedData = deletedData.slice();
+                
+                loggingText = loggingText + "deleting :  ("+data[i] +")</br>";
+                loggingNumberDeleted = loggingNumberDeleted +1;
+                data.splice(i, 1)
+            }
+        }
     }
     //logs this operation
     if(dataNumber >-1 && files.list[dataNumber]){
