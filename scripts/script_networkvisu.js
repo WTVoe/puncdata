@@ -1478,10 +1478,10 @@ class Popup_networkData extends Popup{
         this.valButton.remove()
 
         //builds the data
-        this.buildDataTable()
+        this.buildData()
     }
 
-    buildDataTable(){
+    buildData(){
         //build the data about edges
         let edges = []
         if(this.network.cfg.edges){edges = this.network.cfg.edges.list}
@@ -1512,25 +1512,35 @@ class Popup_networkData extends Popup{
                     })
             }
         }
-
-        let tableWidth = 2
-        if(this.type == "undirected"){tableWidth = 4}
-        let table = createTable(edgesList.length+1,tableWidth)
-        table.rows[0].cells[0].textContent = "Link type"
-        table.rows[0].cells[1].textContent = "# Occurences"
-        if(this.type == "undirected"){
-            table.rows[0].cells[2].textContent = "Mass (Measured)"
-            table.rows[0].cells[3].textContent = "mDa error"
-        }
-        for(let i=1; i<edgesList.length+1; i++){
-            table.rows[i].cells[0].textContent = edgesList[i-1].name
-            table.rows[i].cells[1].textContent = edgesList[i-1].occurences
-            if(this.type == "undirected"){
-                table.rows[i].cells[2].textContent = edgesList[i-1].mass?edgesList[i-1].mass.toFixed(4):""
-                table.rows[i].cells[3].textContent = edgesList[i-1].errormDa?edgesList[i-1].errormDa.toFixed(4):""
+        //searchbar
+        let searchInput = document.createElement("input")
+        searchInput.setAttribute("type","text")
+        searchInput.setAttribute("placeholder","Search for a link type or mass (for undirected network)")
+        searchInput.setAttribute("name","searchInput")
+        searchInput.style.width = "90%"
+        searchInput.addEventListener("change", ()=>{
+            let searchValue = searchInput.value
+            if(isNaN(searchValue)){
+                this.buildTable(edgesList.filter((d)=>{return d.name.includes(searchValue)}))
+            }else if(searchValue == ""){
+                this.buildTable(edgesList)
             }
-        }
-        this.popup_box.appendChild(table)
+            else{
+                searchValue = parseFloat(searchValue)
+                let precision = 10
+                if (searchValue == Math.floor(searchValue)){precision = 1}
+                else if (searchValue == Math.floor(searchValue*10)/10){precision = 0.1}
+                else if (searchValue == Math.floor(searchValue*100)/100){precision = 0.01}
+                else if (searchValue == Math.floor(searchValue*1000)/1000){precision = 0.001}
+                else{precision = 0.0001}
+                this.buildTable(edgesList.filter((d)=>{return d.mass && Math.abs(parseFloat(d.mass) - searchValue)<precision}))
+            }
+        })
+        this.popup_box.appendChild(searchInput)
+        
+
+        //builds the table
+        this.buildTable(edgesList)
 
         let button = document.createElement("button")
         button.innerHTML = "Copy"
@@ -1553,7 +1563,29 @@ class Popup_networkData extends Popup{
             navigator.clipboard.writeText(text)
         })
         this.popup_box.appendChild(button)
-
+    }
+    buildTable(edgesList){
+        //remove previous table :
+        let previousTable = this.popup_box.querySelector("table")
+        if(previousTable){previousTable.remove()}
+        let tableWidth = 2
+        if(this.type == "undirected"){tableWidth = 4}
+        let table = createTable(edgesList.length+1,tableWidth)
+        table.rows[0].cells[0].textContent = "Link type"
+        table.rows[0].cells[1].textContent = "# Occurences"
+        if(this.type == "undirected"){
+            table.rows[0].cells[2].textContent = "Mass (Measured)"
+            table.rows[0].cells[3].textContent = "mDa error"
+        }
+        for(let i=1; i<edgesList.length+1; i++){
+            table.rows[i].cells[0].textContent = edgesList[i-1].name
+            table.rows[i].cells[1].textContent = edgesList[i-1].occurences
+            if(this.type == "undirected"){
+                table.rows[i].cells[2].textContent = edgesList[i-1].mass?edgesList[i-1].mass.toFixed(4):""
+                table.rows[i].cells[3].textContent = edgesList[i-1].errormDa?edgesList[i-1].errormDa.toFixed(4):""
+            }
+        }
+        this.popup_box.insertBefore(table, this.popup_box.querySelector("button[name='buttonCopy']"))
     }
 }
 

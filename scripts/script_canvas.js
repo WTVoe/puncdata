@@ -186,6 +186,9 @@ class Canvas{
             case 'massDifferences_formula':
                 return new CanvasCell_massDifferences_formula(this, index, cfg)
                 break;
+            case 'massDifferences_ratio':
+                return new CanvasCell_massDifferences_ratio(this, index, cfg)
+                break;
             default:
                 return new CanvasCell_void(this, index, cfg)
         }
@@ -289,6 +292,7 @@ class Canvas{
             cellTypes.push({value:"SPLITTER", name:"SPLITTER"})
             cellTypes.push({value:"massDifferences", name:"Mass Differences"})
             cellTypes.push({value:"massDifferences_formula", name:"Formula Differences"})
+            cellTypes.push({value:"massDifferences_ratio", name:"Intensity ratios (WIP)"})
         }
         return cellTypes
     }
@@ -5984,7 +5988,290 @@ class CanvasCell_massDifferences_formula extends CanvasCell{
 
 }
 
+class CanvasCell_massDifferences_ratio extends CanvasCell_histo{
+    constructor(parent, index, cfg){
+        super(parent, index)
+        this.cfg.prepareCfg("massDifferences_ratio")
+        if(cfg){this.cfg.copyCfg(cfg)}
+        this.draw()
+    }
+    /**draw the plot */
+    draw(){
+        super.draw()
+        let axisOptions = {}
+        if(this.cfg.config.endAxis){axisOptions.mode = "endAxis"}
+        let axisLabel_x = "Intensity Ratio"
+        let axisLabel_y = "Relative %"
+        if(this.cfg.ymethod == "attributions"){
+            axisLabel_y = "% of attributions"
+        }else if(this.cfg.ymethod == "intensity"){
+            axisLabel_y= "% of intensity"
+        }else if(this.cfg.ymethod == "count"){
+            axisLabel_y = "Number of attributions"
+        }
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels=[];
+        this.axesLabels[0]= appendAxisLabel_x(this.svgSpace, axisLabel_x,axisOptions, this.cfg.config);
+        this.axesLabels[1]= appendAxisLabel_y(this.svgSpace, axisLabel_y,axisOptions, this.cfg.config);
+        //create brushing or filtration
+        this.createBrushFilter("histogram")
+        this.drawAllData()
+        this.drawColourLegends(true)
+        this.drawFiltersTitles()
+    }
+    /**
+     * draws a single dataset
+     * @param {DataSet} dataset
+     * @param {*} index the index to save this dataset to 
+     */
+    drawData(dataset, index, specialInfo){
+        let suppID = ""
+        if(specialInfo != "highlight"){
+            super.drawData(dataset, index)
+        }else{
+            d3.selectAll("#canvas"+this.canvas.letter+" #cell"+this.index+"data"+index+"_highlight").remove()
+            suppID = "_highlight"
+        }
+        if(!this.cfg.activeData[index]){return;}
 
+        //prepares data
+        let diffs = []
+        diffs = dataset.prepareMassDifferences_ratio([this.cfg.deltamzmin,this.cfg.deltamzmax], false)
+        if(!diffs || diffs.length==0){return}
+
+        //handles which data must be binned
+        let theseBins = []
+        let color = dataset.cfg.colorSolid
+        if(specialInfo == "filter" && dataset.dataFiltered && dataset.dataFiltered.length >0){
+            //drawing bins for filtering
+            theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "filteredCell"+this.index, true, dataset.dataFiltered)
+        }else if(specialInfo== "highlight" && dataset.dataHighlighted && dataset.dataHighlighted.length >0){
+            //drawing bins for highlighting
+            theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, this.cfg.xtype, "highlightedCell"+this.index, true, dataset.dataHighlighted)
+            //for special interactivity case of non+-relative bar heights, must add 1 to the total number computed to account for the absence of title header
+            if(this.canvas.cfg.interactivity){
+                if(!this.canvas.cfg.interactivity.histogramRelativity){theseBins.totalNumber +=1}
+            }
+            color = this.canvas.cfg.interactivity.histoColor
+        }
+        else{
+            //drawing the classical way
+            theseBins = dataset.calculateBins([this.cfg.xmin, this.cfg.xmax], this.cfg.barDensity, "ratio", "filteredCell"+this.index, true, diffs)
+        }
+        console.log(theseBins)
+        let maxInt = Math.max(...theseBins.heights)
+        let dataNb = this.findNumberOfData()
+        let dataNbBefore = this.findNumberOfDataBefore(index)
+        let binWidth = (this.scales[0](theseBins.bins[0].x1) - this.scales[0](theseBins.bins[0].x0))/dataNb
+
+        if(!this.drawnData){this.drawnData = []}
+        this.drawnData[index] = this.svgSpace.append('g').attr("id","cell"+this.index+"data"+index+suppID)
+        .selectAll("rect")
+        .data(theseBins.bins)
+        .enter()
+        .append("rect")
+            .attr("x", (d) => {return this.findX(d, dataNb, dataNbBefore, binWidth)})
+            .attr("width", (d) =>{return Math.max(1, binWidth*this.cfg.barWidth*0.01 -1)})
+            .attr("y", (d,n) =>{
+                if(this.cfg.ymethod == "intensity"){return this.scales[1](100*d.intensity/theseBins.totalHeight)}
+                else if(this.cfg.ymethod =="attributions"){return this.scales[1](100*d.length/(theseBins.totalNumber - 1))}
+                else if(this.cfg.ymethod == "count"){return this.scales[1](d.length)}
+            })
+            .attr("height",(d,n)=>{
+                if(this.cfg.ymethod == "intensity"){return this.cfg.config.height - this.scales[1](100*d.intensity/theseBins.totalHeight)}
+                else if(this.cfg.ymethod =="attributions"){return this.cfg.config.height - this.scales[1](100*d.length/(theseBins.totalNumber - 1))}
+                else if(this.cfg.ymethod == "count"){return this.cfg.config.height - this.scales[1](d.length)}
+            })
+            .style("fill", color)
+            .attr("fillColor", color)
+            .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+            .attr('tooltipHTML', (d,n) => {return "histogram"+";"+index+";"+n})
+            .on("mouseover", (d) => {this.canvas.tooltip.mouseover(d)} )
+            .on("mousemove", (d,n) => {this.canvas.tooltip.mousemove(d,"histogram",n, this)}  )
+            .on("mouseleave" , (d) => {this.canvas.tooltip.mouseleave(d,true)}  )
+            .on("click", (d,n) =>{this.canvas.tooltip.mouseclick(d,"histogram",n, this)} );
+    
+        
+        if(this.cfg.showPercents){
+            this.drawnData[index] += this.svgSpace.append("g").attr("id","cell"+this.index+"data"+index+suppID)
+                .selectAll("rect")
+                .data(theseBins.bins)
+                .enter()
+                .append("text")
+                .attr("x", (d) => {
+                    let value = this.findX(d, dataNb, dataNbBefore, binWidth) + 0.5*binWidth*this.cfg.barWidth*0.01
+                    return value})
+                .attr("y", (d,n) =>{
+                    if(this.cfg.ymethod == "intensity"){return this.scales[1](100*theseBins.heights[n]/theseBins.totalHeight)}
+                    else if(this.cfg.ymethod =="attributions"){return this.scales[1](100*d.length/(dataset.data.length - 1))}
+                    else if(this.cfg.ymethod == "count"){return this.scales[1](d.length)}
+                })
+                .attr("font-size", this.cfg.config.legendFontSizeSmall)
+                .attr("text-anchor","middle")
+                .attr("fill","black")
+                .attr("clip-path", "url(#clipCvs"+this.canvas.letter+"Cell"+this.index+")")
+                .text((d,n)=>{return this.findPercentText(theseBins,d,n)})           
+        }
+    }
+
+
+    update(content, doNotUpdateDomains){
+        super.update(content, doNotUpdateDomains)
+        let axisLabel_x = "Intensity Ratio"
+        let axisLabel_y = "Relative %"
+        if(this.cfg.ymethod == "attributions"){
+            axisLabel_y = "% of attributions"
+        }else if(this.cfg.ymethod == "intensity"){
+            axisLabel_y= "% of intensity"
+        }else if(this.cfg.ymethod == "count"){
+            axisLabel_y = "Number of attributions"
+        }
+        if(this.cfg.overrideAxis_x && this.cfg.overrideAxis_x != ""){axisLabel_x = this.cfg.overrideAxis_x}
+        if(this.cfg.overrideAxis_y && this.cfg.overrideAxis_y != ""){axisLabel_y = this.cfg.overrideAxis_y}
+        this.axesLabels[0].text(axisLabel_x);
+        this.axesLabels[1].text(axisLabel_y);
+    }
+
+    updateData(content, dataNum){
+        super.updateData(content, dataNum)
+        this.drawData(this.canvas.data[dataNum],dataNum)
+    }
+
+    /** if the filter comes from this histogram, it should not be counted */
+    handleFiltering(indexesList){
+        if(!this.canvas.cfg.interactivity.filterWorkonHistograms){return;}
+        let activeData = this.canvas.cfg.interactivity.active
+        //checks if the only filter is on this chart, skips 
+        if(this.canvas.filters.length == 1){
+            if(this.canvas.filters[0] &&this.canvas.filters[0].cellIndex == this.index){return;}
+        }
+
+        for(let i=0; i<this.canvas.data.length; i++){
+            if(activeData !="all" && activeData !=i){return}
+            this.drawData(this.canvas.data[i], i, "filter")
+        }
+        this.drawFiltersTitles()
+    }
+
+    /** handle drawing bars for highlighted data */
+    handleHighlighting(){
+        //check if this method of brushing is active, because it can be disabled
+        if(!this.canvas.cfg.interactivity.createHistogramBars){return;}
+        for(let i=0; i<this.canvas.data.length; i++){
+            let dataset = this.canvas.data[i]
+            if(!dataset.highlight){continue;}
+            if(dataset.highlight.cellIndex == this.index){continue;}
+            if(this.cfg.activeData[i] != "1" || !dataset  || dataset.data.length == 0){continue;}
+            if(this.canvas.cfg.interactivity.active != "all" && this.canvas.cfg.interactivity.active != i){continue;}
+            this.drawData(this.canvas.data[i], i, "highlight")
+        }
+    }
+
+    autoscale(){
+        if(debug){console.log("autoscaling cell n°"+this.index+" from canvas"+this.canvas.letter)}
+        let data = []
+        let binSets = []
+        let datasets = this.canvas.data
+        datasets.forEach((item,index) => {
+            if( item.data.length >0 && this.cfg.activeData[index] == "1"){//only push the datasets containing data
+                data.push(item.data)
+            } 
+            let theseBins = item.findBins("cell"+this.index)
+            if( theseBins.bins && this.cfg.activeData[index] == "1"){//only push the datasets containing data
+                binSets.push(theseBins)
+            } 
+        })
+
+        let x= [this.cfg.xmin, this.cfg.xmax]
+        let xtype = this.cfg.xtype
+        x = autoAxis(this.scales[0], data, xtype)
+        this.cfg.xmin = x[0]
+        this.cfg.xmax = x[1]
+
+        let genMax = 0
+        binSets.forEach((set, index)=>{
+            let localMax = 0
+            if(this.cfg.ymethod == "intensity"){
+                localMax = 100*Math.max(...set.heights)/set.totalHeight
+            }else if(this.cfg.ymethod == "attributions"){
+                set.bins.forEach((bin)=>{if(bin.length>localMax){localMax = bin.length}})
+                if(this.canvas.data[index] && this.canvas.data[index].data){
+                    localMax = 100*localMax/this.canvas.data[index].data.length
+                }else{localMax = 0}
+            }else if(this.cfg.ymethod =="count"){
+                set.bins.forEach((bin)=>{if(bin.length>localMax){localMax = bin.length}})
+            }
+            if(localMax >genMax){genMax = localMax}
+        })
+        this.cfg.ymin = 0
+        this.cfg.ymax = Math.ceil(genMax)+10
+        this.draw()
+        this.drawAllData() 
+    }
+
+    prepareCfg(){
+        let properties = [
+            {key:"xtype",type:"number",default:0},
+            {key:"deltamzmin",type:"number",default:0},
+            {key:"deltamzmax",type:"number",default:1},
+            {key:"ymethod",type:"string",default:"attributions"},
+            {key:"barDensity",type:"number",default:10},
+            {key:"barWidth",type:"number",default:100},
+            {key:"centerBars",type:"checkbox",default:true},
+            {key:"showPercents",type:"checkbox",default:false},
+            {key:"errorRisk",type:"number",default:5},
+
+        ]
+        return properties
+    }
+
+    preparePopupCfg(){
+        let varsArray = []
+        let optionsY = [{"name":"% of attributions","value":"attributions"},{"name":"% of intensity","value":"intensity"},{"name":"nb of attribution","value":"count"}]
+        varsArray.push({"name":"x axis",
+            "inputs":[
+                {key:"xmin",type:"number",value:this.cfg.xmin,title: "Minimum axis value",update:(d)=>{this.cfg.update(d)}},
+                {key:"xmax",type:"number",value:this.cfg.xmax,title: "Maximum axis value",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"Δm/z range",
+            "inputs":[
+                {key:"deltamzmin",type:"number",value:this.cfg.deltamzmin,title: "Minimum value of Δm/z to consider",update:(d)=>{this.cfg.update(d)}},
+                {key:"deltamzmax",type:"number",value:this.cfg.deltamzmax,title: "Maximum value of Δm/z to consider",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"y",
+            "inputs":[
+                {key:"ymethod",type:"select",value:this.cfg.ymethod,options:optionsY,title: "The type of y axis: relative, absolute, percentage of intensity...",update:(d)=>{this.cfg.update(d)}},
+                {key:"ymin",type:"number",value:this.cfg.ymin,title: "Minimum axis value",update:(d)=>{this.cfg.update(d)}},
+                {key:"ymax",type:"number",value:this.cfg.ymax,title: "Maximum axis value",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"bar(s)/unit",
+            "inputs":[
+                {key:"barDensity",type:"number",value:this.cfg.barDensity,title: "The number of bars per unit on the x axis",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"bars width (%)",
+            "inputs":[
+                {key:"barWidth",type:"number",value:this.cfg.barWidth,title: "The percentage of the unit that the bar will cover. Reducing this value will show more blank spaces",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"Center bars",
+            "inputs":[
+                {key:"centerBars",type:"checkbox",value:this.cfg.centerBars,title: "Should there be an offset to center each bar on its unit. If unchecked, the bar will start at the beginning of the bin",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+        varsArray.push({"name":"Show %",
+            "inputs":[
+                {key:"showPercents",type:"checkbox",value:this.cfg.showPercents,title: "Show a text percentage over each bar",update:(d)=>{this.cfg.update(d)}},
+            ]
+        })
+
+        return varsArray
+    }
+}
 
 /*************************DATASETS CLASS ************************************/
 
@@ -6904,6 +7191,42 @@ class DataSet {
         }
         groups.sort((a,b)=> b.occurences - a.occurences)
         return groups
+    }
+
+    prepareMassDifferences_ratio(bounds, useFilteredData){
+        //computes differences. There is no need for grouping here
+        //sort data by mz values. this.sort cannot be used because it refreshes
+        let data = this.data
+        if(useFilteredData && this.dataFiltered && this.dataFiltered.length >0){data = this.dataFiltered}
+        data.sort((a,b)=>a[config.mz]-b[config.mz])
+        let differences = []
+        //starts at 1 to avoid header column
+        for(let i=1; i<data.length; i++){
+            let mass1 = data[i][config.mz]
+            for(let j=i-1; j>=1; j--){ //also starts at 1 to avoid header
+                let mass2 = data[j][config.mz]
+                let diff = mass1-mass2;
+                if(diff ==NaN){continue;}
+                //handle out of bounds mass differences
+                if(diff<bounds[0]){continue;}
+                if(diff>bounds[1]){break;}
+                let massdiff = {
+                    "mass":diff,
+                    "origin":i,
+                    "target":j,
+                    "originID":data[i].index,
+                    "targetID":data[j].index,
+                    "intensityOrigin":parseFloat(data[i][config.intensity]),
+                    "intensityTarget":parseFloat(data[j][config.intensity]),
+                }
+                massdiff.ratio = massdiff.intensityOrigin/massdiff.intensityTarget
+                differences.push(massdiff)
+            }
+        }
+        //sort differences
+        differences.sort((a,b)=> a.mass - b.mass)
+        console.log(differences)
+        return differences
     }
 
     /***************************MATRIX RELATED FUNCTIONS *************************************** */

@@ -1359,7 +1359,7 @@ function handlePopup(name, text, buttons, selecters, inputs){
     html_buttons[i].setAttribute("class","popupclose")
     html_buttons[i].setAttribute("name","popup_button_"+i)
     html_buttons[i].innerHTML = buttons[i].name
-    popup_box.innerHTML += "<br>"
+    popup_box.appendChild(document.createElement("br"))
     popup_box.appendChild(html_buttons[i])
   }
   

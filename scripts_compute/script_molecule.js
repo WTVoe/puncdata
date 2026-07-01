@@ -18,6 +18,7 @@ class ChemFormula {
     /**returns an independent copy of this chemFormula */
     returnDuplicate(){
         let copy = new ChemFormula("empty")
+        if (this.name == "empty"){return copy}
         copy.name = this.name
         copy.mass = this.mass
         copy.formula = []

@@ -2713,26 +2713,80 @@ function writeDeltasDirectTable(){
 
 function writeAttribsTable(data){
     let div = document.createElement("div")
-    div.innerHTML = " Only 5000 may appear at most. Please copy to get all <br>"
+    div.textContent = "Only 5000 may appear at most. Please copy to get all"
     div.style.maxHeight = "400px";
     div.style.overflow = "scroll";
-    let table = document.createElement("table")
-    let lines = []
-    let cells = []
-    let length = Math.min(data.length, 5000)
-    for(let i=0; i<length; i++){
-        lines[i]=document.createElement("tr")
-        cells[i]= []
-        for(let j=0; j<data[i].length; j++){
-            cells[i][j] = document.createElement("td")
-            cells[i][j].innerHTML = data[i][j]
-            lines[i].appendChild(cells[i][j])
+    let searchDiv  = createPopupSearchBar("Search for a formula or mass")
+    div.appendChild(searchDiv)
+    div.querySelector("input[name='searchInput']").addEventListener("change", function(d){
+        let searchValue = d.target.value
+        let dataset  = []
+        //case 1: formula search
+        if(isNaN(searchValue)){
+            for(let i=0; i<data.length; i++){
+                if(data[i][config.formulatext].includes(searchValue)){
+                    dataset.push(data[i])
+                }
+            }
         }
-        table.appendChild(lines[i])
+        else if(searchValue == ""){ //case 3: empty search
+            dataset = data
+        }
+        else{ //case 2: mass search
+            let massValue = parseFloat(searchValue)
+            //search with the precision given to the mass value
+            let precision = 10
+            if(massValue == Math.floor(massValue)){precision = 1}
+            else if(massValue*10 == Math.round(massValue*10)){precision = 0.1}
+            else if(massValue*100 == Math.round(massValue*100)){precision = 0.01}
+            else if(massValue*1000 == Math.round(massValue*1000)){precision = 0.001}
+            else if(massValue*10000 == Math.round(massValue*10000)){precision = 0.0001}
+            else{precision = 0.00001}
+            for(let i=0; i<data.length; i++){
+                if(Math.abs(parseFloat(data[i][config.mz])-massValue)<precision){
+                    dataset.push(data[i])
+                }
+            }
+        }
+        drawTable(dataset)
+    })
+    let dataset = data
+    function drawTable(dataset){
+        //clears the previous table if it exists
+        let existingTable = div.querySelector("table")
+        if(existingTable){ existingTable.remove() }
+        let table = document.createElement("table")
+        let length = Math.min(dataset.length, 5000)
+         let lines = []
+        let cells = []
+        for(let i=0; i<length; i++){
+            lines[i]=document.createElement("tr")
+            cells[i]= []
+            for(let j=0; j<dataset[i].length; j++){
+                cells[i][j] = document.createElement("td")
+                cells[i][j].innerHTML = dataset[i][j]
+                lines[i].appendChild(cells[i][j])
+            }
+            table.appendChild(lines[i])
+        }
+        div.appendChild(table)
     }
-    div.appendChild(table)
+    drawTable(dataset)
     return div
 }
+
+//Creates a search bar for popups but without the function
+function createPopupSearchBar(text){
+    let searchDiv = document.createElement("div")
+    let searchInput = document.createElement("input")
+    searchInput.setAttribute("type","text")
+    searchInput.setAttribute("name","searchInput")
+    searchInput.setAttribute("placeholder",text)
+    searchInput.style.width = "90%"
+    searchDiv.appendChild(searchInput)
+    return searchDiv
+}
+    
 
 function copyTable(data){
   var splitterA = "\t";
